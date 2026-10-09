@@ -25,7 +25,7 @@ mod buffer;
 pub mod kernel;
 mod output;
 
-pub use buffer::{Buffer, Discard, Level, Sink, UNIT, units};
+pub use buffer::{Buffer, BufferState, Discard, Level, Sink, UNIT, units};
 pub use output::{
     DC_CORNER_HZ, HEADROOM, Output, SPEAKER_BASS_HZ, SPEAKER_TREBLE_HZ, TV_BASS_HZ,
     TV_DEEMPHASIS_HZ, Tone,

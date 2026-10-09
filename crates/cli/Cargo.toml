@@ -6,10 +6,29 @@ license.workspace = true
 publish.workspace = true
 
 # `zx`: the emulator from the command line, headless, for agents and tests: run a machine, load a tape, type,
-# take a screenshot, read the screen as text.
+# take a screenshot, read the screen as text, compare pictures. The library holds what the binary does, for
+# the corpus tests (tests/corpus.rs) to drive.
+[lib]
+name = "zx_cli"
+path = "src/lib.rs"
+
 [[bin]]
 name = "zx"
 path = "src/main.rs"
 
 [dependencies]
 spectrum.workspace = true
+tape.workspace = true
+snapshot.workspace = true
+z80.workspace = true
+unzip.workspace = true
+# PNG pictures are deflated.
+miniz_oxide.workspace = true
+serde_json.workspace = true
+
+# The test corpus (docs/test-corpus.md): parts run side by side, each reported to nerd; a harness of its own so
+# that words after `--` choose parts by name.
+[[test]]
+name = "corpus"
+path = "tests/corpus/main.rs"
+harness = false

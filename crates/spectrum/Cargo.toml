@@ -5,6 +5,19 @@ edition.workspace = true
 license.workspace = true
 publish.workspace = true
 
+# The machine: the models (16K, 48K, 128K, +2, +2A, +3 without disks, Pentagon 128), memory and paging, the
+# ULA's contention, video and floating bus, the ports, the keyboard and joysticks, the beeper and the AY, the
+# tape deck, loading anything, snapshots and the fast whole-machine state. docs/machine.md is its record.
 [dependencies]
+z80.workspace = true
+audio.workspace = true
+ay.workspace = true
+tape.workspace = true
+snapshot.workspace = true
+unzip.workspace = true
+# The fast state (save_state) is deflated, in Rust alone so that it builds for WebAssembly.
+miniz_oxide.workspace = true
 
 [dev-dependencies]
+miniz_oxide.workspace = true
+serde_json.workspace = true

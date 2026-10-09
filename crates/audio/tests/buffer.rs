@@ -528,3 +528,103 @@ fn no_input_within_a_span_of_one_can_reach_the_clamp() {
     }
     println!("{}", report.join("\n"));
 }
+
+#[test]
+fn a_state_put_back_goes_on_to_the_bit() {
+    // A machine's saved state carries the buffer's: a buffer set to it hands out, given the same steps, what
+    // the buffer it was taken from handed out, sample for sample, through every tone's filters, with steps
+    // left pending past the frame's end.
+    for tone in [Tone::Flat, Tone::Speaker, Tone::Television] {
+        let output = Output {
+            tone,
+            dc_block: true,
+            volume: 0.8,
+        };
+        let mut a = Buffer::new(3_546_900, 44_100);
+        a.set_output(output);
+        let mut x: u32 = 12345;
+        let mut next = || {
+            x ^= x << 13;
+            x ^= x >> 17;
+            x ^= x << 5;
+            x
+        };
+        let mut steps = |buffer: &mut Buffer, frame: u32| {
+            let _ = frame;
+            for _ in 0..40 {
+                let t = next() % 70_908;
+                let d = (next() % 20_000) as i32 - 10_000;
+                buffer.add_step(t, d, -d / 2);
+            }
+            // One past the frame's end, which stays pending.
+            buffer.add_step(70_910, 5_000, 5_000);
+        };
+        let mut out = vec![0.0f32; 4096];
+        for f in 0..10 {
+            steps(&mut a, f);
+            a.end_frame(70_908);
+            a.read_samples(&mut out);
+        }
+        let saved = a.state();
+        let mut b = Buffer::new(3_500_000, 48_000);
+        b.set_state(&saved);
+        assert_eq!(b.state(), saved);
+        let seed = x;
+        let run = |buffer: &mut Buffer, mut x: u32| {
+            let mut all = Vec::new();
+            for _ in 0..20 {
+                for _ in 0..40 {
+                    x ^= x << 13;
+                    x ^= x >> 17;
+                    x ^= x << 5;
+                    let t = x % 70_908;
+                    buffer.add_step(t, (x % 9_000) as i32 - 4_500, 300);
+                }
+                buffer.end_frame(70_908);
+                let mut s = vec![0.0f32; 4096];
+                let n = buffer.read_samples(&mut s);
+                all.extend_from_slice(&s[..2 * n]);
+            }
+            all
+        };
+        let (sa, sb) = (run(&mut a, seed), run(&mut b, seed));
+        assert_eq!(sa.len(), sb.len());
+        assert!(
+            sa.iter().zip(&sb).all(|(p, q)| p.to_bits() == q.to_bits()),
+            "{tone:?}: the restored buffer differs"
+        );
+        // And a buffer that is not put back does differ: the test can tell.
+        let mut c = Buffer::new(3_546_900, 44_100);
+        c.set_output(output);
+        assert_ne!(run(&mut c, seed), sa);
+    }
+}
+
+#[test]
+fn a_held_level_settles_to_zero_not_into_subnormals() {
+    // After a level held for a while the filters' decay must reach zero. Subnormal values left in their state
+    // (where rounding can hold a decay short of zero for ever) make every later sample tens of times slower.
+    for tone in [Tone::Flat, Tone::Speaker, Tone::Television] {
+        let mut b = Buffer::new(3_500_000, 48_000);
+        b.set_output(Output {
+            tone,
+            dc_block: true,
+            volume: 1.0,
+        });
+        Level::new().set(&mut b, 100, 0.5);
+        let mut out = vec![0.0f32; 4096];
+        for _ in 0..3000 {
+            b.end_frame(69_888);
+            b.read_samples(&mut out);
+        }
+        let s = b.state();
+        for h in &s.filters {
+            for &v in h {
+                assert!(
+                    v == 0.0 || v.abs() >= f64::MIN_POSITIVE,
+                    "{tone:?}: a filter holds the subnormal {v:e}"
+                );
+            }
+        }
+    }
+}

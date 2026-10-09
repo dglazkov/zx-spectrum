@@ -112,6 +112,16 @@ dependencies = [
 [[package]]
 name = "spectrum"
 version = "0.1.0"
+dependencies = [
+ "audio",
+ "ay",
+ "miniz_oxide",
+ "serde_json",
+ "snapshot",
+ "tape",
+ "unzip",
+ "z80",
+]
 
 [[package]]
 name = "syn"
@@ -163,7 +173,13 @@ checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
 name = "zx-cli"
 version = "0.1.0"
 dependencies = [
+ "miniz_oxide",
+ "serde_json",
+ "snapshot",
  "spectrum",
+ "tape",
+ "unzip",
+ "z80",
 ]
 
 [[package]]

@@ -68,6 +68,26 @@ impl Level {
     }
 }
 
+/// Everything a `Buffer` holds, as plain data: for a machine's saved state, so that sound restored from it goes
+/// on exactly, sample for sample, as it would have (`Buffer::state`, `Buffer::set_state`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct BufferState {
+    pub clock_hz: u32,
+    pub sample_rate: u32,
+    /// Where T-state 0 of the current frame falls past sample `frame_start`, in 1/`clock_hz` of a sample.
+    pub frac: u64,
+    /// The sample T-state 0 of the current frame falls in.
+    pub frame_start: u64,
+    /// Each buffered sample's change of level, left and right (in `UNIT << kernel::KERNEL_BITS`), from the
+    /// first not yet read to the last a step has touched.
+    pub deltas: Vec<[i64; 2]>,
+    /// The level at the last sample read.
+    pub level: [i64; 2],
+    pub output: Output,
+    /// The output stage's filters: each section's x1, x2, y1, y2, the left side's sections then the right's.
+    pub filters: Vec<[f64; 4]>,
+}
+
 /// The scale from the integrated buffer (units times the kernel's unit) to a level of 1.0.
 const TO_LEVEL: f64 = 1.0 / ((UNIT as i64) << KERNEL_BITS) as f64;
 
@@ -156,6 +176,36 @@ impl Buffer {
     pub fn set_output(&mut self, output: Output) {
         let (l, r) = self.raw_level();
         self.stage.rebuild(output, self.rate as u32, l, r);
+    }
+
+    /// The buffer's whole state.
+    pub fn state(&self) -> BufferState {
+        BufferState {
+            clock_hz: self.clock as u32,
+            sample_rate: self.rate as u32,
+            frac: self.frac,
+            frame_start: self.frame_start as u64,
+            deltas: self.deltas[..self.used].to_vec(),
+            level: self.level,
+            output: self.stage.output(),
+            filters: self.stage.histories(),
+        }
+    }
+
+    /// Puts the buffer in a state taken by `state`: what it then hands out is what the buffer it was taken
+    /// from handed out after it, to the bit, given the same steps.
+    pub fn set_state(&mut self, s: &BufferState) {
+        assert!(s.clock_hz > 0 && s.sample_rate > 0, "rates must be positive");
+        self.clock = s.clock_hz as u64;
+        self.rate = s.sample_rate as u64;
+        self.frac = s.frac % self.clock;
+        self.used = s.deltas.len();
+        self.frame_start = (s.frame_start as usize).min(self.used);
+        self.deltas = vec![[0; 2]; self.used.max(4096).next_power_of_two()];
+        self.deltas[..self.used].copy_from_slice(&s.deltas);
+        self.level = s.level;
+        self.stage = Stage::new(s.output, s.sample_rate);
+        self.stage.set_histories(&s.filters);
     }
 
     /// Drops what is buffered and not yet read, keeping the sources' levels: as after a reset or a rewind,

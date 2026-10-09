@@ -119,9 +119,15 @@ impl Biquad {
 
     #[inline]
     fn process(&mut self, x: f64) -> f64 {
-        let y = self.b0 * x + self.b1 * self.x1 + self.b2 * self.x2
+        let mut y = self.b0 * x + self.b1 * self.x1 + self.b2 * self.x2
             - self.a1 * self.y1
             - self.a2 * self.y2;
+        // What has decayed below anything audible is zero. Left alone, a decay held by a steady input sinks
+        // into subnormal numbers, where rounding stops it short of zero for good (0.9995 × n rounds back to n
+        // for small n), and every sample after costs tens of times what it should.
+        if y.abs() < 1e-30 {
+            y = 0.0;
+        }
         self.x2 = self.x1;
         self.x1 = x;
         self.y2 = self.y1;
@@ -185,6 +191,17 @@ impl Chain {
             v = s.y1;
         }
     }
+
+    /// Each section's history: x1, x2, y1, y2.
+    fn histories(&self) -> impl Iterator<Item = [f64; 4]> + '_ {
+        self.sections.iter().map(|s| [s.x1, s.x2, s.y1, s.y2])
+    }
+
+    fn set_histories(&mut self, h: &[[f64; 4]]) {
+        for (s, &[x1, x2, y1, y2]) in self.sections.iter_mut().zip(h) {
+            (s.x1, s.x2, s.y1, s.y2) = (x1, x2, y1, y2);
+        }
+    }
 }
 
 /// The 48K speaker model's bass corner (second-order): a small speaker's resonance, below which it gives
@@ -227,6 +244,20 @@ impl Stage {
         *self = Stage::new(output, rate);
         self.left.settle(left);
         self.right.settle(right);
+    }
+
+    /// The filters' histories, the left side's sections and then the right's.
+    pub(crate) fn histories(&self) -> Vec<[f64; 4]> {
+        self.left.histories().chain(self.right.histories()).collect()
+    }
+
+    /// Puts back histories taken by `histories` from a stage of the same output and rate (any others are left).
+    pub(crate) fn set_histories(&mut self, h: &[[f64; 4]]) {
+        let n = self.left.sections.len();
+        if h.len() == 2 * n {
+            self.left.set_histories(&h[..n]);
+            self.right.set_histories(&h[n..]);
+        }
     }
 
     /// One stereo sample: the raw levels in, the samples out.

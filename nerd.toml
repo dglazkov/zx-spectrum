@@ -75,3 +75,27 @@ name = "web-page"
 run = "cd web && node tests/page.mjs"
 covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/public/**", "web/tests/page.mjs", "web/tests/fixtures/**", "web/vite.config.ts", "web/server.mjs", "web/package-lock.json", "roms/48.rom"]
 limit = "2m"
+
+# The machine (crates/spectrum) and zx (crates/cli), on programs the tests build and the ROMs alone: every model
+# booting; contention by model, memory and I/O, T-state by T-state; the floating bus; the border's latch; port
+# FEh, Issue 2 and 3, the Kempston; paging and its lock; LD-BYTES loaded at once and from the edges alike; SAVE
+# recorded as a TAP; typing at the ROM's pace; snapshots and the fast state, bit for bit; breakpoints, NMI, the
+# AY, snow; every zx command. A few seconds.
+[[test]]
+name = "machine"
+run = "CARGO_TARGET_DIR=target/machine cargo test -q -p spectrum && CARGO_TARGET_DIR=target/machine cargo test -q -p zx-cli --lib --bins --test cli"
+covers = ["crates/spectrum/**", "crates/cli/**", "!crates/cli/tests/corpus/**", "crates/z80/src/**", "crates/audio/src/**", "crates/ay/src/**", "crates/tape/src/**", "crates/snapshot/src/**", "crates/unzip/src/**", "roms/**", "Cargo.toml"]
+limit = "2m"
+
+# The test corpus (docs/test-corpus.md, docs/machine.md): the real software, held to what real hardware shows.
+# z80test through the tape, fusetest on four models, the Butlers' timing tests, Minfo, ULA test 3, Rak's timing
+# test against ten captures, Floating Spy, azesmbog's ULA pictures, Woodmass's tests, the +2A/+3's floating bus
+# and paging; Saboteur from its TZX (stripes, loading screen, REWARD, a game) and instantly; twenty more games
+# and demos; the state bit for bit; the snapshot fixtures round-tripped. A part a program, side by side on up to
+# eight threads, each reported with its time in emulated seconds (never the wall clock); a release build. Words
+# after the command choose parts by name: `nerd test corpus saboteur`.
+[[test]]
+name = "corpus"
+run = "CARGO_TARGET_DIR=target/machine cargo test --release -q -p zx-cli --test corpus"
+covers = ["crates/spectrum/**", "crates/cli/src/lib.rs", "crates/cli/src/image.rs", "crates/cli/src/script.rs", "crates/cli/tests/corpus/**", "crates/z80/src/**", "crates/audio/src/**", "crates/ay/src/**", "crates/tape/src/**", "crates/snapshot/src/**", "crates/unzip/src/**", "roms/**", "Cargo.toml", "fixtures.txt"]
+limit = "10m"
