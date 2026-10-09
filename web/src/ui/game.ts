@@ -6,7 +6,7 @@
 // keys where one is found, and one honest line about the joystick. Then save slots of its own, and the whole manual,
 // set as a booklet, folded.
 
-import type { GameCard } from '../library/card';
+import { isByHand, type GameCard } from '../library/card';
 import type { Manual } from '../library/manual';
 import type { StartChoice } from '../library/start';
 import type { Slot } from '../state/saves';
@@ -347,7 +347,11 @@ export function createGamePanel(hooks: GameHooks): GamePanel {
         const route = card.start;
         steps.replaceChildren(...route.steps.map((st) => h('li', {}, ...withKeycaps(st.text, st.keys))));
         stepsCount.textContent = ` · ${route.steps.length} ${route.steps.length === 1 ? 'step' : 'steps'}`;
-        byHand.open = false;
+        // A start the person makes by hand: no button, no choice of how to play (the steps say which key picks the
+        // joystick at the game's menu), and the steps open.
+        const manual_ = isByHand(route);
+        byHand.open = manual_;
+        starter.hidden = startStatus.hidden = manual_;
         const [lo, hi] = route.skills ?? [1, 1];
         skillSelect.replaceChildren(...Array.from({ length: hi - lo + 1 }, (_, i) => h('option', { value: lo + i }, String(lo + i))));
         skill = Math.max(lo, Math.min(hi, skill));
@@ -356,7 +360,7 @@ export function createGamePanel(hooks: GameHooks): GamePanel {
         // The joystick by default wherever the game has one (or the arrows, through its key map): the page's joystick is
         // the same on every game, the keyboard's arrows, a gamepad and the phone's pad alike.
         joystick = hasJoystick(card);
-        playWith.hidden = !hasJoystick(card);
+        playWith.hidden = manual_ || !hasJoystick(card);
         const next = segmented<'keys' | 'joystick'>('Play with', [card.joystick ? joystickChoice : { ...joystickChoice, label: 'Arrows', title: 'The arrow keys and the fire key (a gamepad, the touch pad) pressing the game’s own keys' }, keysChoice], joystick ? 'joystick' : 'keys', choose, 'start-how');
         how.el.replaceWith(next.el);
         how = next;

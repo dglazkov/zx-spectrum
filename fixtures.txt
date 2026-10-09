@@ -199,3 +199,21 @@ saboteur-manual.txt 2f15de06c2d13e097375dab309815ec5146af0aacc684942899248019e48
 saboteur-inlay.jpg 65d0425cd7494c690295cab3c2b71c0f93c164357e990332e3e8448a4f45a5f2 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0004293/Saboteur.jpg
 game-bubble-bobble.tzx 79c8ebf2b40af41423e0d3303e416eb232f911d790a15b4a1c65c0d754a39c1c https://spectrumcomputing.co.uk/pub/sinclair/games/b/BubbleBobble.tzx.zip Bubble Bobble.tzx
 game-target-renegade.tap 073f021238c0588bcce715e569db35675e49e4e7ba289b844196e9ff6767d0ca https://spectrumcomputing.co.uk/pub/sinclair/games/t/Target-Renegade128.tap.zip RENGADE2.TAP
+game-saboteur-2.tap dbbc80e901973cbef8b5d606b2b08bcf5acce20d0205eea7ed43e0ce14c16e3c https://spectrumcomputing.co.uk/pub/sinclair/games/s/SaboteurII128.tap.zip SAB2-128.TAP
+game-head-over-heels.tzx 65b300a2c501c7d1a8c4e41889950cc384ca1455a74f307bac074d5aab8a7c74 https://spectrumcomputing.co.uk/pub/sinclair/games/h/HeadOverHeels.tzx.zip Head Over Heels.tzx
+game-elite.tap e980928d23312ddfeffedf73df8ec76c9ae5158085b28fa801ad542928498ac0 https://spectrumcomputing.co.uk/pub/sinclair/games/e/Elite128.tap.zip ELITE128.TAP
+game-skool-daze.tzx b96698ccb4fa381870bd0180f95155df827bcf7ef4a4ef4f632478df1b1b5bb3 https://spectrumcomputing.co.uk/pub/sinclair/games/s/SkoolDaze.tzx.zip Skool Daze.tzx
+game-match-day.tzx 801116e5c0b1847e1c7f1d9d9e2552d303e25130fd35052b35c70516617ee8db https://spectrumcomputing.co.uk/pub/sinclair/games/m/MatchDay.tzx.zip Match Day.tzx
+game-starquake.tzx 71f57773d51b4609d8f030df6802b4680025fa016263020f9a3b9a7bdc77de7b https://spectrumcomputing.co.uk/pub/sinclair/games/s/Starquake.tzx.zip Starquake.tzx
+game-fairlight.tzx c8cec5350ca004555e9a9aa293e37884692842b88fb37884665b648f257e6454 https://spectrumcomputing.co.uk/pub/sinclair/games/f/Fairlight48V2.tzx.zip Fairlight - 48k - Release 2.tzx
+game-ant-attack.tzx 98ce71d3cd79fb2faac8524428ba53492d05a5e62efcad340236abd50d8d6f7f https://spectrumcomputing.co.uk/pub/sinclair/games/a/AntAttack.tzx.zip Ant Attack.tzx
+game-bomb-jack.tzx edfb74bc44f8cad13e344d57f6049a22212bf222edda14c55348a9950ab3a5c6 https://spectrumcomputing.co.uk/pub/sinclair/games/b/BombJack.tzx.zip Bomb Jack.tzx
+game-cybernoid.tap 379db1707f134e40ad53b17a59a24e87e38fdfce4416a51d267bff04f6db28a2 https://spectrumcomputing.co.uk/pub/sinclair/games/c/Cybernoid128.tap.zip CYB1_128.TAP
+game-batman.tzx b646778c1e05cbf847fbb7b0b7d7ab48dc6f6778bf5dbf4b2c8d9bd2ea730f1b https://spectrumcomputing.co.uk/pub/sinclair/games/b/BatmanV3.tzx.zip Batman - Release 3.tzx
+game-treasure-island-dizzy.tzx ab9773473163956460697e3d8da5761c7c5fefadef21c446e8f78c0abf6684bc https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0009333/Dizzy2-TreasureIslandDizzy.tzx.zip Dizzy2-TreasureIslandDizzy.tzx
+game-batty.tzx a4daa021d769f096a90aa3ccdafb52afc055a4b94aa9548f506fd24b3fbc8380 https://spectrumcomputing.co.uk/pub/sinclair/games/b/Batty.tzx.zip BATTY.TZX
+game-jet-set-willy.tzx d2414588773638d7bb1639c2ef25e089f36d8d7d2959971549e303ff20c358c3 https://spectrumcomputing.co.uk/pub/sinclair/games/j/JetSetWilly_2.tzx.zip Jet Set Willy.tzx
+game-horace-goes-skiing.tzx dca33aadc5d95a3674c6720234ed8839e119631a38b77e116e1bbb75f6890332 https://spectrumcomputing.co.uk/pub/sinclair/games/h/HoraceGoesSkiing.tzx.zip Horace Goes Skiing.tzx
+game-deathchase.tzx 99bba6a69920f4e67f387adf1f43f6b47bc7fad979bbe9b894b7be91134dfd6a https://spectrumcomputing.co.uk/pub/sinclair/games/d/Deathchase.tzx.zip 3D Deathchase.tzx
+game-the-hobbit.tzx 970789c00e5685b2ac408eea5a334b915c2ce6ebcdbe09d564467c61fe3ede32 https://spectrumcomputing.co.uk/pub/sinclair/games/h/HobbitTheV1.2.tzx.zip The Hobbit v1.2.tzx
+game-the-lords-of-midnight.tzx 320d1a9d3469f688dab97fc5eb1fd0f4fa795ecd71f915245a51921e28d8972e https://spectrumcomputing.co.uk/pub/sinclair/games/l/LordsOfMidnightThe.tzx.zip The Lords Of Midnight - Side 1.tzx

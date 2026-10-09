@@ -15,7 +15,7 @@ import { BOOT_FRAMES_MAX, loadKeys, romReady } from './input/typer';
 import { createKeyboard } from './keyboard/keyboard';
 import { choose, Unloadable } from './library/choose';
 import { fetchManual, type Manual } from './library/manual';
-import type { GameCard } from './library/card';
+import { isByHand, type GameCard } from './library/card';
 import { cardFor } from './library/games';
 import { screenOf, StartPilot, type StartChoice } from './library/start';
 import { archiveUrl, fetchArchive, fetchEntry, type ZxEntry } from './library/zxinfo';
@@ -73,6 +73,8 @@ const SHELLS: Readonly<Record<string, Shell>> = {
 
 /** How long the controls stay over the screen when play begins: eight seconds of the game. */
 const CONTROLS_FRAMES = 400;
+/** How long a game started by hand has run, its tape stopped, before its steps and controls show by themselves. */
+const LOADED_FRAMES = 150;
 
 const hex4 = (v: number) => v.toString(16).toUpperCase().padStart(4, '0');
 const SLOT_NAMES = ['the quick slot', 'slot 1', 'slot 2', 'slot 3'];
@@ -130,6 +132,8 @@ export class App {
   private controlsUntil = 0;
   /** The controls have shown by themselves for the game in the machine: once a game, unless its Start button is pressed. */
   private controlsShown = false;
+  /** A game started by hand: the frame its tape was first seen stopped with the program running; null: not yet. */
+  private loadedAt: number | null = null;
   /** The manual's table of keys, for the controls of a game with no card. */
   private manualTable: Manual['table'] = null;
   private gamepad = false;
@@ -343,7 +347,7 @@ export class App {
   /** The game from its first screen to playing, the keys pressed for the person (now, or when that screen shows). */
   startGame(choice: StartChoice): void {
     const card = this.card();
-    if (!card || this.broken) return;
+    if (!card || isByHand(card.start) || this.broken) return;
     this.startSound();
     this.touched = true;
     this.playChoice = choice;
@@ -388,7 +392,9 @@ export class App {
     if (!game || (this.controlsShown && !started)) return;
     this.controlsShown = true;
     if (wasDismissed(game.key)) {
-      toast(`${game.title}: you are playing. ${this.touchFirst ? 'The Controls button on the set' : 'F3'} shows the controls.`);
+      const again = this.touchFirst ? 'The Controls button on the set' : 'F3';
+      const card = this.card();
+      toast(card && isByHand(card.start) ? `${game.title} has loaded. ${again} shows how to start it, and its controls.` : `${game.title}: you are playing. ${again} shows the controls.`);
       return;
     }
     this.showControls(true);
@@ -543,7 +549,19 @@ export class App {
     // The card's route, now and then: whether the game's first screen is there (for the start button), and whether
     // play has begun without it (the person started the game themselves), which shows the controls.
     const card = this.card();
-    if (card && !this.pilot && this.emulator.frameCount % 25 === 0 && this.programLoaded) {
+    if (card && isByHand(card.start)) {
+      // A game started by hand: once it has loaded (its tape stopped, the program running) and run a few seconds, its
+      // steps and controls show by themselves.
+      const frame = this.emulator.frameCount;
+      if (tape.playing || !this.programLoaded) this.loadedAt = null;
+      else if (this.inPlay === false) {
+        this.loadedAt ??= frame;
+        if (frame - this.loadedAt >= LOADED_FRAMES) {
+          this.loadedAt = null;
+          this.playBegins();
+        }
+      }
+    } else if (card && !this.pilot && this.emulator.frameCount % 25 === 0 && this.programLoaded) {
       const screen = screenOf(this.emulator);
       if (!this.startWanted && this.startShown !== 'done') this.showStart(card.start.ready(screen) ? 'ready' : this.startShown === 'gave up' ? 'gave up' : 'waiting');
       const playing = 'done' in card.start.next(screen, this.playChoice);

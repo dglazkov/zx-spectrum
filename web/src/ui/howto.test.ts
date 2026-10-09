@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { GameCard } from '../library/card';
+import { byHand, type GameCard } from '../library/card';
 import { card as saboteur } from '../library/games/saboteur';
-import { controlsNow, controlsTable, fallbackHowTo, joystickLine, keyCap, modeOf, padCaps, zxdbSays, type Hands, type Press } from './howto';
+import { controlsNow, stepNow, controlsTable, fallbackHowTo, joystickLine, keyCap, modeOf, padCaps, zxdbSays, type Hands, type Press } from './howto';
 
 const keyboard: Hands = { fireCode: 'AltLeft', touch: false, gamepad: false };
 const labels = (p: Press | null) => (p ? p.map((c) => c.label) : null);
@@ -119,5 +119,42 @@ describe('a game with no card', () => {
     expect(howto.note).toMatch(/^Most games of the time/);
     expect(fallbackHowTo([], null, keyboard).how).toBe('The ZXDB lists no controls for it.');
     expect(fallbackHowTo([], null, keyboard, false).how).toBe('Opened from a file: the page knows nothing of how it is played.');
+  });
+});
+
+describe('a game started by hand', () => {
+  const menu: GameCard = {
+    ...saboteur,
+    id: '9999998',
+    start: byHand([
+      { text: 'At the menu: 4 for the joystick, then 0 to start.', keys: ['4', '0'] },
+      { text: 'At the title screen press ENTER.', keys: ['ENTER'] },
+      { text: 'Then wait for it.', keys: ['any'] },
+    ]),
+  };
+  const words = (p: readonly (string | { label: string })[]) => p.map((x) => (typeof x === 'string' ? x : `[${x.label}]`)).join('');
+
+  it('shows its steps first, the keys they name as keycaps, then the controls as the joystick presses them', () => {
+    const now = controlsNow(menu, { ...keyboard, joystick: true });
+    expect(now.steps?.map(words)).toEqual(['At the menu: [4] for the joystick, then [0] to start.', 'At the title screen press [Enter].', 'Then wait for it. [any key]']);
+    expect(now.mode).toBe('Joystick');
+    expect(row(now, /swim left/)).toEqual(['←']);
+    expect(row(now, /^Punch/)).toEqual(['Left Alt']);
+  });
+
+  it('a keymapped game started by hand: the steps, then the arrows doing its keys', () => {
+    const now = controlsNow({ ...noJoystick, start: menu.start }, { ...keyboard, joystick: true });
+    expect(now.steps).toHaveLength(3);
+    expect(now.mode).toBe('Arrows');
+    expect(row(now, /Walk left/)).toEqual(['←']);
+    expect(now.note).toContain('← is O');
+  });
+
+  it('a key inside a word is not a keycap', () => {
+    expect(words(stepNow({ text: 'Press 0 on 10 or 0.', keys: ['0'] }, keyboard))).toBe('Press [0] on 10 or [0].');
+  });
+
+  it('a start the page drives has no steps over the screen', () => {
+    expect(controlsNow(saboteur, { ...keyboard, joystick: true }).steps).toBeUndefined();
   });
 });

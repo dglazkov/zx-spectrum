@@ -5,7 +5,8 @@
 // works out is tested on its own (howto.test.ts).
 
 import { FIRE_KEYS } from '../input/keymap';
-import type { Control, GameCard, Pad } from '../library/card';
+import { isByHand, type Control, type GameCard, type Pad } from '../library/card';
+import type { Route } from '../library/start';
 
 /** How the page's joystick reaches the person, which does not change from game to game. */
 export interface Hands {
@@ -48,7 +49,12 @@ export interface HowTo {
   readonly extras: readonly HowRow[];
   /** A line under it all: for a key map, which key each arrow presses; for a game with no card, the joystick's honest line. */
   readonly note: string | null;
+  /** For a game the person starts by hand: its steps, first, each as text with its keys set as keycaps. */
+  readonly steps?: readonly StepNow[];
 }
+
+/** A step of a start by hand as it shows: its words, with each key it names a keycap where the words name it. */
+export type StepNow = readonly (string | Cap)[];
 
 /** The fire key's name, as Settings lists it ('Left Alt'). */
 export function fireName(code: string): string {
@@ -130,7 +136,30 @@ export function controlsNow(card: GameCard, playing: Playing): HowTo {
     const pairs = order.filter((p) => card.keymap?.[p]).map((p) => `${padCaps([p], playing)[0].label} is ${keyCap(card.keymap![p]!, { ...playing, touch: false }).label}`);
     note = `${pairs.join(' · ')}.`;
   }
-  return { mode, how, rows, extras, note };
+  const steps = stepsNow(card, playing);
+  return steps.length ? { mode, how, rows, extras, note, steps } : { mode, how, rows, extras, note };
+}
+
+/** A step's words with each key it names (as the route's steps name them) a keycap; 'any' is "any key", at its end. */
+export function stepNow(step: Route['steps'][number], hands: Hands): StepNow {
+  const out: (string | Cap)[] = [];
+  const names = step.keys.filter((k) => k !== 'any');
+  const pattern = names.length ? new RegExp(`(?<![A-Za-z0-9])(${names.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})(?![A-Za-z0-9])`, 'g') : null;
+  let last = 0;
+  if (pattern)
+    for (const m of step.text.matchAll(pattern)) {
+      out.push(step.text.slice(last, m.index));
+      out.push(...keyCaps([m[0]], hands));
+      last = (m.index ?? 0) + m[0].length;
+    }
+  out.push(step.text.slice(last));
+  if (step.keys.includes('any')) out.push(' ', { label: 'any key', title: 'Any key', kind: 'key' });
+  return out.filter((p) => p !== '');
+}
+
+/** The card's start by hand, its steps as they show over the screen; none for a start the page drives. */
+export function stepsNow(card: GameCard, hands: Hands): StepNow[] {
+  return isByHand(card.start) ? card.start.steps.map((st) => stepNow(st, hands)) : [];
 }
 
 /** The panel's table of controls: each with how the joystick does it and how the game's keys do. */

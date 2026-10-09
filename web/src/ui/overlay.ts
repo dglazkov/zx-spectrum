@@ -56,6 +56,7 @@ export function createOverlay(hooks: OverlayHooks, touch = false): ControlsOverl
   const how = h('span', { class: 'ov-how' });
   const close = h('button', { type: 'button', class: 'ov-close', 'aria-label': 'Close, and do not show by itself for this game again', title: 'Close (it will not show by itself for this game again; F3 shows it)' }, icon('close'));
   close.addEventListener('click', () => hooks.dismissed());
+  const stepList = h('ol', { class: 'ov-steps', hidden: true });
   const list = h('ul', { class: 'ov-rows' });
   const note = h('p', { class: 'ov-note' });
   const hint = h('span', { class: 'ov-hint' });
@@ -63,6 +64,7 @@ export function createOverlay(hooks: OverlayHooks, touch = false): ControlsOverl
     'section',
     { class: 'controls-overlay', 'aria-label': 'The game’s controls', role: 'region', hidden: true },
     h('header', { class: 'ov-head' }, h('span', { class: 'ov-label' }, icon('joystick'), title, mode), how, close),
+    stepList,
     list,
     h('footer', { class: 'ov-foot' }, note, hint),
   );
@@ -81,6 +83,10 @@ export function createOverlay(hooks: OverlayHooks, touch = false): ControlsOverl
     title.textContent = name;
     mode.textContent = howto.mode;
     how.textContent = howto.how;
+    // A start by hand: its steps first, the keys they name as keycaps.
+    const steps = howto.steps ?? [];
+    stepList.replaceChildren(...steps.map((st) => h('li', { class: 'ov-step' }, ...st.map((p) => (typeof p === 'string' ? p : caps([p]))))));
+    stepList.hidden = !steps.length;
     const rows = [...howto.rows.map((r) => ({ ...r, extra: false })), ...howto.extras.map((r) => ({ ...r, extra: true }))];
     list.replaceChildren(
       ...rows.map((r) => h('li', { class: `ov-row${r.extra ? ' extra' : ''}` }, r.press ? caps(r.press) : h('span', { class: 'caps none' }, '—'), h('span', { class: 'ov-does' }, r.does))),

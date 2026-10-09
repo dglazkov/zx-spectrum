@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { KEY } from '../emulator/keys';
 import { SHELF } from '../ui/library';
-import type { Pad } from './card';
+import { isByHand, type Pad } from './card';
 import { CARDS, cardFor } from './games';
 
 const PADS: readonly Pad[] = ['UP', 'DOWN', 'LEFT', 'RIGHT', 'FIRE'];
@@ -57,7 +57,8 @@ describe('the play cards', () => {
         const r = card.start;
         expect(r.steps.length).toBeGreaterThan(0);
         for (const s of r.steps) expect(s.text.trim().length).toBeGreaterThan(3);
-        expect(r.within).toBeGreaterThan(0);
+        // A start by hand is never driven (card.ts's byHand): it has no time to keep to.
+        if (!isByHand(r)) expect(r.within).toBeGreaterThan(0);
         if (r.skills) expect(r.skills[0]).toBeLessThanOrEqual(r.skills[1]);
         // Asked of a blank screen (the machine still loading), a route waits, or is not ready: it does not throw.
         const blank = { text: ' '.repeat(32 * 24), attr: () => 0x38 };

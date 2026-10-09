@@ -2576,6 +2576,18 @@ body[data-display='tv'] .controls-layer {
   height: 1.1em;
 }
 
+.ov-steps {
+  margin: 0 0 0.6em;
+  padding-left: 1.4em;
+  line-height: 1.7;
+}
+
+.ov-steps .caps {
+  display: inline-flex;
+  vertical-align: middle;
+  margin: 0 0.15em;
+}
+
 .ov-rows {
   margin: 0;
   padding: 0;
