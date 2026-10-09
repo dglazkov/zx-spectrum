@@ -1315,6 +1315,7 @@ export class App {
       { class: 'foot' },
       h('p', { class: 'foot-amstrad' }, 'The machines’ ROMs are Sinclair Research’s and Amstrad’s. Amstrad have kindly given their permission for the redistribution of their copyrighted material but retain that copyright.'),
       h('p', {}, 'Games, their inlays and their manuals come from the ', link('https://spectrumcomputing.co.uk', 'Spectrum Computing'), ' archive, found through the ', link('https://zxinfo.dk', 'ZXDB'), ' (by way of ZXInfo), and only those the ZXDB lists as available. Thank you to everyone who keeps them.'),
+      h('p', {}, h('a', { href: './how.html' }, 'How this Spectrum was built'), ', overnight, by a team of agents, and how we know it is faithful.'),
     );
     const drop = h('div', { class: 'drop', hidden: true }, h('div', { class: 'drop-card' }, icon('tape'), h('strong', {}, 'Drop it in'), h('span', {}, 'A tape (TAP, TZX, CSW, PZX), a snapshot (Z80, SNA, SZX), a screen (SCR), or a .zip of one')));
     this.reader = h('div', { class: 'visually-hidden', role: 'status', 'aria-live': 'polite' });

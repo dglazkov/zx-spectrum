@@ -106,7 +106,7 @@ limit = "3m"
 [[test]]
 name = "web-build"
 run = "cd web && node tests/build.mjs"
-covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/public/**", "web/vite.config.ts", "web/server.mjs", "web/package.json", "web/package-lock.json", "web/tests/build.mjs", "web/tests/smoke.mjs", "roms/**", "scripts/build-wasm.sh"]
+covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/how.html", "web/public/**", "web/vite.config.ts", "web/server.mjs", "web/package.json", "web/package-lock.json", "web/tests/build.mjs", "web/tests/smoke.mjs", "roms/**", "scripts/build-wasm.sh"]
 inputs = ["web/src/emulator/zx.wasm"]
 limit = "2m"
 

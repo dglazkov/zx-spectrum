@@ -28,6 +28,8 @@ export default defineConfig({
     target: 'es2022',
     assetsInlineLimit: 0,
     sourcemap: true,
+    // Two pages: the emulator, and how.html, the log of how it was built (src/how/).
+    rollupOptions: { input: { main: 'index.html', how: 'how.html' } },
   },
   worker: { format: 'es' },
   test: {

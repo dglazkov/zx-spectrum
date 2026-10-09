@@ -1,0 +1,241 @@
+/* The build log (how.html): how the emulator was made, and how we know it is faithful. Its own sheet, apart from
+   the emulator's, with the same faces: Archivo (bundled for the page) and IBM Plex Mono for figures. */
+@font-face {
+  font-family: 'Archivo';
+  src: url('../fonts/archivo.woff2') format('woff2');
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('../fonts/archivo-italic.woff2') format('woff2');
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('../fonts/plex-mono-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('../fonts/plex-mono-500.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+
+/* Layout: one reading column (66rem) for a night's log; the timeline runs the column's full width; tables scroll in place. */
+:root {
+  --bg: #eef0f3;
+  --surface: #fcfcfb;
+  --ink: #141318;
+  --ink-2: #4a4955;
+  --ink-3: #6d6b78;
+  --rule: #d9dae1;
+  --band: #e5e7ec;
+  --accent: #b8141b;
+  --orchestrator: #8a8996;
+  --build: #2a78d6;
+  --review: #eb6834;
+  --research: #1baf7a;
+  --critique: #eda100;
+  --fix: #e87ba4;
+  --stripe-red: #e8262b;
+  --stripe-yellow: #f2c91a;
+  --stripe-green: #2fae4a;
+  --stripe-cyan: #19a9d9;
+  --display: 'Archivo', 'Arial Narrow', system-ui, sans-serif;
+  --body: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111015; --surface: #1a1a1f; --ink: #f1f0f4; --ink-2: #c4c2cd; --ink-3: #908e9c; --rule: #2d2c35; --band: #1f1e25;
+    --accent: #ff6b6b; --orchestrator: #8e8c9a;
+    --build: #3987e5; --review: #d95926; --research: #199e70; --critique: #c98500; --fix: #d55181;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111015; --surface: #1a1a1f; --ink: #f1f0f4; --ink-2: #c4c2cd; --ink-3: #908e9c; --rule: #2d2c35; --band: #1f1e25;
+  --accent: #ff6b6b; --orchestrator: #8e8c9a;
+  --build: #3987e5; --review: #d95926; --research: #199e70; --critique: #c98500; --fix: #d55181;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { padding-block: env(safe-area-inset-top, 0px) env(safe-area-inset-bottom, 0px); background: var(--bg); }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 16px/1.6 var(--body);
+  -webkit-font-smoothing: antialiased;
+}
+.page {
+  max-width: 66rem;
+  margin: 0 auto;
+  padding-inline: 20px;
+  padding-block: 40px 64px;
+  display: grid;
+  gap: 72px;
+}
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h2 { font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.2rem); font-weight: 800; font-stretch: 112%; letter-spacing: -0.01em; line-height: 1.1; }
+h3 { font-size: 1.05rem; font-weight: 700; }
+p { margin: 0; }
+.eyebrow { font: 500 0.78rem/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+.section { display: grid; gap: 22px; }
+.page > *, .section > * { min-width: 0; }
+.section-head { display: grid; gap: 10px; max-width: 44rem; }
+.section-head p { color: var(--ink-2); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* The hero: the request, the answer, and the case's rainbow as the one bold mark. */
+.hero { position: relative; display: grid; gap: 26px; padding-top: 12px; }
+.stripe {
+  position: absolute; top: -40px; right: 0; width: 132px; height: 230px; overflow: hidden; pointer-events: none;
+}
+.stripe span {
+  position: absolute; top: -20px; width: 22px; height: 280px; transform: skewX(-22deg); transform-origin: top left;
+}
+.stripe span:nth-child(1) { left: 34px; background: var(--stripe-red); }
+.stripe span:nth-child(2) { left: 56px; background: var(--stripe-yellow); }
+.stripe span:nth-child(3) { left: 78px; background: var(--stripe-green); }
+.stripe span:nth-child(4) { left: 100px; background: var(--stripe-cyan); }
+.hero h1 {
+  font-size: clamp(2.6rem, 1.4rem + 5vw, 5.2rem);
+  font-weight: 900;
+  font-stretch: 125%;
+  font-style: italic;
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  max-width: 15ch;
+  padding-right: 120px;
+}
+.lede { font-size: clamp(1.08rem, 1rem + 0.35vw, 1.25rem); color: var(--ink-2); max-width: 40rem; }
+.lede strong { color: var(--ink); font-weight: 600; }
+.request {
+  margin: 0;
+  max-width: 44rem;
+  padding: 18px 22px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  font: 400 0.95rem/1.65 var(--mono);
+  color: var(--ink);
+}
+.request footer { margin-top: 8px; font: 500 0.72rem/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.cta { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: baseline; font-weight: 600; }
+
+/* The night in eight numbers. */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.tile { background: var(--surface); padding: 18px 18px 20px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+.tile .value { font: 800 clamp(1.6rem, 1.2rem + 1.2vw, 2.15rem)/1.05 var(--display); font-stretch: 112%; letter-spacing: -0.015em; font-variant-numeric: tabular-nums; }
+.tile .label { font-weight: 600; font-size: 0.95rem; }
+.tile .note { font-size: 0.83rem; color: var(--ink-3); line-height: 1.45; }
+@media (max-width: 860px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* The timeline. */
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.86rem; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 14px; height: 10px; border-radius: 2px; display: inline-block; }
+.chart { position: relative; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 14px 10px; }
+.chart-scroll { overflow-x: auto; }
+.chart svg { display: block; width: 100%; min-width: 760px; height: auto; }
+.chart text { fill: var(--ink-2); font-family: var(--body); }
+.chart .lane-label { font-size: 12px; fill: var(--ink-2); }
+.chart .tick { font: 11px var(--mono); fill: var(--ink-3); }
+.chart .phase-label { font: 600 11px var(--mono); letter-spacing: 0.08em; fill: var(--ink-3); text-transform: uppercase; }
+.chart .grid { stroke: var(--rule); stroke-width: 1; }
+.chart .band { fill: var(--band); }
+.chart .bar { cursor: default; }
+.chart .bar:hover, .chart .bar:focus { filter: brightness(1.12); outline: none; }
+.chart .bar:focus { stroke: var(--ink); stroke-width: 1.5; }
+.tip {
+  position: absolute; z-index: 2; pointer-events: none; min-width: 210px; max-width: 280px;
+  background: var(--ink); color: var(--bg); border-radius: 6px; padding: 10px 12px; font-size: 0.82rem; line-height: 1.45;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.25);
+}
+.tip strong { display: block; font-size: 0.9rem; margin-bottom: 4px; }
+.tip dl { display: grid; grid-template-columns: auto 1fr; gap: 1px 12px; margin: 0; }
+.tip dt { opacity: 0.7; }
+.tip dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 0.78rem; }
+.caption { font-size: 0.86rem; color: var(--ink-3); }
+
+/* How it was organised: a real sequence, so numbered. */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 34px; counter-reset: step; }
+.steps li { counter-increment: step; display: grid; grid-template-columns: 2.2rem 1fr; gap: 2px 12px; min-width: 0; }
+.steps li::before { content: counter(step); grid-row: span 2; font: 800 1.5rem/1 var(--display); font-stretch: 112%; color: var(--accent); padding-top: 2px; }
+.steps h3 { font-family: var(--body); }
+.steps p { color: var(--ink-2); font-size: 0.95rem; }
+@media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+
+/* Tables. */
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; min-width: 36rem; font-size: 0.9rem; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font: 600 0.72rem/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 0.84rem; white-space: nowrap; }
+td.result { font-family: var(--mono); font-size: 0.84rem; white-space: nowrap; color: var(--ink); }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; vertical-align: 0; }
+td .sub { display: block; color: var(--ink-3); font-size: 0.82rem; }
+
+/* Bar lists (single series, values printed). */
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+@media (max-width: 760px) { .pair { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 18px 18px 14px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.panel h3 { font-size: 1rem; }
+.panel .caption { margin-top: -8px; }
+.bars { display: grid; gap: 7px; }
+.bars .row { display: grid; grid-template-columns: minmax(7.5rem, 38%) 1fr 4.6rem; align-items: center; gap: 10px; font-size: 0.86rem; }
+.bars .row span:first-child { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bars .track { height: 12px; }
+.bars .fill { height: 100%; border-radius: 0 3px 3px 0; background: var(--build); min-width: 2px; }
+.bars .row:hover .fill { filter: brightness(1.15); }
+.bars .val { text-align: right; font: 0.82rem var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+
+/* Findings: what the reviews caught, with a few told in full. */
+.finds { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 22px; align-items: start; }
+@media (max-width: 860px) { .finds { grid-template-columns: 1fr; } }
+.stories { display: grid; gap: 14px; }
+.story { border-left: 3px solid var(--review); padding: 2px 0 2px 14px; display: grid; gap: 3px; }
+.story h3 { font-family: var(--body); font-size: 0.98rem; }
+.story p { color: var(--ink-2); font-size: 0.93rem; }
+.story .who { font: 500 0.7rem/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+
+/* Tokens. */
+.tokens { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+@media (max-width: 760px) { .tokens { grid-template-columns: 1fr; } }
+.token { display: grid; gap: 4px; align-content: start; }
+.token .value { font: 800 1.9rem/1.05 var(--display); font-stretch: 112%; font-variant-numeric: tabular-nums; }
+.token .label { font-weight: 600; }
+.token p { color: var(--ink-2); font-size: 0.92rem; }
+.share { height: 14px; display: flex; gap: 2px; border-radius: 3px; overflow: hidden; }
+.share div { height: 100%; }
+
+.fine { font-size: 0.86rem; color: var(--ink-3); display: grid; gap: 10px; max-width: 46rem; border-top: 1px solid var(--rule); padding-top: 22px; }
+.fine strong { color: var(--ink-2); }
+
+@media (max-width: 520px) {
+  .page { gap: 56px; padding-block: 28px 48px; padding-inline: 16px; }
+  .hero h1 { padding-right: 70px; }
+  .stripe { width: 86px; height: 170px; top: -28px; }
+  .stripe span { width: 15px; }
+  .stripe span:nth-child(1) { left: 20px; } .stripe span:nth-child(2) { left: 35px; }
+  .stripe span:nth-child(3) { left: 50px; } .stripe span:nth-child(4) { left: 65px; }
+  .tile { padding: 14px 14px 16px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .chart .bar { transition: filter 120ms ease; }
+}

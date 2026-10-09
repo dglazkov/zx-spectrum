@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>ZX Spectrum Build Log</title>
+    <meta name="description" content="How Claude Code built this cycle-accurate ZX Spectrum emulator overnight: 24 agents on a timeline, the tokens, the tests it passes, and what the reviewers caught." />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./src/how/how.css" />
+  </head>
+  <body>
+<main class="page">
+
+  <header class="hero">
+    <div class="stripe" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <p class="eyebrow">Build log · 8–9 October 2026</p>
+    <h1>A ZX Spectrum, built overnight</h1>
+    <p class="lede">At <strong>21:32</strong> the owner asked for a faithful ZX Spectrum to play Saboteur on. At
+      <strong>08:59</strong> the next morning it was live on the web, accurate to the clock cycle and checked against what
+      real hardware shows. Claude Code planned it, wrote the contracts between its parts, and ran 23 agents to build,
+      review, criticise and fix it.</p>
+    <blockquote class="request">
+      Let's build a faithful replica of ZX Spectrum as a faithful software emulator. I want to be able to play Saboteur and
+      other games from my youth on it. Amaze me
+      <footer>The whole request</footer>
+    </blockquote>
+    <p class="cta">
+      <a href="./?game=4293">Play Saboteur on it</a>
+      <a href="./">Open the emulator</a>
+      <a href="https://github.com/dglazkov/zx-spectrum">The source</a>
+    </p>
+  </header>
+
+  <section class="section" aria-labelledby="numbers">
+    <h2 id="numbers" class="eyebrow">The night in numbers</h2>
+    <div class="tiles">
+      <div class="tile"><span class="value">11 h 28 min</span><span class="label">from request to live site</span><span class="note num">2.07 million frames of a 48K, at 50.08 a second</span></div>
+      <div class="tile"><span class="value">24</span><span class="label">agents</span><span class="note">one orchestrator and 23 workers, up to 10 at once</span></div>
+      <div class="tile"><span class="value">20.1 h</span><span class="label">of agent work</span><span class="note">inside 11½ hours of clock time</span></div>
+      <div class="tile"><span class="value">3,530</span><span class="label">model calls</span><span class="note num">and 3,866 tool calls</span></div>
+      <div class="tile"><span class="value">1.20 bn</span><span class="label">tokens read</span><span class="note">98.9% of them from the prompt cache</span></div>
+      <div class="tile"><span class="value">1.27 m</span><span class="label">tokens written</span><span class="note">code, prose and commands; reasoning not counted</span></div>
+      <div class="tile"><span class="value">48,827</span><span class="label">lines of code</span><span class="note num">Rust 33,056 · TypeScript 10,691 · CSS 2,783</span></div>
+      <div class="tile"><span class="value">78</span><span class="label">findings</span><span class="note">raised by reviewers and critics before anyone played it</span></div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="timeline">
+    <div class="section-head">
+      <p class="eyebrow">Timeline, Pacific time</p>
+      <h2 id="timeline">The night, agent by agent</h2>
+      <p>Each bar is one agent, from its first message to its last. The parts of the machine were built side by side,
+        each followed at once by a reviewer told to assume it was wrong. Hover or focus a bar for its numbers.</p>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="chart">
+      <div class="chart-scroll"><svg id="gantt" role="img" aria-labelledby="gantt-title"><title id="gantt-title">Timeline of the 24 agents from 21:32 to 09:00; the table under "Every agent" lists the same data.</title></svg></div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="method">
+    <div class="section-head">
+      <p class="eyebrow">Method</p>
+      <h2 id="method">How it was organised</h2>
+    </div>
+    <ol class="steps">
+      <li><h3>A contract before any code</h3><p>The orchestrator laid out nine crates, the Z80's bus, the timings, the keyboard matrix and the picture's format in one document, so that agents who never meet could build parts that fit.</p></li>
+      <li><h3>One part per agent, tested alone</h3><p>The Z80, the sound chip, tapes, snapshots and the page were built at once, each in its own directory with its own test layer, so no one waited on anyone's half-finished code.</p></li>
+      <li><h3>Held to other people's tests</h3><p>Every part was judged by suites written to catch emulators out: FUSE's, SingleStepTests, ZEXALL, Patrik Rak's z80test, and captures from real machines that a researcher gathered while the parts were being built.</p></li>
+      <li><h3>A reviewer behind every builder</h3><p>Each builder was followed by an adversarial reviewer, told to assume there were bugs, to check every claim against its source, and to fix what it found.</p></li>
+      <li><h3>Played, looked at, and taken apart</h3><p>With the real core in the page, three critics went over it, as a player, a designer and an engineer, without touching it. A fixer applied what they found, and a verifier rebuilt everything from scratch.</p></li>
+      <li><h3>The orchestrator checked the checkers</h3><p>Between phases it ran every test, looked at every screenshot, reproduced the compiler bug a reviewer reported, removed a personal address an agent had put in a request header, and committed.</p></li>
+    </ol>
+  </section>
+
+  <section class="section" aria-labelledby="faithful">
+    <div class="section-head">
+      <p class="eyebrow">Evidence</p>
+      <h2 id="faithful">How we know it is faithful</h2>
+      <p>Nothing here is judged by eye alone. These are the suites and captures the emulator passes, every one of them on
+        each change, through the project's 12 test layers.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Held to</th><th>What it checks</th><th class="n">Result</th></tr></thead>
+        <tbody>
+          <tr><td>FUSE's core tests</td><td>every opcode's result, and the order and T-state of every bus cycle</td><td class="n">1,356 / 1,356</td></tr>
+          <tr><td>SingleStepTests</td><td>registers, flags, hidden registers and the bus, pin by pin, 1,000 cases per opcode</td><td class="n">1,604,000 / 1,604,000</td></tr>
+          <tr><td>ZEXDOC and ZEXALL</td><td>the flags of every instruction over 5.77 billion instructions each</td><td class="n">67 / 67, twice</td></tr>
+          <tr><td>z80test 1.2a</td><td>flags and MEMPTR as measured on a real Zilog chip, run from tape on the emulated 48K</td><td class="result">all tests passed</td></tr>
+          <tr><td>The machine corpus</td><td>fusetest, the Butlers' and Rak's timing tests, Minfo, Floating Spy, IM and contention tests, demos and games</td><td class="n">98 / 98 parts</td></tr>
+          <tr><td>Captures of real screens</td><td>ULA timing pictures from real 48K, 128K and +3 machines, compared pixel for pixel</td><td class="n">104,192 px each</td></tr>
+          <tr><td>Saboteur's original tape</td><td>a turbo loader at twice ROM speed, then the game's £100 REWARD screen, cell for cell</td><td class="result">exact at frame 9,046</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="caught">
+    <div class="section-head">
+      <p class="eyebrow">Review</p>
+      <h2 id="caught">What the reviewers caught</h2>
+      <p>78 findings across nine reviews, nearly all fixed before anyone opened the page. A few were declined, each with
+        its reason written down.</p>
+    </div>
+    <div class="finds">
+      <div class="panel">
+        <h3>Findings by review</h3>
+        <div class="bars" id="finds"></div>
+      </div>
+      <div class="stories">
+        <div class="story"><span class="who">Machine reviewer</span><h3>A miscompilation in rustc 1.98.1</h3><p>Safe Rust filling the contention table read past an eight-byte array at -O2, slipping stack bytes into the timing. The orchestrator reproduced it in 40 lines; a release-build test now guards it.</p></div>
+        <div class="story"><span class="who">Z80 reviewer</span><h3>A test that could not fail</h3><p>Breaking the CPU on purpose showed the FUSE comparator accepted a wrong address on internal cycles, the very cycles a Spectrum's contention depends on.</p></div>
+        <div class="story"><span class="who">Machine reviewer</span><h3>Instant loading that lied</h3><p>The trap that loads tape blocks at once left registers the real ROM never leaves. It is now checked against the ROM itself reading the tape's edges.</p></div>
+        <div class="story"><span class="who">Tape reviewer</span><h3>A tape that kept talking</h3><p>With the deck stopped, the EAR line could stay high, which breaks games that read the keyboard through the same port.</p></div>
+        <div class="story"><span class="who">Engineer critic</span><h3>A joystick lost at power-on</h3><p>After every reset the Kempston port read the floating bus, which a game takes as all four directions and fire held at once.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="work">
+    <div class="section-head">
+      <p class="eyebrow">Output</p>
+      <h2 id="work">Where the work went</h2>
+    </div>
+    <div class="pair">
+      <div class="panel">
+        <h3>Tool calls, by tool</h3>
+        <p class="caption">Mostly building, testing and running the emulator from the shell.</p>
+        <div class="bars" id="tools"></div>
+      </div>
+      <div class="panel">
+        <h3>Lines of code, by part</h3>
+        <p class="caption">48,827 lines in 224 files, with 4,000 lines of records in docs/.</p>
+        <div class="bars" id="lines"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="tokens">
+    <div class="section-head">
+      <p class="eyebrow">Tokens</p>
+      <h2 id="tokens">1.2 billion tokens read, 1.27 million written</h2>
+      <p>Every model call reads its whole conversation again, so reading dwarfs writing. Nearly all of it came from the
+        prompt cache; only what was new each time had to be processed fresh.</p>
+    </div>
+    <div class="share" role="img" aria-label="Tokens read: 98.9% from the cache, 1.1% written to the cache, under 0.01% fresh">
+      <div style="flex: 1184589230; background: var(--build)"></div>
+      <div style="flex: 12590803; background: var(--review); min-width: 4px"></div>
+      <div style="flex: 7094; background: var(--critique); min-width: 3px"></div>
+    </div>
+    <div class="tokens">
+      <div class="token"><span class="value num">1,184,589,230</span><span class="label"><i class="swatch" style="background: var(--build)"></i>read from the cache</span><p>Context already seen, read again on each of the 3,530 calls.</p></div>
+      <div class="token"><span class="value num">12,590,803</span><span class="label"><i class="swatch" style="background: var(--review)"></i>written into the cache</span><p>New context each call: files read, test output, the agents' own work.</p></div>
+      <div class="token"><span class="value num">1,265,671</span><span class="label">written out, visible</span><p>Code, prose and commands. Reasoning is not recorded in the transcripts and is not counted. 7,094 tokens were uncached input.</p></div>
+    </div>
+    <p class="caption">The largest single context was 955,578 tokens, the machine builder's, near the end of its 139 minutes.</p>
+  </section>
+
+  <section class="section" aria-labelledby="agents">
+    <div class="section-head">
+      <p class="eyebrow">Table view</p>
+      <h2 id="agents">Every agent</h2>
+    </div>
+    <div class="table-wrap">
+      <table id="agent-table">
+        <thead><tr><th>Agent</th><th>Ran</th><th class="n">Minutes</th><th class="n">Tool calls</th><th class="n">Written</th><th class="n">Peak context</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="fine">
+    <p><strong>How these numbers were measured.</strong> Tokens, model calls and tool calls are summed from the 25 session
+      transcripts (the orchestrator's and every agent's). Agents' times come from the workflow records and the transcripts'
+      first and last messages. Lines of code are counted in the repository at commit 641a877; times are Pacific. "Written"
+      counts the visible text, code and tool input an agent produced, at four characters to a token; the transcripts do not
+      keep reasoning, so it is left out. "Request to live" includes the minutes spent waiting for the owner to say deploy.</p>
+    <p>The ROMs in the emulator are Amstrad's: Amstrad have kindly given their permission for the redistribution of their
+      copyrighted material but retain that copyright. Games come from the Spectrum Computing archive, as the ZXDB lists them.</p>
+  </footer>
+</main>
+
+<script type="module">
+(() => {
+  const AGENTS = [{"label":"Orchestrator","lane":"Orchestrator","role":"orchestrator","start":32.2,"end":719.9,"min":688,"tools":81,"out":30782,"ctx":341017},{"label":"Test-corpus researcher","lane":"Test corpus","role":"research","start":44.8,"end":106.7,"min":62,"tools":90,"out":35881,"ctx":341265},{"label":"Helper: games and loaders","lane":"Games","role":"research","start":47.8,"end":100.5,"min":53,"tools":208,"out":41949,"ctx":440615},{"label":"Helper: test programs","lane":"Test programs","role":"research","start":47.8,"end":77.4,"min":30,"tools":149,"out":25768,"ctx":397622},{"label":"Helper: demos","lane":"Demos","role":"research","start":47.8,"end":81.3,"min":34,"tools":171,"out":25560,"ctx":355538},{"label":"Helper: palette and display","lane":"Palette","role":"research","start":47.8,"end":73.6,"min":26,"tools":144,"out":18987,"ctx":360106},{"label":"Build the Z80","lane":"Z80 CPU","role":"build","start":44.0,"end":92.7,"min":49,"tools":151,"out":65662,"ctx":504128},{"label":"Build sound and the AY","lane":"Sound and AY","role":"build","start":44.0,"end":91.3,"min":47,"tools":138,"out":55893,"ctx":463604},{"label":"Build tapes","lane":"Tapes","role":"build","start":44.0,"end":94.2,"min":50,"tools":105,"out":74358,"ctx":465321},{"label":"Build snapshots and zip","lane":"Snapshots and zip","role":"build","start":44.0,"end":92.3,"min":48,"tools":154,"out":79943,"ctx":494069},{"label":"Build the page (stand-in core)","lane":"The page","role":"build","start":44.0,"end":133.3,"min":89,"tools":226,"out":125164,"ctx":620287},{"label":"Review sound and the AY","lane":"Sound and AY","role":"review","start":91.4,"end":106.9,"min":16,"tools":67,"out":11909,"ctx":248564},{"label":"Review snapshots and zip","lane":"Snapshots and zip","role":"review","start":92.5,"end":117.9,"min":25,"tools":124,"out":22755,"ctx":397443},{"label":"Review the Z80","lane":"Z80 CPU","role":"review","start":92.7,"end":115.8,"min":23,"tools":91,"out":22648,"ctx":314185},{"label":"Review tapes","lane":"Tapes","role":"review","start":94.4,"end":124.5,"min":30,"tools":101,"out":26621,"ctx":403097},{"label":"Review the page","lane":"The page","role":"review","start":133.4,"end":192.9,"min":60,"tools":184,"out":39716,"ctx":449845},{"label":"Build the machine and zx","lane":"Machine and zx","role":"build","start":197.6,"end":336.3,"min":139,"tools":417,"out":168877,"ctx":955578},{"label":"Review the machine","lane":"Machine and zx","role":"review","start":336.5,"end":411.7,"min":75,"tools":261,"out":43997,"ctx":647807},{"label":"Wire the real core into the page","lane":"The page","role":"build","start":414.5,"end":510.3,"min":96,"tools":234,"out":109706,"ctx":721008},{"label":"Critique as a player","lane":"Critic: player","role":"critique","start":510.4,"end":561.6,"min":51,"tools":137,"out":33659,"ctx":376202},{"label":"Critique as a designer","lane":"Critic: designer","role":"critique","start":510.4,"end":538.3,"min":28,"tools":127,"out":28682,"ctx":369631},{"label":"Critique as an engineer","lane":"Critic: engineer","role":"critique","start":510.4,"end":544.2,"min":34,"tools":95,"out":19861,"ctx":323040},{"label":"Fix what the critics found","lane":"The page","role":"fix","start":561.6,"end":650.3,"min":89,"tools":251,"out":134067,"ctx":806062},{"label":"Verify from scratch","lane":"The page","role":"fix","start":650.4,"end":700.7,"min":50,"tools":158,"out":23216,"ctx":308211}];
+
+  const ROLES = [
+    ['build', 'Build'], ['review', 'Review'], ['research', 'Research'],
+    ['critique', 'Critique'], ['fix', 'Fix and verify'], ['orchestrator', 'Orchestrator'],
+  ];
+  const LANES = ['Orchestrator', 'Test corpus', 'Games', 'Test programs', 'Demos', 'Palette', 'Z80 CPU', 'Sound and AY',
+    'Tapes', 'Snapshots and zip', 'The page', 'Machine and zx', 'Critic: player', 'Critic: designer', 'Critic: engineer'];
+  const PHASES = [[32, 44, 'Plan'], [44, 193, 'The parts'], [197.6, 411.7, 'The machine'], [414.5, 700.7, 'The page'], [700.7, 720, 'Ship']];
+
+  // Minutes after 21:00 Pacific, as a clock.
+  const clock = (m) => {
+    const t = Math.round(m), h = (21 + Math.floor(t / 60)) % 24, mm = t % 60;
+    return String(h).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+  };
+  const fmt = (n) => n.toLocaleString('en-US');
+  const k = (n) => n >= 1e6 ? (n / 1e6).toFixed(2) + ' m' : Math.round(n / 1000) + ' k';
+
+  // Legend.
+  const legend = document.getElementById('legend');
+  for (const [role, name] of ROLES) {
+    const s = document.createElement('span');
+    s.innerHTML = '<i style="background: var(--' + role + ')"></i>' + name;
+    legend.append(s);
+  }
+
+  // The timeline, one scale for bars, ticks and bands.
+  const svg = document.getElementById('gantt');
+  const W = 1000, L = 138, R = 14, TOP = 34, LANE = 24, BAR = 14;
+  const H = TOP + LANES.length * LANE + 26;
+  const T0 = 30, T1 = 722;
+  const x = (m) => L + (m - T0) / (T1 - T0) * (W - L - R);
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (name, attrs, parent = svg) => {
+    const e = document.createElementNS(NS, name);
+    for (const a in attrs) e.setAttribute(a, attrs[a]);
+    parent.append(e);
+    return e;
+  };
+  PHASES.forEach(([a, b, name], i) => {
+    if (i % 2 === 1) el('rect', { class: 'band', x: x(a), y: TOP - 6, width: x(b) - x(a), height: LANES.length * LANE + 8 });
+    if (name !== 'Plan' && name !== 'Ship') {
+      const t = el('text', { class: 'phase-label', x: x(a) + 6, y: 16 });
+      t.textContent = name;
+    }
+  });
+  const shipLabel = el('text', { class: 'phase-label', x: x(720) - 2, y: 16, 'text-anchor': 'end' });
+  shipLabel.textContent = 'Live';
+  for (let m = 60; m <= 720; m += 60) {
+    el('line', { class: 'grid', x1: x(m), x2: x(m), y1: TOP - 6, y2: TOP + LANES.length * LANE + 2 });
+    const t = el('text', { class: 'tick', x: x(m), y: H - 6, 'text-anchor': 'middle' });
+    t.textContent = clock(m);
+  }
+  LANES.forEach((lane, i) => {
+    const t = el('text', { class: 'lane-label', x: L - 10, y: TOP + i * LANE + LANE / 2 + 4, 'text-anchor': 'end' });
+    t.textContent = lane;
+  });
+
+  const tip = document.getElementById('tip');
+  const chart = svg.closest('.chart');
+  const show = (a, bar) => {
+    tip.innerHTML = '<strong></strong><dl>' +
+      '<dt>Ran</dt><dd>' + clock(a.start) + '–' + clock(a.end) + '</dd>' +
+      '<dt>Minutes</dt><dd>' + fmt(a.min) + '</dd>' +
+      '<dt>Tool calls</dt><dd>' + fmt(a.tools) + '</dd>' +
+      '<dt>Written</dt><dd>' + fmt(a.out) + ' tokens</dd>' +
+      '<dt>Peak context</dt><dd>' + fmt(a.ctx) + ' tokens</dd></dl>';
+    tip.querySelector('strong').textContent = a.label;
+    tip.hidden = false;
+    const box = chart.getBoundingClientRect(), b = bar.getBoundingClientRect();
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    let left = b.left - box.left + Math.min(b.width, 60);
+    left = Math.max(8, Math.min(left, box.width - tw - 8));
+    let top = b.top - box.top - th - 8;
+    if (top < 4) top = b.bottom - box.top + 8;
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  };
+  const hide = () => { tip.hidden = true; };
+
+  for (const a of AGENTS) {
+    const i = LANES.indexOf(a.lane);
+    const x0 = x(a.start), x1 = x(a.end);
+    const bar = el('rect', {
+      class: 'bar', x: x0 + 1, y: TOP + i * LANE + (LANE - BAR) / 2, width: Math.max(3, x1 - x0 - 2), height: BAR,
+      rx: a.role === 'orchestrator' ? 2 : 3, fill: 'var(--' + a.role + ')', tabindex: 0,
+      'aria-label': a.label + ', ' + clock(a.start) + ' to ' + clock(a.end) + ', ' + a.min + ' minutes, ' + a.tools + ' tool calls',
+    });
+    if (a.role === 'orchestrator') bar.setAttribute('height', 6), bar.setAttribute('y', TOP + i * LANE + (LANE - 6) / 2);
+    bar.addEventListener('pointerenter', () => show(a, bar));
+    bar.addEventListener('pointerleave', hide);
+    bar.addEventListener('focus', () => show(a, bar));
+    bar.addEventListener('blur', hide);
+  }
+  chart.addEventListener('scroll', hide, true);
+
+  // Bar lists: one series each, one scale per list, values printed.
+  const bars = (id, rows, color) => {
+    const host = document.getElementById(id), max = Math.max(...rows.map((r) => r[1]));
+    for (const [name, v] of rows) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = '<span></span><div class="track"><div class="fill"></div></div><span class="val"></span>';
+      row.children[0].textContent = name;
+      row.children[0].title = name;
+      row.querySelector('.fill').style.width = (v / max * 100) + '%';
+      if (color) row.querySelector('.fill').style.background = color;
+      row.querySelector('.val').textContent = fmt(v);
+      host.append(row);
+    }
+  };
+  bars('finds', [['Designer critic', 25], ['Engineer critic', 13], ['Page review', 11], ['Player critic', 8],
+    ['Machine review', 8], ['Snapshot review', 6], ['Tape review', 4], ['Sound review', 2], ['Z80 review', 1]], 'var(--review)');
+  bars('tools', [['Bash', 2773], ['Read', 505], ['Write', 237], ['Edit', 109], ['WebFetch', 94], ['WebSearch', 91], ['Other', 57]]);
+  bars('lines', [['The page', 12367], ['Tapes', 6890], ['The machine', 6145], ['zx and the corpus', 5380], ['Z80', 4238],
+    ['Snapshots', 3847], ['Page tests', 3461], ['AY chip', 1875], ['Zip', 1585], ['Sound', 1545], ['WebAssembly', 1494]]);
+
+  // The table view of the timeline.
+  const tbody = document.querySelector('#agent-table tbody');
+  const name = Object.fromEntries(ROLES);
+  for (const a of [...AGENTS].sort((p, q) => p.start - q.start)) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td><i class="swatch"></i><span class="who"></span><span class="sub"></span></td><td class="n"></td>' +
+      '<td class="n"></td><td class="n"></td><td class="n"></td><td class="n"></td>';
+    tr.querySelector('.swatch').style.background = 'var(--' + a.role + ')';
+    tr.querySelector('.who').textContent = a.label;
+    tr.querySelector('.sub').textContent = name[a.role];
+    const c = tr.querySelectorAll('td.n');
+    c[0].textContent = clock(a.start) + '–' + clock(a.end);
+    c[1].textContent = fmt(a.min);
+    c[2].textContent = fmt(a.tools);
+    c[3].textContent = k(a.out);
+    c[4].textContent = k(a.ctx);
+    tbody.append(tr);
+  }
+})();
+</script>
+  </body>
+</html>

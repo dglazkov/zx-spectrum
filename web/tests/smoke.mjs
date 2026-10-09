@@ -51,6 +51,21 @@ export async function smoke(url, { network = true, log = console.log } = {}) {
     assert(res.ok && /SABOTEUR/i.test(text), `${res.status}, ${text.length} characters`);
   });
 
+  await check('the build log is handed out at /how.html, with its sheet and its fonts', async () => {
+    const res = await fetch(`${url}/how.html`);
+    const page = await res.text();
+    assert(res.ok && page.includes('<title>ZX Spectrum Build Log</title>'), `${res.status}`);
+    const sheet = page.match(/href="\.?\/?(assets\/how-[^"]+\.css)"/)?.[1];
+    assert(sheet, 'no stylesheet named in how.html');
+    const css = await (await fetch(`${url}/${sheet}`)).text();
+    const fonts = [...css.matchAll(/url\("?\.?\/?([^")]+\.woff2)"?\)/g)].map((m) => m[1]);
+    assert(fonts.length >= 4, `${fonts.length} fonts in ${sheet}`);
+    for (const f of fonts) {
+      const r = await fetch(new URL(f, `${url}/${sheet}`));
+      assert(r.ok, `${f}: ${r.status}`);
+    }
+  });
+
   await check('only the archive’s game paths come through', async () => {
     const res = await fetch(`${url}/archive/index.php`);
     assert(res.status === 403, `${res.status}`);
