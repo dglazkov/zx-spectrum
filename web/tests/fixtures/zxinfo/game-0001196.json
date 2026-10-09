@@ -1,0 +1,869 @@
+{
+ "_index": "zxinfo-20261007-153510",
+ "_id": "0001196",
+ "_version": 1,
+ "_seq_no": 8352,
+ "_primary_term": 3,
+ "found": true,
+ "_source": {
+  "contentType": "SOFTWARE",
+  "zxinfoVersion": "1.0.241",
+  "title": "Cybernoid",
+  "originalYearOfRelease": 1988,
+  "originalMonthOfRelease": 3,
+  "originalDayOfRelease": null,
+  "machineType": "ZX-Spectrum 48K/128K",
+  "numberOfPlayers": 1,
+  "multiplayerMode": null,
+  "multiplayerType": null,
+  "xrated": 0,
+  "genre": "Arcade Game: Shoot-em-up",
+  "genreType": "Arcade Game",
+  "genreSubType": "Shoot-em-up",
+  "isbn": null,
+  "language": "English",
+  "originalPrice": {
+   "amount": "7.99",
+   "currency": "£",
+   "prefix": 1
+  },
+  "availability": "Available",
+  "score": {
+   "score": 8.44,
+   "votes": 170
+  },
+  "controls": [
+   {
+    "control": "Interface 2 (right)"
+   },
+   {
+    "control": "Kempston Joystick"
+   },
+   {
+    "control": "Redefineable keys"
+   }
+  ],
+  "remarks": null,
+  "hardwareBlurb": null,
+  "knownErrors": null,
+  "publishers": [
+   {
+    "publisherSeq": 1,
+    "name": "Hewson Consultants Ltd",
+    "country": "UK",
+    "labelType": "Company: Publisher/Manager",
+    "notes": [
+     {
+      "text": "2nd Best Software House - 1987 Crash Readers Awards.",
+      "noteType": "A"
+     },
+     {
+      "text": "3rd Best Software House - 1986 Crash Readers Awards.",
+      "noteType": "A"
+     }
+    ]
+   }
+  ],
+  "authors": [
+   {
+    "type": "Creator",
+    "authorSeq": 1,
+    "name": "Raffaele Cecco",
+    "country": "UK",
+    "labelType": "Person",
+    "roles": [],
+    "groupName": null,
+    "groupCountry": null,
+    "groupType": null,
+    "notes": [
+     {
+      "text": "SPOT name: \"Raffaelle Cecco\"",
+      "noteType": "R"
+     }
+    ]
+   },
+   {
+    "type": "Creator",
+    "authorSeq": 2,
+    "name": "Nick Jones",
+    "country": "UK",
+    "labelType": "Nickname",
+    "roles": [],
+    "groupName": null,
+    "groupCountry": null,
+    "groupType": null,
+    "notes": []
+   },
+   {
+    "type": "Creator",
+    "authorSeq": 3,
+    "name": "J. Dave Rogers",
+    "country": "UK",
+    "labelType": "Person",
+    "roles": [
+     {
+      "roleType": "M",
+      "roleName": "Music"
+     }
+    ],
+    "groupName": null,
+    "groupCountry": null,
+    "groupType": null,
+    "notes": []
+   },
+   {
+    "type": "Creator",
+    "authorSeq": 4,
+    "name": "John M. Phillips",
+    "country": "UK",
+    "labelType": "Person",
+    "roles": [],
+    "groupName": null,
+    "groupCountry": null,
+    "groupType": null,
+    "notes": []
+   },
+   {
+    "type": "Contributor",
+    "authorSeq": 5,
+    "name": "Steve Weston",
+    "country": "UK",
+    "labelType": "Person",
+    "roles": [
+     {
+      "roleType": "A",
+      "roleName": "Inlay/Poster Art"
+     }
+    ],
+    "groupName": null,
+    "groupCountry": null,
+    "groupType": null,
+    "notes": [
+     {
+      "text": "Steve might be the creator of the golden lizard logo, used by Hewson on the boxes of all their games from 1989 and onwards.",
+      "noteType": "C"
+     }
+    ]
+   }
+  ],
+  "releases": [
+   {
+    "releaseSeq": 0,
+    "publishers": [
+     {
+      "publisherSeq": 1,
+      "name": "Hewson Consultants Ltd",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "releaseTitles": [
+     "Cybernoid: The Fighting Machine"
+    ],
+    "yearOfRelease": 1988,
+    "releasePrice": {
+     "amount": "7.99",
+     "currency": "£",
+     "prefix": 1
+    },
+    "diskPrice": {
+     "amount": "14.99",
+     "currency": "£",
+     "prefix": 1
+    },
+    "code": null,
+    "barcode": null,
+    "dl": null,
+    "files": [
+     {
+      "path": "/pub/sinclair/games/c/Cybernoid.dsk.zip",
+      "size": 30569,
+      "type": "Disk image",
+      "format": "+3 disk (DSK)",
+      "origin": "Original release (O)",
+      "comments": null,
+      "encodingScheme": "None"
+     },
+     {
+      "path": "/pub/sinclair/games/c/Cybernoid.tzx.zip",
+      "size": 28833,
+      "type": "Tape image",
+      "format": "Perfect tape (TZX)",
+      "origin": "Original release (O)",
+      "comments": null,
+      "encodingScheme": "Hewson Slowload (64512)"
+     },
+     {
+      "path": "/pub/sinclair/games/c/Cybernoid128.tap.zip",
+      "size": 30761,
+      "type": "Tape image",
+      "format": "Tape (TAP)",
+      "origin": null,
+      "comments": null,
+      "encodingScheme": "Undetermined"
+     },
+     {
+      "path": "/pub/sinclair/games/c/Cybernoid48.tap.zip",
+      "size": 28853,
+      "type": "Tape image",
+      "format": "Tape (TAP)",
+      "origin": null,
+      "comments": null,
+      "encodingScheme": "Undetermined"
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0001196/Cybernoid(Demo).tzx.zip",
+      "size": 25989,
+      "type": "Tape image",
+      "format": "Perfect tape (TZX)",
+      "origin": null,
+      "comments": null,
+      "encodingScheme": "None"
+     }
+    ]
+   },
+   {
+    "releaseSeq": 1,
+    "publishers": [
+     {
+      "publisherSeq": 1,
+      "name": "Erbe Software S.A.",
+      "country": "Spain",
+      "labelType": "Company"
+     }
+    ],
+    "releaseTitles": [],
+    "yearOfRelease": 1988,
+    "code": "SE407",
+    "barcode": null,
+    "dl": "M-14536-1988",
+    "files": [
+     {
+      "path": "/pub/sinclair/games/c/Cybernoid(ErbeSoftwareS.A.).tzx.zip",
+      "size": 28969,
+      "type": "Tape image",
+      "format": "Perfect tape (TZX)",
+      "origin": "Re-release (R)",
+      "comments": null,
+      "encodingScheme": "Hewson Slowload (64512)"
+     }
+    ]
+   },
+   {
+    "releaseSeq": 2,
+    "publishers": [
+     {
+      "publisherSeq": 1,
+      "name": "IBSA",
+      "country": "Spain",
+      "labelType": "Company"
+     }
+    ],
+    "releaseTitles": [],
+    "yearOfRelease": 1988,
+    "code": null,
+    "barcode": null,
+    "dl": "M-14536-1988",
+    "files": [
+     {
+      "path": "/pub/sinclair/games/c/Cybernoid(IBSA).tzx.zip",
+      "size": 28245,
+      "type": "Tape image",
+      "format": "Perfect tape (TZX)",
+      "origin": "Re-release (R)",
+      "comments": null,
+      "encodingScheme": "Hewson Slowload (64512)"
+     }
+    ]
+   },
+   {
+    "releaseSeq": 3,
+    "publishers": [
+     {
+      "publisherSeq": 1,
+      "name": "Kixx",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "releaseTitles": [],
+    "yearOfRelease": 1988,
+    "code": null,
+    "barcode": "5013442544280",
+    "dl": null,
+    "files": [
+     {
+      "path": "/pub/sinclair/games/c/Cybernoid(Kixx).tzx.zip",
+      "size": 28837,
+      "type": "Tape image",
+      "format": "Perfect tape (TZX)",
+      "origin": "Re-release (R)",
+      "comments": null,
+      "encodingScheme": "None"
+     }
+    ]
+   }
+  ],
+  "series": [
+   {
+    "entry_id": 1196,
+    "title": "Cybernoid",
+    "publishers": [
+     {
+      "name": "Hewson Consultants Ltd",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K/128K",
+    "groupName": "Cybernoid"
+   },
+   {
+    "entry_id": 1199,
+    "title": "Cybernoid II: The Revenge",
+    "publishers": [
+     {
+      "name": "Hewson Consultants Ltd",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K/128K",
+    "groupName": "Cybernoid"
+   }
+  ],
+  "otherSystems": [
+   {
+    "name": "Amstrad CPC",
+    "url": "https://www.cpc-power.com/index.php?page=detail&num=55"
+   },
+   {
+    "name": "Commodore 64",
+    "url": "https://www.lemon64.com/game/cybernoid"
+   },
+   {
+    "name": "NES",
+    "url": "https://nescartdb.com/profile/view/34/cybernoid-the-fighting-machine"
+   },
+   {
+    "name": "Amiga",
+    "url": "https://www.lemonamiga.com/games/details.php?id=295"
+   },
+   {
+    "name": "Atari ST",
+    "url": "https://www.atarilegend.com/games/games_detail.php?game_id=131"
+   }
+  ],
+  "inCompilations": [
+   {
+    "entry_id": 11166,
+    "title": "10 Mega Games Volume One",
+    "publishers": [
+     {
+      "name": "Gremlin Graphics Software Ltd",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "type": "Compilation"
+   },
+   {
+    "entry_id": 11568,
+    "title": "Cecco Collection",
+    "publishers": [
+     {
+      "name": "Hewson Consultants Ltd",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "type": "Compilation"
+   },
+   {
+    "entry_id": 35305,
+    "title": "Load 'n' Run issue 50",
+    "publishers": [
+     {
+      "name": null,
+      "country": null,
+      "labelType": null
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "type": "Covertape"
+   },
+   {
+    "entry_id": 29877,
+    "title": "Poke City",
+    "publishers": [
+     {
+      "name": null,
+      "country": null,
+      "labelType": null
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "type": "Utility: Poke/Cheat"
+   },
+   {
+    "entry_id": 12092,
+    "title": "Space Ace",
+    "publishers": [
+     {
+      "name": "Gremlin Graphics Software Ltd",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "type": "Compilation"
+   },
+   {
+    "entry_id": 1001186,
+    "title": "The Spectrum",
+    "publishers": [
+     {
+      "name": "Retro Games Ltd",
+      "country": null,
+      "labelType": "Company"
+     }
+    ],
+    "machineType": null,
+    "type": "Hardware: Computer"
+   },
+   {
+    "entry_id": 29921,
+    "title": "Tips Amazing",
+    "publishers": [
+     {
+      "name": null,
+      "country": null,
+      "labelType": null
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "type": "Utility: Poke/Cheat"
+   },
+   {
+    "entry_id": 41950,
+    "title": "Tips Amazing",
+    "publishers": [
+     {
+      "name": null,
+      "country": null,
+      "labelType": null
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "type": "Utility: Poke/Cheat"
+   }
+  ],
+  "compilationContents": [],
+  "authoredWith": [],
+  "authoring": [],
+  "inspiredBy": [],
+  "modificationOf": [],
+  "modifiedBy": [],
+  "otherPlatform": [],
+  "inBook": [],
+  "bookContents": [],
+  "additionalDownloads": [
+   {
+    "path": "/zxdb/sinclair/entries/0001196/Cybernoid.jpg",
+    "size": 380322,
+    "type": "Inlay - Front",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/screens/load/c/scr/Cybernoid.scr",
+    "size": 6912,
+    "type": "Loading screen",
+    "format": "Screen dump (SCR)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/screens/in-game/c/Cybernoid.gif",
+    "size": 6893,
+    "type": "Running screen",
+    "format": "Picture (GIF)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-info/c/Cybernoid.pdf",
+    "size": 69587,
+    "type": "Instructions",
+    "format": "Document (PDF)",
+    "language": "English"
+   },
+   {
+    "path": "/pub/sinclair/games-info/c/Cybernoid_French.pdf",
+    "size": 56307,
+    "type": "Instructions",
+    "format": "Document (PDF)",
+    "language": "French"
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0001196/Cybernoid(MULTI-LANG).pdf",
+    "size": 225143,
+    "type": "Instructions",
+    "format": "Document (PDF)",
+    "language": "Multi-language: English, French"
+   },
+   {
+    "path": "/pub/sinclair/games-info/c/Cybernoid.txt",
+    "size": 3809,
+    "type": "Instructions",
+    "format": "Document (TXT)",
+    "language": "English"
+   },
+   {
+    "path": "/pub/sinclair/games-maps/c/Cybernoid.jpg",
+    "size": 368074,
+    "type": "Game map",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-maps/c/Cybernoid_2.jpg",
+    "size": 280253,
+    "type": "Game map",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-maps/c/Cybernoid_4.jpg",
+    "size": 604139,
+    "type": "Game map",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-maps/c/Cybernoid_3.png",
+    "size": 159631,
+    "type": "Game map",
+    "format": "Picture (PNG)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/pokes/c/Cybernoid (1988)(Hewson Consultants).pok",
+    "size": 594,
+    "type": "POK pokes file",
+    "format": "Pokes (POK)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-adverts/c/Cybernoid.jpg",
+    "size": 217435,
+    "type": "Advertisement",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-01.jpg",
+    "size": 914390,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-02.jpg",
+    "size": 845131,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-03.jpg",
+    "size": 824408,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-04.jpg",
+    "size": 804001,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-05.jpg",
+    "size": 857929,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-06.jpg",
+    "size": 926710,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-07.jpg",
+    "size": 812873,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-08.jpg",
+    "size": 735259,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-09.jpg",
+    "size": 759244,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-10.jpg",
+    "size": 858808,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-11.jpg",
+    "size": 963347,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-12.jpg",
+    "size": 731073,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-13.jpg",
+    "size": 684369,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-14.jpg",
+    "size": 720270,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-15.jpg",
+    "size": 591831,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-16.jpg",
+    "size": 721049,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-17.jpg",
+    "size": 678714,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-18.jpg",
+    "size": 860463,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-19.jpg",
+    "size": 787604,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-20.jpg",
+    "size": 924857,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-21.jpg",
+    "size": 846580,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-22.jpg",
+    "size": 783643,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-23.jpg",
+    "size": 761307,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-24.jpg",
+    "size": 799490,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-25.jpg",
+    "size": 775228,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-26.jpg",
+    "size": 777480,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-27.jpg",
+    "size": 698819,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-28.jpg",
+    "size": 729554,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-29.jpg",
+    "size": 776837,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-30.jpg",
+    "size": 781711,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/Cybernoid_Comic/Cybernoid_Comic-31.jpg",
+    "size": 781980,
+    "type": "Game additional material",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0001196/Cybernoid_Tape.jpg",
+    "size": 68114,
+    "type": "Media scan",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/music/ay/games/c/Cybernoid.ay.zip",
+    "size": 3038,
+    "type": "Ripped in-game/theme music in AY format",
+    "format": "Music (AY)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/music/mp3/Cybernoid.mp3.zip",
+    "size": 2180676,
+    "type": "Sampled in-game/theme music in MP3 format",
+    "format": "Music (MP3)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-inlays/Rereleases/c/Cybernoid(ErbeSoftwareS.A.).jpg",
+    "size": 106370,
+    "type": "Inlay - Front",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-inlays/Rereleases/c/Cybernoid(IBSA).jpg",
+    "size": 124477,
+    "type": "Inlay - Front",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-info/c/Cybernoid(IBSA).pdf",
+    "size": 25208,
+    "type": "Instructions",
+    "format": "Document (PDF)",
+    "language": "Spanish"
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0001196/Cybernoid(Kixx).jpg",
+    "size": 663584,
+    "type": "Inlay - Front",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0001196/Cybernoid(Kixx)_Back.jpg",
+    "size": 503278,
+    "type": "Inlay - Back",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0001196/Cybernoid(Kixx)_Media.jpg",
+    "size": 112076,
+    "type": "Media scan",
+    "format": "Picture (JPG)",
+    "language": null
+   }
+  ],
+  "screens": [
+   {
+    "entry_id": 1196,
+    "release_seq": "0",
+    "filename": "Cybernoid-load.png",
+    "url": "/zxscreens/0001196/Cybernoid-load.png",
+    "scrUrl": "/pub/sinclair/screens/load/c/scr/Cybernoid.scr",
+    "size": 5038,
+    "type": "Loading screen",
+    "format": "Picture",
+    "title": ""
+   },
+   {
+    "entry_id": 1196,
+    "release_seq": 0,
+    "filename": "Cybernoid.gif",
+    "url": "/pub/sinclair/screens/in-game/c/Cybernoid.gif",
+    "size": 6893,
+    "type": "Running screen",
+    "format": "Picture (GIF)",
+    "title": null
+   }
+  ]
+ }
+}

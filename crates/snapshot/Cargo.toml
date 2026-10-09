@@ -4,7 +4,12 @@ version = "0.1.0"
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
+description = "The Spectrum at an instant, neutral of file format: .z80 (v1-v3), .sna (48K/128K) and .szx, read and written."
 
 [dependencies]
+# zlib, for the .szx format's compressed RAM pages, in Rust alone.
+miniz_oxide = { workspace = true }
 
 [dev-dependencies]
+# The `snapinfo` example and the tests read snapshots out of the archive's zips.
+unzip = { workspace = true }

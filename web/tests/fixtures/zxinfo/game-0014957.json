@@ -1,0 +1,201 @@
+{
+ "_index": "zxinfo-20261007-153510",
+ "_id": "0014957",
+ "_version": 1,
+ "_seq_no": 13301,
+ "_primary_term": 3,
+ "found": true,
+ "_source": {
+  "contentType": "SOFTWARE",
+  "zxinfoVersion": "1.0.241",
+  "title": "2 Por 1: Thunder Blade + Cybernoid II",
+  "originalYearOfRelease": 1988,
+  "originalMonthOfRelease": null,
+  "originalDayOfRelease": null,
+  "machineType": "ZX-Spectrum 128 +3",
+  "numberOfPlayers": 1,
+  "multiplayerMode": null,
+  "multiplayerType": null,
+  "xrated": 0,
+  "genre": "Compilation",
+  "genreType": "Compilation",
+  "isbn": null,
+  "language": "English",
+  "originalPrice": null,
+  "availability": "Available",
+  "score": {
+   "score": 8,
+   "votes": 2
+  },
+  "controls": [],
+  "remarks": null,
+  "hardwareBlurb": null,
+  "knownErrors": null,
+  "publishers": [
+   {
+    "publisherSeq": 1,
+    "name": "Erbe Software S.A.",
+    "country": "Spain",
+    "labelType": "Company",
+    "notes": []
+   }
+  ],
+  "authors": [
+   {}
+  ],
+  "releases": [
+   {
+    "releaseSeq": 0,
+    "publishers": [
+     {
+      "publisherSeq": 1,
+      "name": "Erbe Software S.A.",
+      "country": "Spain",
+      "labelType": "Company"
+     }
+    ],
+    "releaseTitles": [],
+    "yearOfRelease": 1988,
+    "diskPrice": {
+     "amount": "2500",
+     "currency": "Ptas",
+     "prefix": 0
+    },
+    "code": "SK031",
+    "barcode": null,
+    "dl": "M-40777-1988",
+    "files": [
+     {
+      "path": "/pub/sinclair/compilations/123/2Por1-ThunderBlade+CybernoidII.dsk.zip",
+      "size": 125118,
+      "type": "Disk image",
+      "format": "+3 disk (DSK)",
+      "origin": "Original release (O)",
+      "comments": null,
+      "encodingScheme": "None"
+     }
+    ]
+   }
+  ],
+  "series": [],
+  "otherSystems": [],
+  "inCompilations": [],
+  "compilationContents": [
+   {
+    "entry_id": 5249,
+    "title": "Thunder Blade",
+    "publishers": [
+     {
+      "name": "U.S. Gold Ltd",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K/128K",
+    "sequence": 1,
+    "side": "Tape 0, side A",
+    "variation": "Full version"
+   },
+   {
+    "entry_id": 1199,
+    "title": "Cybernoid II: The Revenge",
+    "publishers": [
+     {
+      "name": "Hewson Consultants Ltd",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K/128K",
+    "sequence": 1,
+    "side": "Tape 0, side B",
+    "variation": "Full version"
+   }
+  ],
+  "authoredWith": [],
+  "authoring": [],
+  "inspiredBy": [],
+  "modificationOf": [],
+  "modifiedBy": [],
+  "otherPlatform": [],
+  "inBook": [],
+  "bookContents": [],
+  "additionalDownloads": [
+   {
+    "path": "/pub/sinclair/games-inlays/Compilations/123/2Por1-ThunderBlade+CybernoidII.jpg",
+    "size": 246888,
+    "type": "Inlay - Front",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/screens/in-game/123/2Por1-ThunderBlade+CybernoidII.gif",
+    "size": 9157,
+    "type": "Running screen",
+    "format": "Picture (GIF)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-info/123/2Por1-ThunderBlade+CybernoidII.pdf",
+    "size": 32710,
+    "type": "Instructions",
+    "format": "Document (PDF)",
+    "language": "Spanish"
+   }
+  ],
+  "screens": [
+   {
+    "entry_id": 5249,
+    "release_seq": "0",
+    "filename": "ThunderBlade-load.png",
+    "url": "/zxscreens/0014957/ThunderBlade-load.png",
+    "scrUrl": "/pub/sinclair/screens/load/t/scr/ThunderBlade.scr",
+    "size": 7334,
+    "type": "Loading screen",
+    "format": "Picture",
+    "title": "Thunder Blade"
+   },
+   {
+    "entry_id": 1199,
+    "release_seq": "0",
+    "filename": "CybernoidII-TheRevenge-load.png",
+    "url": "/zxscreens/0014957/CybernoidII-TheRevenge-load.png",
+    "scrUrl": "/pub/sinclair/screens/load/c/scr/CybernoidII-TheRevenge.scr",
+    "size": 14769,
+    "type": "Loading screen",
+    "format": "Picture",
+    "title": "Cybernoid II: The Revenge"
+   },
+   {
+    "entry_id": 5249,
+    "release_seq": 0,
+    "filename": "ThunderBlade.gif",
+    "url": "/pub/sinclair/screens/in-game/t/ThunderBlade.gif",
+    "size": 4444,
+    "type": "Running screen",
+    "format": "Picture (GIF)",
+    "title": "Thunder Blade"
+   },
+   {
+    "entry_id": 1199,
+    "release_seq": 0,
+    "filename": "CybernoidII-TheRevenge.gif",
+    "url": "/pub/sinclair/screens/in-game/c/CybernoidII-TheRevenge.gif",
+    "size": 6473,
+    "type": "Running screen",
+    "format": "Picture (GIF)",
+    "title": "Cybernoid II: The Revenge"
+   },
+   {
+    "entry_id": 14957,
+    "release_seq": 0,
+    "filename": "2Por1-ThunderBlade+CybernoidII.gif",
+    "url": "/pub/sinclair/screens/in-game/123/2Por1-ThunderBlade+CybernoidII.gif",
+    "size": 9157,
+    "type": "Running screen",
+    "format": "Picture (GIF)",
+    "title": null
+   }
+  ]
+ }
+}

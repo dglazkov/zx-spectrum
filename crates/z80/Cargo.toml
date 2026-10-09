@@ -5,6 +5,12 @@ edition.workspace = true
 license.workspace = true
 publish.workspace = true
 
+# The Zilog Z80 (NMOS), machine cycle by machine cycle through a `Bus`: every opcode, documented or not, exact
+# flags (X/Y included), MEMPTR, Q, R, interrupts, HALT, and a disassembler. It knows nothing of the Spectrum.
 [dependencies]
 
+# For the test suites only: the SingleStepTests come as JSON in a zip (inflated with miniz_oxide).
 [dev-dependencies]
+miniz_oxide.workspace = true
+serde.workspace = true
+serde_json.workspace = true

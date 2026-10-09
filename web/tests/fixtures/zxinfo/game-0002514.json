@@ -1,0 +1,389 @@
+{
+ "_index": "zxinfo-20261007-153510",
+ "_id": "0002514",
+ "_version": 1,
+ "_seq_no": 28671,
+ "_primary_term": 3,
+ "found": true,
+ "_source": {
+  "contentType": "SOFTWARE",
+  "zxinfoVersion": "1.0.241",
+  "title": "International Match Day",
+  "originalYearOfRelease": 1986,
+  "originalMonthOfRelease": null,
+  "originalDayOfRelease": null,
+  "machineType": "ZX-Spectrum 128K",
+  "numberOfPlayers": 2,
+  "multiplayerMode": "Simultaneous",
+  "multiplayerType": null,
+  "xrated": 0,
+  "genre": "Sport Game: Action",
+  "genreType": "Sport Game",
+  "genreSubType": "Action",
+  "isbn": null,
+  "language": null,
+  "originalPrice": {
+   "amount": "9.95",
+   "currency": "£",
+   "prefix": 1
+  },
+  "availability": "Available",
+  "score": {
+   "score": 8.09,
+   "votes": 42
+  },
+  "controls": [
+   {
+    "control": "Cursor"
+   },
+   {
+    "control": "Interface 2 (left)"
+   },
+   {
+    "control": "Interface 2 (right)"
+   },
+   {
+    "control": "Kempston Joystick"
+   }
+  ],
+  "remarks": null,
+  "hardwareBlurb": null,
+  "knownErrors": null,
+  "publishers": [
+   {
+    "publisherSeq": 1,
+    "name": "Ocean Software Ltd",
+    "country": "UK",
+    "labelType": "Company: Publisher/Manager",
+    "notes": [
+     {
+      "text": "1st Best Software House - 1987 Crash Readers Awards.",
+      "noteType": "A"
+     },
+     {
+      "text": "1st Best Software House - 1989 Crash Readers Awards.",
+      "noteType": "A"
+     },
+     {
+      "text": "1st Best Software House - 1990 Crash Readers Awards.",
+      "noteType": "A"
+     },
+     {
+      "text": "2nd Best Software House - 1986 Crash Readers Awards.",
+      "noteType": "A"
+     }
+    ]
+   }
+  ],
+  "authors": [
+   {
+    "type": "Creator",
+    "authorSeq": 1,
+    "name": "Jon Ritman",
+    "country": "UK",
+    "labelType": "Person",
+    "roles": [],
+    "groupName": null,
+    "groupCountry": null,
+    "groupType": null,
+    "notes": []
+   },
+   {
+    "type": "Creator",
+    "authorSeq": 2,
+    "name": "Chris Clarke",
+    "country": "UK",
+    "labelType": "Person",
+    "roles": [],
+    "groupName": null,
+    "groupCountry": null,
+    "groupType": null,
+    "notes": []
+   },
+   {
+    "type": "Creator",
+    "authorSeq": 3,
+    "name": "F. David Thorpe",
+    "country": "UK",
+    "labelType": "Nickname",
+    "roles": [
+     {
+      "roleType": "S",
+      "roleName": "Load Screen"
+     }
+    ],
+    "groupName": null,
+    "groupCountry": null,
+    "groupType": null,
+    "notes": [
+     {
+      "text": "SPOT name: \"Dave Thorpe\"",
+      "noteType": "R"
+     }
+    ]
+   },
+   {
+    "type": "Contributor",
+    "authorSeq": 4,
+    "name": "Bob Wakelin",
+    "country": null,
+    "labelType": "Person",
+    "roles": [
+     {
+      "roleType": "A",
+      "roleName": "Inlay/Poster Art"
+     }
+    ],
+    "groupName": null,
+    "groupCountry": null,
+    "groupType": null,
+    "notes": []
+   }
+  ],
+  "releases": [
+   {
+    "releaseSeq": 0,
+    "publishers": [
+     {
+      "publisherSeq": 1,
+      "name": "Ocean Software Ltd",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "releaseTitles": [],
+    "yearOfRelease": 1986,
+    "releasePrice": {
+     "amount": "9.95",
+     "currency": "£",
+     "prefix": 1
+    },
+    "code": null,
+    "barcode": null,
+    "dl": null,
+    "files": [
+     {
+      "path": "/pub/sinclair/games/i/InternationalMatchDay.tap.zip",
+      "size": 48514,
+      "type": "Tape image",
+      "format": "Tape (TAP)",
+      "origin": null,
+      "comments": null,
+      "encodingScheme": "Undetermined"
+     },
+     {
+      "path": "/pub/sinclair/games/i/InternationalMatchDay.tzx.zip",
+      "size": 49887,
+      "type": "Tape image",
+      "format": "Perfect tape (TZX)",
+      "origin": "Original release (O)",
+      "comments": null,
+      "encodingScheme": "SpeedLock 2"
+     }
+    ]
+   },
+   {
+    "releaseSeq": 1,
+    "publishers": [
+     {
+      "publisherSeq": 1,
+      "name": "Investronica S.A.",
+      "country": "Spain",
+      "labelType": "Company"
+     }
+    ],
+    "releaseTitles": [],
+    "yearOfRelease": 1986,
+    "code": null,
+    "barcode": null,
+    "dl": "M-36111-1985",
+    "files": [
+     {
+      "path": "/pub/sinclair/games/i/InternationalMatchDay(InvestronicaS.A.).tzx.zip",
+      "size": 48284,
+      "type": "Tape image",
+      "format": "Perfect tape (TZX)",
+      "origin": "Re-release (R)",
+      "comments": null,
+      "encodingScheme": "None"
+     }
+    ]
+   }
+  ],
+  "series": [
+   {
+    "entry_id": 3067,
+    "title": "Match Day",
+    "publishers": [
+     {
+      "name": "Ocean Software Ltd",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "groupName": "MatchDay"
+   },
+   {
+    "entry_id": 2514,
+    "title": "International Match Day",
+    "publishers": [
+     {
+      "name": "Ocean Software Ltd",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 128K",
+    "groupName": "MatchDay"
+   },
+   {
+    "entry_id": 3070,
+    "title": "Match Day II",
+    "publishers": [
+     {
+      "name": "Ocean Software Ltd",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K/128K",
+    "groupName": "MatchDay"
+   }
+  ],
+  "otherSystems": [],
+  "inCompilations": [
+   {
+    "entry_id": 12358,
+    "title": "Stars on the 128K",
+    "publishers": [
+     {
+      "name": "Ocean Software Ltd",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 128K",
+    "type": "Compilation"
+   }
+  ],
+  "compilationContents": [],
+  "authoredWith": [],
+  "authoring": [],
+  "inspiredBy": [],
+  "modificationOf": [],
+  "modifiedBy": [],
+  "otherPlatform": [],
+  "inBook": [],
+  "bookContents": [],
+  "additionalDownloads": [
+   {
+    "path": "/zxdb/sinclair/entries/0002514/InternationalMatchDay.jpg",
+    "size": 571276,
+    "type": "Inlay - Front",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0002514/InternationalMatchDay_2.jpg",
+    "size": 1269303,
+    "type": "Inlay - Front",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0002514/InternationalMatchDay_Back.jpg",
+    "size": 554222,
+    "type": "Inlay - Back",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0002514/InternationalMatchDay_Back_2.jpg",
+    "size": 1082705,
+    "type": "Inlay - Back",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/screens/load/i/scr/InternationalMatchDay.scr",
+    "size": 6912,
+    "type": "Loading screen",
+    "format": "Screen dump (SCR)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/screens/in-game/i/InternationalMatchDay.gif",
+    "size": 3646,
+    "type": "Running screen",
+    "format": "Picture (GIF)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-info/i/InternationalMatchDay.txt",
+    "size": 14079,
+    "type": "Instructions",
+    "format": "Document (TXT)",
+    "language": "English"
+   },
+   {
+    "path": "/zxdb/sinclair/pokes/i/International Match Day (1985)(Ocean Software).pok",
+    "size": 69,
+    "type": "POK pokes file",
+    "format": "Pokes (POK)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0002514/InternationalMatchDay_Media.jpg",
+    "size": 91793,
+    "type": "Media scan",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0002514/InternationalMatchDay_Media_2.jpg",
+    "size": 130848,
+    "type": "Media scan",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-inlays/Rereleases/i/InternationalMatchDay(InvestronicaS.A.).jpg",
+    "size": 64760,
+    "type": "Inlay - Front",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-info/i/InternationalMatchDay(InvestronicaS.A.).pdf",
+    "size": 23132,
+    "type": "Instructions",
+    "format": "Document (PDF)",
+    "language": "Spanish"
+   }
+  ],
+  "screens": [
+   {
+    "entry_id": 2514,
+    "release_seq": "0",
+    "filename": "InternationalMatchDay-load.png",
+    "url": "/zxscreens/0002514/InternationalMatchDay-load.png",
+    "scrUrl": "/pub/sinclair/screens/load/i/scr/InternationalMatchDay.scr",
+    "size": 4776,
+    "type": "Loading screen",
+    "format": "Picture",
+    "title": ""
+   },
+   {
+    "entry_id": 2514,
+    "release_seq": 0,
+    "filename": "InternationalMatchDay.gif",
+    "url": "/pub/sinclair/screens/in-game/i/InternationalMatchDay.gif",
+    "size": 3646,
+    "type": "Running screen",
+    "format": "Picture (GIF)",
+    "title": null
+   }
+  ]
+ }
+}

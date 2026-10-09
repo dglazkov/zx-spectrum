@@ -7,7 +7,9 @@ name = "zx-spectrum"
 # fetched reports itself skipped.
 
 # The CPU, instruction by instruction: every opcode's result, flags, MEMPTR and timing, and the order and timing of
-# its bus cycles, against the FUSE test suite and its own tests.
+# its bus cycles, against the FUSE test suite, the first 25 SingleStepTests of every opcode, z80test's full, CCF and
+# MEMPTR variants (CRCs measured on a real Zilog Z80), and its own tests of interrupts, HALT and the disassembler;
+# and how fast it runs (ZEXDOC's first 200M instructions, reported, never judged). Under ten seconds.
 [[test]]
 name = "z80"
 run = "CARGO_TARGET_DIR=target/test-z80 cargo test -q -p z80"
@@ -20,14 +22,56 @@ run = "CARGO_TARGET_DIR=target/test-audio cargo test -q -p audio -p ay"
 covers = ["crates/audio/**", "crates/ay/**", "Cargo.toml"]
 limit = "1m"
 
+# Tapes: every TAP, TZX, CSW and PZX block built to its specification and played to the T-state, loaded by a
+# model of the ROM's LD-BYTES at both clocks, Saboteur's tapes played through, SAVE recorded back (docs/tape.md);
+# about a second to run.
 [[test]]
 name = "tape"
 run = "CARGO_TARGET_DIR=target/test-tape cargo test -q -p tape"
 covers = ["crates/tape/**", "Cargo.toml", "fixtures.txt"]
 limit = "1m"
 
+# Snapshots and zips: .z80 (v1-v3), .sna and .szx built byte by byte from their specifications and round-tripped
+# through each writer, damaged files (and thousands damaged at random from a fixed seed), and 26 real files from the
+# archive (docs/snapshot.md); a few seconds.
 [[test]]
 name = "snapshot"
 run = "CARGO_TARGET_DIR=target/test-snapshot cargo test -q -p snapshot -p unzip"
 covers = ["crates/snapshot/**", "crates/unzip/**", "Cargo.toml", "fixtures.txt"]
 limit = "1m"
+
+# The CPU's exhaustive suites, slow and so a layer of their own, last: all 1,604,000 SingleStepTests (a few seconds
+# on 8 threads), ZEXDOC and ZEXALL side by side (5.8 billion instructions each, about 80 s on this machine), and
+# z80test's three narrower variants.
+# They run when the CPU changes, or by name.
+[[test]]
+name = "z80-suites"
+run = "CARGO_TARGET_DIR=target/test-z80 cargo test -q -p z80 -- --ignored"
+covers = ["crates/z80/**"]
+limit = "5m"
+
+# The page (web/, docs/web.md): its TypeScript checked whole, in a second or two.
+[[test]]
+name = "web-types"
+run = "cd web && npm run --silent typecheck"
+covers = ["web/src/**", "web/tsconfig.json", "web/vite.config.ts", "web/server.d.mts", "web/package.json", "web/package-lock.json"]
+limit = "1m"
+
+# The page's parts without a browser (Vitest): the key mappings and the ROM-paced typing (against a model of the
+# ROM's KEYBOARD routine), the frame scheduler on simulated clocks, the file chosen from ZXInfo's recorded answers,
+# the keyboard's legends against roms/48.rom, the stand-in emulator, rewinding, settings, the server's pass-through.
+# A few seconds.
+[[test]]
+name = "web-unit"
+run = "cd web && npm run --silent test:unit"
+covers = ["web/src/**", "web/tests/*.test.mjs", "web/tests/fixtures/**", "web/server.mjs", "web/vite.config.ts", "web/package-lock.json", "roms/48.rom"]
+limit = "1m"
+
+# The page in Chrome against the stand-in, on the page's own clock (Playwright's page.clock): ready, rendering, keys,
+# tapes, the library (answered from recordings), snapshots, rewind, settings, sound, a phone. Four parts at a time,
+# each reported; those a change cannot touch are skipped. About 40 s; WebGL is drawn in software (SwiftShader).
+[[test]]
+name = "web-page"
+run = "cd web && node tests/page.mjs"
+covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/public/**", "web/tests/page.mjs", "web/tests/fixtures/**", "web/vite.config.ts", "web/server.mjs", "web/package-lock.json", "roms/48.rom"]
+limit = "2m"

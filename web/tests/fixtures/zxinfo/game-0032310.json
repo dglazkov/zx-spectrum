@@ -1,0 +1,135 @@
+{
+ "_index": "zxinfo-20261007-153510",
+ "_id": "0032310",
+ "_version": 1,
+ "_seq_no": 14676,
+ "_primary_term": 3,
+ "found": true,
+ "_source": {
+  "contentType": "SOFTWARE",
+  "zxinfoVersion": "1.0.241",
+  "title": "Bomb Jack +",
+  "originalYearOfRelease": 2018,
+  "originalMonthOfRelease": 3,
+  "originalDayOfRelease": null,
+  "machineType": "ZX-Spectrum 48K",
+  "numberOfPlayers": 1,
+  "multiplayerMode": null,
+  "multiplayerType": null,
+  "xrated": 0,
+  "genre": "Arcade Game: Action",
+  "genreType": "Arcade Game",
+  "genreSubType": "Action",
+  "isbn": null,
+  "language": "English",
+  "originalPrice": null,
+  "availability": "Available",
+  "score": {
+   "score": null,
+   "votes": null
+  },
+  "controls": [],
+  "remarks": "Bomb Jack with level layouts and backgrounds from Bomb Jack Twin. Authored with BadBeard and Paul Dunn's Bomb Jack Editor.",
+  "hardwareBlurb": null,
+  "knownErrors": null,
+  "publishers": [
+   {
+    "publisherSeq": 1,
+    "name": "4thRock",
+    "country": null,
+    "labelType": "Nickname",
+    "notes": []
+   }
+  ],
+  "authors": [
+   {
+    "type": "Creator",
+    "authorSeq": 1,
+    "name": "4thRock",
+    "country": null,
+    "labelType": "Nickname",
+    "roles": [],
+    "groupName": null,
+    "groupCountry": null,
+    "groupType": null,
+    "notes": []
+   }
+  ],
+  "releases": [
+   {
+    "releaseSeq": 0,
+    "publishers": [
+     {
+      "publisherSeq": 1,
+      "name": "4thRock",
+      "country": null,
+      "labelType": "Nickname"
+     }
+    ],
+    "releaseTitles": [],
+    "yearOfRelease": 2018,
+    "code": null,
+    "barcode": null,
+    "dl": null,
+    "files": [
+     {
+      "path": "/zxdb/sinclair/entries/0032310/BombJack+.sna.zip",
+      "size": 25085,
+      "type": "Snapshot image",
+      "format": "Snapshot (SNA)",
+      "origin": null,
+      "comments": null,
+      "encodingScheme": "None"
+     }
+    ]
+   }
+  ],
+  "series": [],
+  "otherSystems": [],
+  "inCompilations": [],
+  "compilationContents": [],
+  "authoredWith": [],
+  "authoring": [],
+  "inspiredBy": [],
+  "modificationOf": [
+   {
+    "entry_id": 617,
+    "title": "Bomb Jack",
+    "publishers": [
+     {
+      "name": "Elite Systems Ltd",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K"
+   }
+  ],
+  "modifiedBy": [],
+  "otherPlatform": [],
+  "inBook": [],
+  "bookContents": [],
+  "additionalDownloads": [
+   {
+    "path": "/zxdb/sinclair/entries/0032310/0032310-run-1.scr",
+    "size": 6912,
+    "type": "Running screen",
+    "format": "Screen dump (SCR)",
+    "language": null
+   }
+  ],
+  "screens": [
+   {
+    "entry_id": 32310,
+    "release_seq": "0",
+    "filename": "0032310-run-1.png",
+    "url": "/zxscreens/0032310/0032310-run-1.png",
+    "scrUrl": "/zxdb/sinclair/entries/0032310/0032310-run-1.scr",
+    "size": 7129,
+    "type": "Running screen",
+    "format": "Picture",
+    "title": ""
+   }
+  ]
+ }
+}

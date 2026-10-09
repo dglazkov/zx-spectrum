@@ -1,0 +1,2440 @@
+{
+ "checked": "2026-10-09",
+ "entries": [
+  {
+   "_id": "0004293",
+   "_source": {
+    "title": "Saboteur!",
+    "originalYearOfRelease": 1985,
+    "machineType": "ZX-Spectrum 48K",
+    "availability": "Available",
+    "genre": "Arcade Game: Action",
+    "publishers": [
+     {
+      "name": "Durell Software Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0004293/Saboteur-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/s/Saboteur.gif",
+      "type": "Running screen"
+     },
+     {
+      "url": "/zxscreens/0004293/0004293-load-0.png",
+      "type": "Loading screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/s/Saboteur.tap.zip",
+        "size": 29457,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/s/Saboteur.tzx.zip",
+        "size": 53305,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/s/Saboteur(Encore).tzx.zip",
+        "size": 26067,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/s/Saboteur(different)(Encore).tzx.zip",
+        "size": 26169,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": "(different)"
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/s/Saboteur(MediumCase)(ErbeSoftwareS.A.).tzx.zip",
+        "size": 53938,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": "(Medium Case)"
+       },
+       {
+        "path": "/pub/sinclair/games/s/Saboteur(SmallCase)(ErbeSoftwareS.A.).tzx.zip",
+        "size": 54014,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": "(Small Case)"
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/s/Saboteur(IBSA).tzx.zip",
+        "size": 55163,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": []
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0004295",
+   "_source": {
+    "title": "Saboteur II",
+    "originalYearOfRelease": 1987,
+    "machineType": "ZX-Spectrum 48K/128K",
+    "availability": "Available",
+    "genre": "Arcade Game: Action",
+    "publishers": [
+     {
+      "name": "Durell Software Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0004295/SaboteurII-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/s/SaboteurII.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/s/SaboteurII.tzx.zip",
+        "size": 58484,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/s/SaboteurII128.tap.zip",
+        "size": 32092,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/s/SaboteurII48.tap.zip",
+        "size": 31073,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/zxdb/sinclair/entries/0004295/SaboteurII.tzx.zip",
+        "size": 29666,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": null,
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/s/SaboteurII(Encore).tzx.zip",
+        "size": 28704,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/s/SaboteurII(ErbeSoftwareS.A.).tzx.zip",
+        "size": 57090,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/s/SaboteurII48(unknown).z80.zip",
+        "size": 31715,
+        "type": "Snapshot image",
+        "format": "Snapshot (Z80)",
+        "origin": "Re-release (r)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": [
+       {
+        "path": "/zxdb/sinclair/entries/0004295/SaboteurII(PIMSoftware).tzx.zip",
+        "size": 29692,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": null,
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0003012",
+   "_source": {
+    "title": "Manic Miner",
+    "originalYearOfRelease": 1983,
+    "machineType": "ZX-Spectrum 48K",
+    "availability": "Available",
+    "genre": "Arcade Game: Platform",
+    "publishers": [
+     {
+      "name": "Bug-Byte Software Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0003012/ManicMiner-load.gif",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/m/ManicMiner.gif",
+      "type": "Running screen"
+     },
+     {
+      "url": "/zxscreens/0003012/ManicMiner(SoftwareProjectsLtd)-load.gif",
+      "type": "Loading screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/m/ManicMiner(different).tzx.zip",
+        "size": 14325,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": "(different)"
+       },
+       {
+        "path": "/pub/sinclair/games/m/ManicMiner.tap.zip",
+        "size": 14047,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/m/ManicMiner.tzx.zip",
+        "size": 14220,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/zxdb/sinclair/entries/0003012/ManicMiner(ULAplus).tap.zip",
+        "size": 14193,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": "ULAplus version"
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/m/ManicMiner(SoftwareProjectsLtd).tap.zip",
+        "size": 18787,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": "Re-release (r)",
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/m/ManicMiner(SoftwareProjectsLtd).tzx.zip",
+        "size": 13003,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/m/ManicMiner(Ventamatic).tzx.zip",
+        "size": 13001,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/m/ManicMiner(MastertronicAddedDimension).tzx.zip",
+        "size": 12966,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0002589",
+   "_source": {
+    "title": "Jet Set Willy",
+    "originalYearOfRelease": 1984,
+    "machineType": "ZX-Spectrum 48K",
+    "availability": "Available",
+    "genre": "Arcade Game: Platform",
+    "publishers": [
+     {
+      "name": "Software Projects Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0002589/JetSetWilly-load.gif",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/j/JetSetWilly.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/j/JetSetWilly(PCGBugfix).tzx.zip",
+        "size": 16900,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": "(PCG Bugfix)"
+       },
+       {
+        "path": "/pub/sinclair/games/j/JetSetWilly(StormWarningMix).z80.zip",
+        "size": 18969,
+        "type": "Snapshot image",
+        "format": "Snapshot (Z80)",
+        "origin": null,
+        "comments": "(Storm Warning Mix)"
+       },
+       {
+        "path": "/pub/sinclair/games/j/JetSetWilly(hacked).z80.zip",
+        "size": 26395,
+        "type": "Snapshot image",
+        "format": "Snapshot (Z80)",
+        "origin": null,
+        "comments": "(hacked)"
+       },
+       {
+        "path": "/pub/sinclair/games/j/JetSetWilly(original).tap.zip",
+        "size": 25037,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": "(original)"
+       },
+       {
+        "path": "/pub/sinclair/games/j/JetSetWilly(pre-production).tzx.zip",
+        "size": 16905,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": "(pre-production)"
+       },
+       {
+        "path": "/pub/sinclair/games/j/JetSetWilly_2.tzx.zip",
+        "size": 16884,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/j/JetSetWilly(Ventamatic).tzx.zip",
+        "size": 23438,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/zxdb/sinclair/entries/0002589/JetSetWilly(CPLComputerPlusSoftGmbH).tzx.zip",
+        "size": 16770,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": null,
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0002259",
+   "_source": {
+    "title": "Head over Heels",
+    "originalYearOfRelease": 1987,
+    "machineType": "ZX-Spectrum 48K/128K",
+    "availability": "Available",
+    "genre": "Arcade Game: Adventure",
+    "publishers": [
+     {
+      "name": "Ocean Software Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0002259/HeadOverHeels-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/h/HeadOverHeels.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/h/HeadOverHeels.tap.zip",
+        "size": 37132,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/h/HeadOverHeels.tzx.zip",
+        "size": 38570,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/zxdb/sinclair/entries/0002259/HeadOverHeels(ULAplus).tap.zip",
+        "size": 37240,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": "ULAplus version"
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/h/HeadOverHeels(ErbeSoftwareS.A.).tzx.zip",
+        "size": 37158,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/h/HeadOverHeels(TheHitSquad).tzx.zip",
+        "size": 38504,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0001601",
+   "_source": {
+    "title": "Elite",
+    "originalYearOfRelease": 1985,
+    "machineType": "ZX-Spectrum 48K/128K",
+    "availability": "Available",
+    "genre": "Strategy Game: Management",
+    "publishers": [
+     {
+      "name": "Firebird Software Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0001601/Elite-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/zxscreens/0001601/Elite128-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/e/Elite.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/e/Elite(JoystickClubVersion).tap.zip",
+        "size": 34680,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": "Hacked/cracked version",
+        "comments": "Cracked Joystick Club release. This is the \"Kraits\" version."
+       },
+       {
+        "path": "/pub/sinclair/games/e/Elite.tzx.zip",
+        "size": 42833,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/e/Elite128.tap.zip",
+        "size": 41381,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/e/Elite48.tap.zip",
+        "size": 43903,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": "Hacked/cracked version",
+        "comments": "Cracked to bypass the Lenslock protection if failed three times"
+       },
+       {
+        "path": "/pub/sinclair/games/e/Elite_2.tzx.zip",
+        "size": 73280,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": "Image from the \"Adder\" version."
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": []
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0006604",
+   "_source": {
+    "title": "The Lords of Midnight",
+    "originalYearOfRelease": 1984,
+    "machineType": "ZX-Spectrum 48K",
+    "availability": "Available",
+    "genre": "Strategy Game: War",
+    "publishers": [
+     {
+      "name": "Beyond Software"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0006604/LordsOfMidnightThe-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/zxscreens/0006604/Psytron-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/zxscreens/0006604/LordsOfMidnightThe-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/l/LordsOfMidnightThe.gif",
+      "type": "Running screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/l/LordsOfMidnightThe.gif",
+      "type": "Running screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/p/Psytron.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/l/LordsOfMidnightThe.tap.zip",
+        "size": 31524,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/l/LordsOfMidnightThe.tzx.zip",
+        "size": 59400,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/tools/pc/midnight-map-editor.zip",
+        "size": 57018,
+        "type": "Archive file",
+        "format": null,
+        "origin": null,
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0004549",
+   "_source": {
+    "title": "Skool Daze",
+    "originalYearOfRelease": 1984,
+    "machineType": "ZX-Spectrum 48K",
+    "availability": "Available",
+    "genre": "Arcade Game: Adventure",
+    "publishers": [
+     {
+      "name": "Microsphere"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0004549/SkoolDaze-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/s/SkoolDaze.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/s/SkoolDaze.tap.zip",
+        "size": 29516,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/s/SkoolDaze.tzx.zip",
+        "size": 65317,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/s/SkoolDaze(AlternativeSoftwareLtd).tzx.zip",
+        "size": 30377,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/s/SkoolDaze(Iqisoft).tap.zip",
+        "size": 33546,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": "Re-release (r)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0003067",
+   "_source": {
+    "title": "Match Day",
+    "originalYearOfRelease": 1984,
+    "machineType": "ZX-Spectrum 48K",
+    "availability": "Available",
+    "genre": "Sport Game: Action",
+    "publishers": [
+     {
+      "name": "Ocean Software Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0003067/MatchDay-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/m/MatchDay.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/m/MatchDay.tap.zip",
+        "size": 30933,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/m/MatchDay.tzx.zip",
+        "size": 29429,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": []
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/m/MatchDay(IBSA).tzx.zip",
+        "size": 28105,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/m/MatchDay(TheHitSquad).tzx.zip",
+        "size": 29370,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/m/MatchDay(ZafiChip).tzx.zip",
+        "size": 29448,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0001551",
+   "_source": {
+    "title": "Dynamite Dan",
+    "originalYearOfRelease": 1985,
+    "machineType": "ZX-Spectrum 48K",
+    "availability": "Available",
+    "genre": "Arcade Game: Platform",
+    "publishers": [
+     {
+      "name": "Mirrorsoft Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0001551/DynamiteDan-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/d/DynamiteDan.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/d/DynamiteDan.tap.zip",
+        "size": 34264,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/d/DynamiteDan.tzx.zip",
+        "size": 66554,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/d/DynamiteDan(CirculodeSoft).tzx.zip",
+        "size": 34314,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/d/DynamiteDan(SilverbirdSoftwareLtd).tzx.zip",
+        "size": 31847,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/d/DynamiteDan(MCMSoftwareS.A.).tzx.zip",
+        "size": 32003,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0004873",
+   "_source": {
+    "title": "Starquake",
+    "originalYearOfRelease": 1985,
+    "machineType": "ZX-Spectrum 48K",
+    "availability": "Available",
+    "genre": "Arcade Game: Maze",
+    "publishers": [
+     {
+      "name": "Bubble Bus Software"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0004873/Starquake-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/s/Starquake.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/s/Starquake.tap.zip",
+        "size": 32378,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/s/Starquake.tzx.zip",
+        "size": 32498,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/zxdb/sinclair/entries/0004873/Starquake.tzx.zip",
+        "size": 65343,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": null,
+        "comments": "different"
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": []
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/s/Starquake(ZCobra).tzx.zip",
+        "size": 31874,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/s/Starquake(Ricochet).tzx.zip",
+        "size": 32519,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0001712",
+   "_source": {
+    "title": "Fairlight",
+    "originalYearOfRelease": 1985,
+    "machineType": "ZX-Spectrum 48K",
+    "availability": "Available",
+    "genre": "Adventure Game: Graphic",
+    "publishers": [
+     {
+      "name": "The Edge"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0001712/Fairlight-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/f/Fairlight.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/f/Fairlight48.tap.zip",
+        "size": 33937,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/f/Fairlight48V1.tzx.zip",
+        "size": 53234,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": "48 v1"
+       },
+       {
+        "path": "/pub/sinclair/games/f/Fairlight48V2.tzx.zip",
+        "size": 53416,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": "48 v2"
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/f/Fairlight(ABCSoft).tzx.zip",
+        "size": 53280,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/f/Fairlight(TheMicroSelection).tzx.zip",
+        "size": 31016,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0000472",
+   "_source": {
+    "title": "Batty",
+    "originalYearOfRelease": 1987,
+    "machineType": "ZX-Spectrum 48K",
+    "availability": "Available",
+    "genre": "Arcade Game: Action",
+    "publishers": [
+     {
+      "name": "Hit-Pak"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0000472/Batty-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/zxscreens/0000472/Batty(Outlet)-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/b/Batty.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/b/Batty.tap.zip",
+        "size": 16425,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": "Compilation release (C)",
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/b/Batty.tzx.zip",
+        "size": 18092,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/b/Batty(EDOS).tzx.zip",
+        "size": 18189,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/b/Batty(Encore).tzx.zip",
+        "size": 18156,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0000617",
+   "_source": {
+    "title": "Bomb Jack",
+    "originalYearOfRelease": 1986,
+    "machineType": "ZX-Spectrum 48K",
+    "availability": "Available",
+    "genre": "Arcade Game: Platform",
+    "publishers": [
+     {
+      "name": "Elite Systems Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0000617/BombJack-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/b/BombJack.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/b/BombJack.tap.zip",
+        "size": 30699,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/b/BombJack.tzx.zip",
+        "size": 26139,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/tools/pc/BombJackEditor.zip",
+        "size": 297725,
+        "type": "Archive file",
+        "format": null,
+        "origin": null,
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/zxdb/sinclair/entries/0000617/BombJack(EDOS).tzx.zip",
+        "size": 25812,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": null,
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/b/BombJack(Encore).tzx.zip",
+        "size": 26121,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/b/BombJack(MCMSoftwareS.A.).tzx.zip",
+        "size": 25388,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/b/BombJack(ZafiChip).tzx.zip",
+        "size": 26237,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/b/BombJack(ZCobra).tzx.zip",
+        "size": 25404,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0001686",
+   "_source": {
+    "title": "Exolon",
+    "originalYearOfRelease": 1987,
+    "machineType": "ZX-Spectrum 48K/128K",
+    "availability": "Available",
+    "genre": "Arcade Game: Shoot-em-up",
+    "publishers": [
+     {
+      "name": "Hewson Consultants Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0001686/Exolon-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/zxscreens/0001686/0001686-run-1.png",
+      "type": "Running screen"
+     },
+     {
+      "url": "/zxscreens/0001686/Exolon-RUN-2.png",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/e/Exolon.tap.zip",
+        "size": 25506,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/e/Exolon.tzx.zip",
+        "size": 25733,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/zxdb/sinclair/entries/0001686/Exolon(128K).mdr.zip",
+        "size": 29928,
+        "type": "Disk image",
+        "format": "Microdrive cartridge (MDR)",
+        "origin": null,
+        "comments": "Unofficial - Created by Redgatemodels (09/24)"
+       },
+       {
+        "path": "/zxdb/sinclair/entries/0001686/Exolon(48K).mdr.zip",
+        "size": 29457,
+        "type": "Disk image",
+        "format": "Microdrive cartridge (MDR)",
+        "origin": null,
+        "comments": "Unofficial - Created by Redgatemodels (09/24)"
+       },
+       {
+        "path": "/zxdb/sinclair/entries/0001686/Exolon(BUGFIX).tzx.zip",
+        "size": 25409,
+        "type": "BUGFIX tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": null,
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/e/Exolon(ErbeSoftwareS.A.).tzx.zip",
+        "size": 25484,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0001196",
+   "_source": {
+    "title": "Cybernoid",
+    "originalYearOfRelease": 1988,
+    "machineType": "ZX-Spectrum 48K/128K",
+    "availability": "Available",
+    "genre": "Arcade Game: Shoot-em-up",
+    "publishers": [
+     {
+      "name": "Hewson Consultants Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0001196/Cybernoid-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/c/Cybernoid.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/c/Cybernoid.dsk.zip",
+        "size": 30569,
+        "type": "Disk image",
+        "format": "+3 disk (DSK)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/c/Cybernoid.tzx.zip",
+        "size": 28833,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/c/Cybernoid128.tap.zip",
+        "size": 30761,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/c/Cybernoid48.tap.zip",
+        "size": 28853,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/zxdb/sinclair/entries/0001196/Cybernoid(Demo).tzx.zip",
+        "size": 25989,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": null,
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/c/Cybernoid(ErbeSoftwareS.A.).tzx.zip",
+        "size": 28969,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/c/Cybernoid(IBSA).tzx.zip",
+        "size": 28245,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/c/Cybernoid(Kixx).tzx.zip",
+        "size": 28837,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0004135",
+   "_source": {
+    "title": "Rick Dangerous",
+    "originalYearOfRelease": 1989,
+    "machineType": "ZX-Spectrum 48K/128K",
+    "availability": "Available",
+    "genre": "Arcade Game: Platform",
+    "publishers": [
+     {
+      "name": "Firebird Software Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0004135/RickDangerous-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/r/RickDangerous.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/r/RickDangerous.dsk.zip",
+        "size": 28150,
+        "type": "Disk image",
+        "format": "+3 disk (DSK)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/r/RickDangerous.tap.zip",
+        "size": 38143,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/r/RickDangerous.tzx.zip",
+        "size": 38320,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/r/RickDangerous(ErbeSoftwareS.A.).tzx.zip",
+        "size": 23988,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/r/RickDangerous(different)(IBSA).tap.zip",
+        "size": 27844,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": "Re-release (R)",
+        "comments": "(different)"
+       },
+       {
+        "path": "/pub/sinclair/games/r/RickDangerous(different)(IBSA).tzx.zip",
+        "size": 25014,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": "(different)"
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/r/RickDangerous(Kixx).tzx.zip",
+        "size": 25239,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/r/RickDangerous(MCMSoftwareS.A.).tzx.zip",
+        "size": 25158,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0000438",
+   "_source": {
+    "title": "Batman",
+    "originalYearOfRelease": 1986,
+    "machineType": "ZX-Spectrum 48K/128K",
+    "availability": "Available",
+    "genre": "Arcade Game: Platform",
+    "publishers": [
+     {
+      "name": "Ocean Software Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0000438/Batman-load.gif",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/b/Batman.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/b/Batman.tap.zip",
+        "size": 33605,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/b/BatmanV1.tzx.zip",
+        "size": 33931,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": "v1"
+       },
+       {
+        "path": "/pub/sinclair/games/b/BatmanV2.tzx.zip",
+        "size": 34216,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": "v2"
+       },
+       {
+        "path": "/pub/sinclair/games/b/BatmanV3.tzx.zip",
+        "size": 34407,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": "v3"
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/b/Batman(ErbeSoftwareS.A.).tzx.zip",
+        "size": 33900,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/b/Batman(TheHitSquad).tzx.zip",
+        "size": 34440,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0004087",
+   "_source": {
+    "title": "Target: Renegade",
+    "originalYearOfRelease": 1988,
+    "machineType": "ZX-Spectrum 48K/128K",
+    "availability": "Available",
+    "genre": "Arcade Game: Beat-em-up/Gang",
+    "publishers": [
+     {
+      "name": "Imagine Software Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0004087/TargetRenegade-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/t/TargetRenegade.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/t/Target-Renegade.dsk.zip",
+        "size": 69161,
+        "type": "Disk image",
+        "format": "+3 disk (DSK)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/t/Target-Renegade.tzx.zip",
+        "size": 111886,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/t/Target-Renegade128.tap.zip",
+        "size": 68769,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/t/Target-Renegade48.tap.zip",
+        "size": 67893,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/t/Target-Renegade(ErbeSoftwareS.A.).tzx.zip",
+        "size": 104806,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/t/Target-Renegade(TheHitSquad).tzx.zip",
+        "size": 69904,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0000722",
+   "_source": {
+    "title": "Bubble Bobble",
+    "originalYearOfRelease": 1987,
+    "machineType": "ZX-Spectrum 48K/128K",
+    "availability": "Available",
+    "genre": "Arcade Game: Platform",
+    "publishers": [
+     {
+      "name": "Firebird Software Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0000722/BubbleBobble-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/b/BubbleBobble.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/b/BubbleBobble.dsk.zip",
+        "size": 32142,
+        "type": "Disk image",
+        "format": "+3 disk (DSK)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/b/BubbleBobble.tap.zip",
+        "size": 41250,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/b/BubbleBobble.tzx.zip",
+        "size": 41288,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/b/BubbleBobble(DroSoft).tzx.zip",
+        "size": 41456,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/b/BubbleBobble(Musical1S.A.).tzx.zip",
+        "size": 29533,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/b/BubbleBobble(TheHitSquad).tzx.zip",
+        "size": 36918,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0009333",
+   "_source": {
+    "title": "Treasure Island Dizzy",
+    "originalYearOfRelease": 1989,
+    "machineType": "ZX-Spectrum 48K/128K",
+    "availability": "Available",
+    "genre": "Arcade Game: Adventure",
+    "publishers": [
+     {
+      "name": "Code Masters Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0009333/TreasureIslandDizzy-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/t/TreasureIslandDizzy.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/zxdb/sinclair/entries/0009333/Dizzy2-TreasureIslandDizzy(BUGFIX).tzx.zip",
+        "size": 38253,
+        "type": "BUGFIX tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": null,
+        "comments": "Bugfixes by Ast A. Moore: This version loads on a +2A/+3 in 128K mode and the sampled speech is not distorted.  It still works on other Spectrum models."
+       },
+       {
+        "path": "/zxdb/sinclair/entries/0009333/Dizzy2-TreasureIslandDizzy.tzx.zip",
+        "size": 38130,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": null,
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0006440",
+   "_source": {
+    "title": "The Hobbit",
+    "originalYearOfRelease": 1982,
+    "machineType": "ZX-Spectrum 48K",
+    "availability": "Available",
+    "genre": "Adventure Game: Text/Illustrated",
+    "publishers": [
+     {
+      "name": "Melbourne House"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0006440/HobbitThe-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/h/HobbitThe.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/h/HobbitTheV1.0.tap.zip",
+        "size": 45782,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": "v1.0"
+       },
+       {
+        "path": "/pub/sinclair/games/h/HobbitTheV1.0.tzx.zip",
+        "size": 31200,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": "v1.0"
+       },
+       {
+        "path": "/pub/sinclair/games/h/HobbitTheV1.2(TextOnly).tzx.zip",
+        "size": 31736,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": "v1.2(Text Only)"
+       },
+       {
+        "path": "/pub/sinclair/games/h/HobbitTheV1.2.tap.zip",
+        "size": 34009,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": "v1.2"
+       },
+       {
+        "path": "/pub/sinclair/games/h/HobbitTheV1.2.tzx.zip",
+        "size": 31671,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": "v1.2"
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/h/HobbitThe(SinclairResearchLtd).tzx.zip",
+        "size": 31211,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0001303",
+   "_source": {
+    "title": "Deathchase",
+    "originalYearOfRelease": 1983,
+    "machineType": "ZX-Spectrum 16K",
+    "availability": "Available",
+    "genre": "Arcade Game: Race 'n' Chase",
+    "publishers": [
+     {
+      "name": "Micromega"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0001303/Deathchase-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/d/Deathchase.gif",
+      "type": "Running screen"
+     },
+     {
+      "url": "/zxscreens/0001303/Deathchase(ZeppelinGamesLtd)-load.png",
+      "type": "Loading screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/d/Deathchase.tap.zip",
+        "size": 10462,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/d/Deathchase.tzx.zip",
+        "size": 7079,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/zxdb/sinclair/entries/0001303/Deathchase.mdr.zip",
+        "size": 10492,
+        "type": "Disk image",
+        "format": "Microdrive cartridge (MDR)",
+        "origin": null,
+        "comments": "Unofficial - Created by Redgatemodels (09/24)"
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/d/Deathchase(2.99Classics).tzx.zip",
+        "size": 7331,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/d/Deathchase(MasterTape)(ZeppelinGamesLtd).tzx.zip",
+        "size": 8364,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": "(Master Tape)"
+       },
+       {
+        "path": "/pub/sinclair/games/d/Deathchase(ZeppelinGamesLtd).tzx.zip",
+        "size": 7959,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0000210",
+   "_source": {
+    "title": "Ant Attack",
+    "originalYearOfRelease": 1983,
+    "machineType": "ZX-Spectrum 48K",
+    "availability": "Available",
+    "genre": "Arcade Game: Maze",
+    "publishers": [
+     {
+      "name": "Quicksilva Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0000210/AntAttack-OPEN-1.png",
+      "type": "Opening screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/a/AntAttack.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/a/AntAttack.tap.zip",
+        "size": 14492,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/a/AntAttack.tzx.zip",
+        "size": 12847,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       },
+       {
+        "path": "/zxdb/sinclair/entries/0000210/AntAttack.rom.zip",
+        "size": 14637,
+        "type": "Computer/ZX Interface 2 cartridge ROM image dump",
+        "format": "ROM image dump (ROM)",
+        "origin": null,
+        "comments": "Modified version supports both English and Spanish, an alternate key-layout and faster circle drawing at the end"
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/a/AntAttack(HansesoftGmbH).tzx.zip",
+        "size": 14469,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/a/AntAttack(Hormigas)(Microbyte1).tzx.zip",
+        "size": 13657,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0002351",
+   "_source": {
+    "title": "Horace Goes Skiing",
+    "originalYearOfRelease": 1983,
+    "machineType": "ZX-Spectrum 16K",
+    "availability": "Available",
+    "genre": "Arcade Game: Action",
+    "publishers": [
+     {
+      "name": "Sinclair Research Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0002351/HoraceGoesSkiing-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/h/HoraceGoesSkiing.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/h/HoraceGoesSkiing(InlayMisprint).tzx.zip",
+        "size": 8649,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": "(Inlay Misprint)"
+       },
+       {
+        "path": "/pub/sinclair/games/h/HoraceGoesSkiing.tap.zip",
+        "size": 11964,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/h/HoraceGoesSkiing.tzx.zip",
+        "size": 8615,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/h/HoraceGoesSkiing(HoracioEsquiador)(InvestronicaS.A.).tzx.zip",
+        "size": 8589,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0001217",
+   "_source": {
+    "title": "Daley Thompson's Decathlon",
+    "originalYearOfRelease": 1984,
+    "machineType": "ZX-Spectrum 48K",
+    "availability": "Available",
+    "genre": "Sport Game: Action",
+    "publishers": [
+     {
+      "name": "Ocean Software Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0001217/DaleyThompsonsDecathlon-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/d/DaleyThompsonsDecathlon.gif",
+      "type": "Running screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/d/DaleyThompsonsDecathlon(LargeCase).tzx.zip",
+        "size": 48819,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": "(Large Case)"
+       },
+       {
+        "path": "/pub/sinclair/games/d/DaleyThompsonsDecathlon(SmallCase).tzx.zip",
+        "size": 48838,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": "(Small Case)"
+       },
+       {
+        "path": "/pub/sinclair/games/d/DaleyThompsonsDecathlon.tap.zip",
+        "size": 49273,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/zxdb/sinclair/entries/0001217/DaleyThompsonsDecathlon.mdr.zip",
+        "size": 53872,
+        "type": "Disk image",
+        "format": "Microdrive cartridge (MDR)",
+        "origin": null,
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": []
+     },
+     {
+      "files": []
+     },
+     {
+      "files": []
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/d/DaleyThompsonsDecathlon(ZafiChip).tzx.zip",
+        "size": 48449,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/d/DaleyThompsonsDecathlon(TheHitSquad).tzx.zip",
+        "size": 60507,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "_id": "0000255",
+   "_source": {
+    "title": "Arkanoid",
+    "originalYearOfRelease": 1987,
+    "machineType": "ZX-Spectrum 48K",
+    "availability": "Available",
+    "genre": "Arcade Game: Action",
+    "publishers": [
+     {
+      "name": "Imagine Software Ltd"
+     }
+    ],
+    "screens": [
+     {
+      "url": "/zxscreens/0000255/Arkanoid-load.png",
+      "type": "Loading screen"
+     },
+     {
+      "url": "/pub/sinclair/screens/in-game/a/Arkanoid.gif",
+      "type": "Running screen"
+     },
+     {
+      "url": "/zxscreens/0000255/Arkanoid(ErbeSoftwareS.A.)-load.png",
+      "type": "Loading screen"
+     }
+    ],
+    "releases": [
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/a/Arkanoid.tap.zip",
+        "size": 22365,
+        "type": "Tape image",
+        "format": "Tape (TAP)",
+        "origin": null,
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/a/Arkanoid.tzx.zip",
+        "size": 23612,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Original release (O)",
+        "comments": null
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/a/Arkanoid(ErbeSoftwareS.A.).tzx.zip",
+        "size": 22204,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       },
+       {
+        "path": "/pub/sinclair/games/a/Arkanoid(different)(ErbeSoftwareS.A.).tzx.zip",
+        "size": 23144,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": "(different)"
+       }
+      ]
+     },
+     {
+      "files": [
+       {
+        "path": "/pub/sinclair/games/a/Arkanoid(TheHitSquad).tzx.zip",
+        "size": 28338,
+        "type": "Tape image",
+        "format": "Perfect tape (TZX)",
+        "origin": "Re-release (R)",
+        "comments": null
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

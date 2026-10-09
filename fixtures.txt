@@ -1,2 +1,197 @@
 saboteur.tzx 87fa5d6dd6aa95352b2f5a8f3d8759624cf9fa9347594fccfefd034e3c9d6f7a https://spectrumcomputing.co.uk/pub/sinclair/games/s/Saboteur.tzx.zip Saboteur - Side 1.tzx
 saboteur.tap 6577a9d294ce307e00fe4a4a1e6d60829616e4f938de5d97b26764003ed021cb https://spectrumcomputing.co.uk/pub/sinclair/games/s/Saboteur.tap.zip SABOTEU1.TAP
+fuse-z80-tests.in 9f36e866f22e72ff1f8bf2100bf70ffbf58edd97b453500aab60acf1f403ebbb https://sourceforge.net/p/fuse-emulator/fuse/ci/43f88784c539e2b93e01df426da8e83434420915/tree/z80/tests/tests.in?format=raw
+fuse-z80-tests.expected 15a6946f4addcf97e137b5bdd1d5fdb08124ff91f1b169f36a8bf4afe4bab6e4 https://sourceforge.net/p/fuse-emulator/fuse/ci/43f88784c539e2b93e01df426da8e83434420915/tree/z80/tests/tests.expected?format=raw
+zexdoc.com 34923a7ed82285d3038b2d54bd64899e12173eebb61f9d07b4fc72e78af2ae8f https://raw.githubusercontent.com/agn453/ZEXALL/8f71d418bae69a476a5a0e5c6e122c8801b8d9f4/zexdoc.com
+zexall.com 6e2da55147a04f28d303d5da6a1e6b771557ac244653590a0f24a2d39c8537e8 https://raw.githubusercontent.com/agn453/ZEXALL/8f71d418bae69a476a5a0e5c6e122c8801b8d9f4/zexall.com
+singlestep-z80.zip ae74b61c1d43076e38b05783c5a4126219d5771d2ac9b40fe114d9b56ced1fe5 https://github.com/SingleStepTests/z80/archive/ebe1875d48f374bcfd4b505d8eb8ee751568b5f7.zip
+test-z80full.tap cdfebeff306e5c0756ecb3295a1aebb8e71c336b2de35ecc3c0397146d73813c https://github.com/raxoft/z80test/releases/download/v1.2a/z80test-1.2a.zip z80test-1.2a/z80full.tap
+test-z80doc.tap 4b06ce9fd517fd5f5a86d4ff2ef05a3f0ab7ed20eb075b87b0623d42fbd3e4bd https://github.com/raxoft/z80test/releases/download/v1.2a/z80test-1.2a.zip z80test-1.2a/z80doc.tap
+test-z80flags.tap 4dbe34a28ed564ac782b538736e1a1c57c562876165a3294bd93af25ea3df653 https://github.com/raxoft/z80test/releases/download/v1.2a/z80test-1.2a.zip z80test-1.2a/z80flags.tap
+test-z80docflags.tap cf64a8d66f248bc054c5255f3a51ba50a511b166b29054b7192ca91e306a528d https://github.com/raxoft/z80test/releases/download/v1.2a/z80test-1.2a.zip z80test-1.2a/z80docflags.tap
+test-z80ccf.tap a35b3b269b58371015cf033f28a08ad1ac92cce6dd27b428caf67b7f9ce8f5b7 https://github.com/raxoft/z80test/releases/download/v1.2a/z80test-1.2a.zip z80test-1.2a/z80ccf.tap
+test-z80memptr.tap 444582ddfa4d05711b6235e743ddf68295231e97ba92cc838c5d09a106c9a10f https://github.com/raxoft/z80test/releases/download/v1.2a/z80test-1.2a.zip z80test-1.2a/z80memptr.tap
+test-z80ccfscr.tap f887f59f39e8c5ca8064170af3f93bb4abc8ba2074c9450027f2c89901366213 https://github.com/raxoft/z80test/releases/download/v1.2a/z80test-1.2a.zip z80test-1.2a/z80ccfscr.tap
+ref-z80ccfscr-zilog.png 1fc00915371ff23eb0180229c6886e1d105c0a81a19c79bd7aed787bfc322510 https://raw.githubusercontent.com/raxoft/z80test/c490c0ca94f1021509f8bd656b413861bd7cfb41/img/z80ccfscr-zilog.png
+ref-z80ccfscr-nec.png cf2c804e7dd7963ea6d6ee3c6b1b1a208198acd82b3a2b3dcd921514989e6ff2 https://raw.githubusercontent.com/raxoft/z80test/c490c0ca94f1021509f8bd656b413861bd7cfb41/img/z80ccfscr-nec.png
+ref-z80ccfscr-st-cmos.png 96a3a327825747b077afa9c550211e2af57eba2fef332ff7489a78e36bf813b1 https://raw.githubusercontent.com/raxoft/z80test/c490c0ca94f1021509f8bd656b413861bd7cfb41/img/z80ccfscr-st-cmos.png
+ref-game-saboteur.gif 41ef6fc592d5352eaf2b6ed963b9fa582f559c0d22f49fd0e6dce9bcbb22e358 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/s/Saboteur.gif
+ref-game-saboteur-load.scr 811756af98a412f65d005983236b6520ed17d8ef7199c196d1c6ce40d8255a73 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/s/scr/Saboteur.scr
+saboteur.tzx.zip f17c3ab93d3e12d17ff24fd0158673c7ed53c086fecc7fe04ff01fd0965b178c https://spectrumcomputing.co.uk/pub/sinclair/games/s/Saboteur.tzx.zip
+mexican-adventure.sna.zip 4bff8168365324d44a10cbd64947fed00b737589c1ac9f4ffcc0861a191919eb https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0036474/MexicanAdventure.sna.zip
+aquanoids-reduced.tap.zip 338ab084e8ea2d0d28009feb32c697e8567536fde2207bb25880e7b784883f7a https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0030234/Aquanoids(ReducedVersion).tap.zip
+stab-des-druiden.z80.zip 898f732c03fe6d3f6044bb2ddf0db67df17f8ae56d6f199191ebfa813aca18f7 https://spectrumcomputing.co.uk/pub/sinclair/games/s/StabDesDruidenDer.z80.zip
+test-fusetest.tap 442cf49df40e1436c85b2eb5b14bad153ab72a70add3286443ade2646a8bfc07 https://web.archive.org/web/20120120113011id_/http://www.shadowmagic.org.uk/spectrum/fusetest.zip fusetest/fusetest.tap
+test-timing-tests-48k.sna b30fa49bd85dc5cefaf014a3088c6568256796f1a8541fca6ed9edce46bce9cf https://web.archive.org/web/20171130113344id_/http://www.zxspectrum4.net:80/downloads/timing_tests/Timing_Tests-48k_v1.0.sna
+test-timing-tests-128k.szx cc380ad8f77fa8a66d4c1e92cd7be4bad71dac6d051da9464d6ca5ca942a7261 https://web.archive.org/web/20171130113325id_/http://www.zxspectrum4.net:80/downloads/timing_tests/Timing_Tests-128k_v1.0.szx
+test-minfo.tap c1ff004f9a5cb66d99afadff618c59e255e19ad33bd87908e63977c864d4979d https://web.archive.org/web/20260415135457id_/https://torinak.com/~jb/zx/minfo.tap
+test-minfo-2011.tap 7caff77f607d58e4f3df8b5e69d4cd6803b67d79f19a8298ee2fcc37630c3375 https://web.archive.org/web/20120527200219id_/http://wizard.ae.krakow.pl:80/~jb/qaop/t/minfo.tap
+test-ulatest3.tap 9445d3bd1661c2d5a62e2b3762ebd1ab00af9b319435ae7397bf6eb51462c6c9 https://web.archive.org/web/20120527200240id_/http://wizard.ae.krakow.pl:80/~jb/qaop/t/ulatest3.tap
+test-timingtest-rak.tap da62ba6438af1398b3e1d1bbd3627985373b8cc81a72628421285329f4903962 http://zxds.raxoft.cz/taps/misc/timingtest-0.3.zip timingtest-0.3/timing.tap
+test-floatspy.tap dc4a3ba0b0b74396919e0a67f0984aaa5762a3bdd3e0afb4bc38ac72fa7bef34 https://web.archive.org/web/20060508115214id_/http://www.ramsoft.bbk.org/tech/floatspy.zip floatspy.tap
+test-ula48-simple.tap 1bcd04d0dda815eb8ae49014b828752288551f596a82c7ffd46662d6f82f2c4e https://zxe.io/depot/software/ZX%20Spectrum/ULA%2048%20Simple%20Test%20%282012-10-06%29%28azesmbog%29%5B%21%5D.tap
+test-ula128-timing.tap 59578bae6352d6a92b1887b392ee786aa9f162624a1ddef9541037b517b0c90f https://zxe.io/depot/software/ZX%20Spectrum/ULA%20128%20Timing%20Test%20%282012-10-06%29%28azesmbog%29%5B%21%5D.tap
+test-ula128e-plus3.tap 0ce72ada3b0a666c57e0cd0aaf5bdc85a5a03bef933326699d2063680e9b1ed8 https://zxe.io/depot/software/ZX%20Spectrum/ULA%20128E%20+3%20Test%20%282012-10-07%29%28azesmbog%29%5B%21%5D.tap
+test-im0-2.tap 5c52c9082a72f4d565ba5a4932a8e5e464262fe5c7701c6121566a27f427e5a7 https://zxe.io/depot/software/ZX%20Spectrum/IM0-2%20%282019-11-24%29%28Woodmass,%20Mark%29%5B%21%5D.tap
+test-int-retrigger.tap 58820951de8bde0f670c3681feabc422a5bdce0024282c832d3f5fc2e7b7911d https://zxe.io/depot/software/ZX%20Spectrum/Interrupt%20Retriggering%20Test%20%282021-12-17%29%28Woodmass,%20Mark%29%5B%21%5D.tap
+test-floatffd.tap 596d758c2fa84caae6856e12509bd20b2eca040eabf01dba5fbcc06d8dcbf9dc https://zxe.io/depot/software/ZX%20Spectrum/FloatFFD%20%282023-02-28%29%28Woodmass%2C%20Mark%29%5B%21%5D.zip Float7ffd/floatffd.tap
+test-ir-contention.tap 65225217a71883ab3e9d5ab67b6f0f4d40035f8b2c9a14cf71050dfc939dc9c2 https://zxe.io/depot/software/ZX%20Spectrum/IR%20Contention%20%282006-07-17%29%28Woodmass%2C%20Mark%29%5B%21%5D.tap
+test-nec-contention.tap 46c52d8133579c577c33d404b3f93c730b474bf9ba503e340f5ebfabc3a9b8ab https://zxe.io/depot/software/ZX%20Spectrum/48K%20NEC%20Contention%20Test%20Suite%20%282008-09-14%29%28Woodmass%2C%20Mark%29%5B%21%5D.tap
+test-plus3-floatbus.tap 48dd8eb1eb7b92e2fc7ee99b0065d7dd7da7fe87d188447795df0072e111a6b9 https://zxe.io/depot/software/ZX%20Spectrum/+2A-+3%20Floating%20Bus%20Test%20v1.2%20%282017-09-15%29%28Hikaru%29%5B%21%5D.tap
+test-plus3-paging.tap d45528c4d79fa339d06e76566886b4f004a41ed81903036949500e04e99f9563 https://zxe.io/depot/software/ZX%20Spectrum/+2A-+3%20Paging%20Tests%20%282026-02-23%29%28Woodmass,%20Mark%29%5B%21%5D.zip paging.tap
+test-basic-border.z80 c4c5594a347388ab7cea69a5d30d9b4e483c68e49705aaa7872173d002396b04 https://zxe.io/depot/software/ZX%20Spectrum/BASIC%20Border%20%282001-09-30%29%28Wynne,%20Michael%20D.%29.z80
+test-frame-test.tzx b3a7e02130a2d457de69208fd9910cd8a340ebe47a6a05a630844016fa17d2b0 https://zxe.io/depot/software/ZX%20Spectrum/Frame%20Test%20%282005-03-06%29%28Woodmass,%20Mark%29%5B%21%5D.tzx
+ref-floatspy-48k.gif 67d748560516e32aa6ad21e0d3b168fa4bf8d94f59b7f625dc5cc33380f099f7 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Floating%20Spy%20v0.33%20%282002-04%29%28Ramsoft%29%20-%2048K.gif
+ref-floatspy-48k-selftest.gif 6fa6c793c0ad372f4105a3ae4f9f873251a8070ba1736bc80d2783ef65a80980 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Floating%20Spy%20v0.33%20%282002-04%29%28Ramsoft%29%20-%2048K%20-%20Self%20Test.gif
+ref-floatspy-128k.gif 34ce863f62cccefd64c0e936a834af9064b7acdb4fda777b6d5b1b904d015edb https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Floating%20Spy%20v0.33%20%282002-04%29%28Ramsoft%29%20-%20128K.gif
+ref-floatspy-128k-selftest.gif 99a04cdcde3df72c19ad043deddaa539c70b88733b8d24446c32aa26952610cc https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Floating%20Spy%20v0.33%20%282002-04%29%28Ramsoft%29%20-%20128K%20-%20Self%20Test.gif
+ref-ula48-simple.gif 70d5b8f34c3b1b8a0febd5e5fd77761482aeca878280f4d2e6bb7971514d37e1 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/ULA%2048%20Simple%20Test%20%282012-10-06%29%28azesmbog%29%20-%20Zilog%20NMOS.gif
+ref-ula48-simple-hw-48k.jpg e0576dc23305466ba7c0f09897a4c908d76d2ef9bd2bf278b37a4089fb32ab16 https://zxe.io/depot/testing/ZX%20Spectrum/ULA%2048%20Simple%20Test%20%282012-10-06%29%28azesmbog%29%20-%20Testing%20%7B2023-05-08%7D%7BChandler,%20Richard%7D%7BZX%20Spectrum%2048K%7D.jpg
+ref-ula128-timing.gif 0a0d78cc472230ad5e27be14e796a596120bc196335c6fd5e2813f6d3ca9512a https://zxe.io/depot/software/ZX%20Spectrum/screenshots/ULA%20128%20Timing%20Test%20%282012-10-06%29%28azesmbog%29%20-%20Zilog%20NMOS.gif
+ref-ula128-timing-hw-plus2.jpg 588767ddd1e63d611a48c6fea3f4619ea63aab40bf0a4e3004ab809a956229ed https://zxe.io/depot/testing/ZX%20Spectrum/ULA%20128%20Timing%20Test%20%282012-10-06%29%28azesmbog%29%20-%20Testing%20%7B2023-12-11%7D%7BSevillano%20Mancilla,%20Marta%7D%7BZX%20Spectrum%20+2%20ES%20Z70500%20Iss%203%3B%20CPU%20Zilog%20Z8400APS%7D%20128K%20mode.jpg
+ref-ula128e-plus3.gif 9d8ef8737d0f03de8d9f9faeedab811d87b8a5fdefe811ded49e38a33fea3743 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/ULA%20128E%20+3%20Test%20%282012-10-07%29%28azesmbog%29%20-%20Zilog%20NMOS.gif
+ref-ula128e-plus3-hw-plus2a.jpg b3998b341afcd6c85d94eb794d4403791fd4bcecb397b8104617c917e3ecd1c0 https://zxe.io/depot/testing/ZX%20Spectrum/ULA%20128E%20+3%20Test%20%282012-10-07%29%28azesmbog%29%20-%20Testing%20%7B2025-07-03%7D%7BMart%C3%ADnez%20Cantero,%20Ricardo%7D%7BZX%20Spectrum%20+2A%20ES%7D.jpg
+ref-timingtest-rak-48k-menu.gif 4aa2fe623b4fd122a6bbc341b87fde5f5f306b05b95a57b508a3e96d630e5277 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Timing%20Test%20v0.3%20%282013-12-09%29%28Rak,%20Patrik%29%20-%2048K%20Early%20Timings%20-%20Frame%20Duration.gif
+ref-timingtest-rak-48k-early-0.gif c5ed012cfcf0e3fb5b1fb33f22a724c7add4fb76f519916d063a345665fa33be https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Timing%20Test%20v0.3%20%282013-12-09%29%28Rak,%20Patrik%29%20-%2048K%20Early%20Timings%20-%200%20-%20Contended%20NOP.gif
+ref-timingtest-rak-48k-early-1.gif 30c69593086301dc268d3c1de301fa583213b77054a23894109d3a43b5bcf97b https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Timing%20Test%20v0.3%20%282013-12-09%29%28Rak,%20Patrik%29%20-%2048K%20Early%20Timings%20-%201%20-%20Snow%20Effect%20NOP.gif
+ref-timingtest-rak-48k-early-2.gif c342118b0c51328d9be5bb557e12d9b91c904108558e7306058916d3d07b12d8 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Timing%20Test%20v0.3%20%282013-12-09%29%28Rak,%20Patrik%29%20-%2048K%20Early%20Timings%20-%202%20-%20IN%20%2300FE%20IO.gif
+ref-timingtest-rak-48k-3.gif 2bbc8d976fae7f293b2e077898042ef11fe94d070336fb2a360ac961ffe936a2 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Timing%20Test%20v0.3%20%282013-12-09%29%28Rak,%20Patrik%29%20-%2048K%20-%203%20-%20IN%20%2300FF%20IO.gif
+ref-timingtest-rak-48k-early-4.gif 7dcd7c3ef492e05c609af4dc741d111a62dab8e895c896b12afec209d5c33190 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Timing%20Test%20v0.3%20%282013-12-09%29%28Rak,%20Patrik%29%20-%2048K%20Early%20Timings%20-%204%20-%20IN%20%237FFE%20IO.gif
+ref-timingtest-rak-128k-early-0.gif 49098d07cf16e63affc27b66fdb7f9e910c7b58b4ebf3af9e5ed10c5febb402b https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Timing%20Test%20v0.3%20%282013-12-09%29%28Rak,%20Patrik%29%20-%20128K%20Early%20Timings%20-%200%20-%20Contended%20NOP.gif
+ref-timingtest-rak-128k-8.gif a8cf2f2b6a560b7283fd562c6907899b569b94e4e91c90a1b604d612cfcd681b https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Timing%20Test%20v0.3%20%282013-12-09%29%28Rak,%20Patrik%29%20-%20128K%20-%208%20-%20128K%20Page%20RET.gif
+ref-timingtest-rak-plus3-0.gif e208b5ad6416317a65128446e9bf756e61628805304c59b638ad14fcd45324b8 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Timing%20Test%20v0.3%20%282013-12-09%29%28Rak,%20Patrik%29%20-%20+3%20-%200%20-%20Contended%20NOP.gif
+ref-timingtest-rak-plus3-3.gif ea9657edb88536ebac3630d3286fb8756a357a0f129f3ba25a4ed3ed553dbda4 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Timing%20Test%20v0.3%20%282013-12-09%29%28Rak,%20Patrik%29%20-%20+3%20-%203%20-%20IN%20%2300FF%20IO.gif
+demo-shock.tzx eca713bca82c3d4d317da4a0c22a4521030213e69c9335dde55d93eab9d6e28c https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0007726/ShockMegademo.tzx.zip ShockMegademo.tzx
+demo-shock.tap 10c8740313f20d01d207a4361b4c8ae1c7f94ce50a078340734e95a851b44566 https://spectrumcomputing.co.uk/pub/sinclair/demos/s/ShockMegademo.tap.zip SHOCK.TAP
+demo-overscan.tzx 556d5891853988524d48c88c47166d57c4da63eab6db8451c88541342ebf3ca2 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0007636/OverscanDemo.tzx.zip OverscanDemo.tzx
+demo-aquaplane.tzx 92148820415f66926867dbde366142cf9dd18abe48d0a743cd4598fee1b18993 https://spectrumcomputing.co.uk/pub/sinclair/games/a/Aquaplane.tzx.zip Aqua Plane.tzx
+demo-eyeache.tap 6a5044ee5070a55e72cad1affda391d53d1826ccd42d560eda5a680e3a6fa98b https://spectrumcomputing.co.uk/pub/sinclair/demos/e/EyeAche.tap.zip EYE_ACHE.TAP
+demo-rage.tap 261a1200d30fc868c489b9c5df95ec0221004c6379f9d7963fe2e7ee37db3a5c https://spectrumcomputing.co.uk/pub/sinclair/demos/r/Rage.tap.zip RAGE.TAP
+demo-mescaline-128.tap 0e04c57a7ff3b1095067ec7903eba6c0ecaef810ebb105de523e34f219705595 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0042388/MescalineSynesthesia.tap.zip MescalineSynesthesia.tap
+demo-mescaline-plus2a.tap b3690fbd89a0b2535ff8791651225a6cd05cfae5c311fb7f36f816205e11c566 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0042388/MescalineSynesthesia(Disk).tap.zip MescalineSynesthesia(Disk).tap
+demo-nirvana-plus.tap bc7c34270aba3dbf0c979c448e81d4a4408754fc38e6b7a6a357047c52b5fe7c https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0030002/NIRVANA+ENGINE.tap.zip nirvana+.tap
+demo-bifrost2.tap 25ab372804e49ab8beb76fd865a066d5328be9091fd7ce1f4216523fd93e30e1 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0030003/BIFROST2ENGINE.tap.zip BIFROST2.tap
+demo-oldtower-48k.tap 426956d7e573486b581f2d505fa720c8cc09e9ded04495f4717d9cc083a5bec6 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0034458/OldTower(48K).tap.zip OldTower48.tap
+ref-timingtest-rak-hw-plus2-128k-0.jpg 0847f038e23ecf6f1cabcfcd73ca7438ca3819457afdb7c9d763b639a7a54d1d https://zxe.io/depot/testing/ZX%20Spectrum/Timing%20Test%20v0.3%20%282013-12-09%29%28Rak,%20Patrik%29%20-%20Testing%20%7B2023-07-05%7D%7BIborra,%20Vi%CC%81ctor%7D%7BZX%20Spectrum%20+2%20ES%7D%20128K%20mode%20-%200%20-%20Contended%20NOP%20%5Bsmall%5D.jpg
+ref-minfo-2011-48k.png d098cc5b75dbca2f6ef622cd756a9412a7aa24554ffa5697bbf8e2dfbdec9693 https://user-images.githubusercontent.com/7780451/210280998-426bdaca-8530-44de-bb56-4f0a2794852a.png
+ref-ulatest3-48k.gif 63655778f9db9fb591f17dbb671563279b7c8b0c72e91b6125a9bc45b880da39 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/ULA%20Test%203%20%282007-0x%29%28Bobrowski,%20Jan%29%20-%2048K.gif
+ref-im0-2.gif 7f3af3f9612018c9dd67e39ddd54dea03b42faa532d47f16853d75854ab930ac https://zxe.io/depot/software/ZX%20Spectrum/screenshots/IM0-2%20%282019-11-24%29%28Woodmass,%20Mark%29.gif
+demo-oldtower-128k.tap ba5a9a67c0b4deb15742dfccb386067f011367e6249baf2134cc823a4db297c4 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0034458/OldTower(128K).tap.zip OldTower128.tap
+ref-int-retrigger.gif 6cb339a3bf2ab081845516a9bf0996f6b18669ed19614e805c28edc1ea5828f4 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Interrupt%20Retriggering%20Test%20%282021-12-17%29%28Woodmass,%20Mark%29.gif
+ref-floatffd-128k.png 92895631f742e59def9ff5e65c564f271a06c3bce1c24810e14451453efa8e2f https://github.com/redcode/ZXSpectrum/assets/7780451/217a3958-41db-448a-95e3-f9e1e16bd5b4
+demo-oldtower-pentagon.tap 06ef016901b9c1cc856789f3f6d011845adae08fc8fc1459ce04f822f2445679 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0034458/OldTower(Pentagon).tap.zip OldTowerPentagon.tap
+ref-floatffd-hw-128k.jpg 53b74aab1217324926199ad6afbb00f92c74393b9e2a82d99acb0d53670fc432 https://zxe.io/depot/software/ZX%20Spectrum/FloatFFD%20%282023-02-28%29%28Woodmass%2C%20Mark%29%5B%21%5D.zip Float7ffd/Real 128k.jpg
+ref-ir-contention.gif 97f025b583efd78167c4f875672b0ba07141baf177b54a20eb694cddfc0c31f7 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/IR%20Contention%20%282006-07-17%29%28Woodmass%2C%20Mark%29%20-%20Zilog%20NMOS.gif
+demo-lyra2.tzx ec3a6872d3a0f4c9f9fdf1bc0527d76927e487a7fab8f37152f84e6d780d9c22 https://spectrumcomputing.co.uk/pub/sinclair/demos/l/LyraIIMegademoThe.tzx.zip LyraII.tzx
+ref-ir-contention-hw-48k-cmos.png 57572c4a987043828e8344bd3174730b0547f6cd8fae95a4017d6a6174e53edb https://zxe.io/depot/testing/ZX%20Spectrum/IR%20Contention%20%282006-07-17%29%28Woodmass,%20Mark%29%20-%20Testing%20%7B2022-06-21%7D%7BMart%C3%ADnez%20Cantero,%20Ricardo%7D%7BZX%20Spectrum%2048K%20Issue%203B%20%28recreated%29%3B%20CPU%20ST%20Z84C00AB6%7D%20loaded%20with%20DivMMC.png
+ref-plus3-floatbus-hw-plus2a.png c9575b834e4e225aa4d7cae0530f13eefb0f0ffe04189125610bba1c37e35622 https://zxe.io/depot/testing/ZX%20Spectrum/+2A-+3%20Floating%20Bus%20Test%20v1.2%20%282017-09-15%29%28Hikaru%29%20-%20Testing%20%7B2025-07-04%7D%7BMart%C3%ADnez%20Cantero,%20Ricardo%7D%7BZX%20Spectrum%20+2A%20ES%7D.png
+ref-basic-border.gif 43a7b14c2369a046258f208b14a8ad2f1150f511aa5b2f4c9d0b2340b83e1f10 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/BASIC%20Border%20%282001-09-30%29%28Wynne,%20Michael%20D.%29.gif
+ref-frame-test-48k.gif 20fa7657647d33e36d860707092bfd4fc89e0033b718464d9eb63880aa6e2c33 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Frame%20Test%20%282005-03-06%29%28Woodmass,%20Mark%29%20-%2048K.gif
+ref-frame-test-128k.gif 5c623dff41d451cdb99b4cef13b1e91bf8cb6bd413fcb01328d0cf854e070bad https://zxe.io/depot/software/ZX%20Spectrum/screenshots/Frame%20Test%20%282005-03-06%29%28Woodmass,%20Mark%29%20-%20128K.gif
+ref-nec-contention-menu.gif 23b980b9d6272b506953c56eaa71d49e56e0161dc5a89a72d6bff175c7e29371 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/48K%20NEC%20Contention%20Test%20Suite%20%282008-09-14%29%28Woodmass%2C%20Mark%29.gif
+ref-nec-contention-0.gif 1052f32718a04bf00d1b42b19e425f9ce4b753f8905cd6e66ee2d9f69b20dbdf https://zxe.io/depot/software/ZX%20Spectrum/screenshots/48K%20NEC%20Contention%20Test%20Suite%20%282008-09-14%29%28Woodmass%2C%20Mark%29%20-%200%20-%20R%20Register.gif
+ref-nec-contention-1.gif 7d62e77d1238298b21e3ba125e7513b4ffb257282d58a4645d6870cda6941ea2 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/48K%20NEC%20Contention%20Test%20Suite%20%282008-09-14%29%28Woodmass%2C%20Mark%29%20-%201%20-%20IR%20Contention.gif
+ref-nec-contention-2.gif 34847f03c3488db20e4b5aa734a57ee4d9257e54ec9f545b97166a6dad10411f https://zxe.io/depot/software/ZX%20Spectrum/screenshots/48K%20NEC%20Contention%20Test%20Suite%20%282008-09-14%29%28Woodmass%2C%20Mark%29%20-%202%20-%20LDIR-LDDR.gif
+ref-nec-contention-3.gif dde5ae26234aff41167b0ad1e91c6ba5e1cd62091ae333362da6704b7ad7a827 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/48K%20NEC%20Contention%20Test%20Suite%20%282008-09-14%29%28Woodmass%2C%20Mark%29%20-%203%20-%20CPIR-CPDR.gif
+ref-demo-shock.gif 697e31de46a9edaf1deef412b70ec175cd9ee4ce99a59c07aa47d42f7f38378b https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/s/ShockMegademo.gif
+ref-demo-shock-128-mame.jpg 2c196ad0641728f222cc9435067dbe0702a304648fa9c0f2355c3e13b9c94ac1 https://user-images.githubusercontent.com/58155/166178788-e6173722-f3b6-4966-9c8b-9d0dc50701fa.jpg
+ref-nec-contention-4.gif c7a30a9cf08c6379817a593b0646d766dd2306fdb2c6c1e4737ad7cdce66fe5f https://zxe.io/depot/software/ZX%20Spectrum/screenshots/48K%20NEC%20Contention%20Test%20Suite%20%282008-09-14%29%28Woodmass%2C%20Mark%29%20-%204%20-%20INIR-INDR.gif
+ref-nec-contention-5.gif 5be0266e0e8080af61a4ee0e6ce4edd8f92531b53c053bfb4c4d5a6677c09851 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/48K%20NEC%20Contention%20Test%20Suite%20%282008-09-14%29%28Woodmass%2C%20Mark%29%20-%205%20-%20OTIR-OTDR.gif
+ref-demo-aquaplane.png b31dead08e0a4bb9c770c8f15167e6ab6d6f09f4691fe517c9940409df0b8660 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0000227/Aquaplane-RUN-1.png
+ref-timing-tests-48k-early.gif 90ef65b095b80b7c2b0cac0a9cc2ec2ae556de4a9938a16503e141d4b465d56d https://zxe.io/depot/software/ZX%20Spectrum/screenshots/ZX%20Spectrum%20Timing%20Tests%20-%2048K%20v1.0%20%282010-04-06%29%28Butler%2C%20Richard%3B%20Butler%2C%20Tim%29%20-%20Early%20Timings.gif
+ref-demo-overscan.gif bb2f3b7c94b4f7b4c910f3277a2a140e870e3a3a9f41e7919c4cab01ae896aa0 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/o/OverscanDemo.gif
+ref-timing-tests-128k-early.gif 4bb06e4ef001177a0c1448b844601dee91a99c1573b43d9c58bd3a1800468c1e https://zxe.io/depot/software/ZX%20Spectrum/screenshots/ZX%20Spectrum%20Timing%20Tests%20-%20128K%20v1.0%20%282015-03-30%29%28Butler%2C%20Richard%3B%20Butler%2C%20Tim%29%20-%20Early%20Timings.gif
+ref-demo-eyeache.gif 42fe48b8c57d62c19a3ed16935f97c5e3b9636cf1ada626dcc36ed4818d25722 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/e/EyeAche.gif
+ref-timing-tests-128k-late.gif 5b3b9ac1465584acb06ea25301281596c8ed52afe0f45fd5857a44997af90549 https://zxe.io/depot/software/ZX%20Spectrum/screenshots/ZX%20Spectrum%20Timing%20Tests%20-%20128K%20v1.0%20%282015-03-30%29%28Butler%2C%20Richard%3B%20Butler%2C%20Tim%29%20-%20Late%20Timings.gif
+ref-demo-rage.gif bea794bb1e93511573239e7ed0cb59a74ecb332d04f700256495d4da5469a6a7 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/r/Rage.gif
+ref-demo-lyra2.gif 3d3e45f504b2e5686123f39fad4c962924a639cac0e8a27f2b3a2f585cd0d959 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/l/LyraIIMegademoThe.gif
+ref-demo-nirvana-plus.png 9ad6d20c96a6a47c031e6dcced506ec38d4bdee3b8ffcacda5d1119dec52e4b9 https://zxinfo.dk/media/zxscreens/0030002/0030002-run-1.png
+ref-demo-bifrost2.png 953da7ceefc99114d013e927130f27810c82bb653be911bdf96dda796f35135e https://zxinfo.dk/media/zxscreens/0030003/0030003-run-1.png
+ref-demo-oldtower.png 931e284b787a022aefe7a005ee05dcfec1074d498406ba88b9a6bfe75a09dd74 https://zxinfo.dk/media/zxscreens/0034458/0034458-run-1.png
+ref-demo-mescaline.png 8fe66a432be2b8433bc58254f4dc675e967861d51a597ab598c496a8affd6ea8 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0042388/MescalineSynesthesia-RUN-1.png
+test-ay-ym.tap 6aa2ab9b662006c210f868769daf0c5e44f0d9bbe57ccba60e349a504f356bfa https://zxe.io/depot/software/ZX%20Spectrum/AY-YM%20Test%20%282023-02-21%29%28Weiv%29%5B%21%5D.tap
+game-manic-miner.tzx 3c9bbf17c2a9f4c0aa10e2799d127c05d1b24de639a14adedc935c5667dfa724 https://spectrumcomputing.co.uk/pub/sinclair/games/m/ManicMiner.tzx.zip Manic Miner.tzx
+game-aquaplane.tzx 92148820415f66926867dbde366142cf9dd18abe48d0a743cd4598fee1b18993 https://spectrumcomputing.co.uk/pub/sinclair/games/a/Aquaplane.tzx.zip Aqua Plane.tzx
+game-daley-thompsons-decathlon.tzx 3b5a5f5cd225b358fc4900a09bf7f28a7d6c2843984a23ee33b634b9f46654b2 https://spectrumcomputing.co.uk/pub/sinclair/games/d/DaleyThompsonsDecathlon(LargeCase).tzx.zip Daley Thompson's Decathlon - Day 1 - Large Case.tzx
+game-arkanoid.tzx fec1875647260ed4b83a4407e39409850871e75e27f63ab506cffef836e4adbb https://spectrumcomputing.co.uk/pub/sinclair/games/a/Arkanoid.tzx.zip Arkanoid.tzx
+game-mag-max.tzx c4177c1bdf9f4b4aa9b938501e166ba119b7a0d1d29098cee17840c1e3a75af4 https://spectrumcomputing.co.uk/pub/sinclair/games/m/MagMax.tzx.zip Mag Max.tzx
+game-renegade-48.tzx b756834e7fe80039b15a3e704046df110b3fd66057b2c7ace87c91dca9bc5fe0 https://spectrumcomputing.co.uk/pub/sinclair/games/r/Renegade.tzx.zip Renegade - 48k.tzx
+game-renegade-128.tzx 19461a007d6772beac7b25a47173037a6be21e54f1d18cc32e75f6711671bd88 https://spectrumcomputing.co.uk/pub/sinclair/games/r/Renegade.tzx.zip Renegade - 128k.tzx
+game-match-day-2.tzx 78ff7fe9a5b2e3ac6dfaaf8e978f602d72e0727652d427f80b20b221ac0fdb0b https://spectrumcomputing.co.uk/pub/sinclair/games/m/MatchDayII.tzx.zip Match Day II.tzx
+game-platoon.tzx 9179959eaf144bd1fa18f3343df2cd783b6c58af9b8737f9344407d83743ab86 https://spectrumcomputing.co.uk/pub/sinclair/games/p/Platoon48V1.tzx.zip Platoon - Release 1 - Side A.tzx
+game-where-time-stood-still.tzx b59cd0cf14f68613c813654f3425825e3d00fa9b4fcf03a323d5faabe14686a7 https://spectrumcomputing.co.uk/pub/sinclair/games/w/WhereTimeStoodStill.tzx.zip Where Time Stood Still.tzx
+game-robocop.tzx 67573c47e00807328be27d33fd382b3f107fda2c3c4fc70a12f94c152a425122 https://spectrumcomputing.co.uk/pub/sinclair/games/r/RoboCop.tzx.zip Robocop - Side A.tzx
+game-chase-hq.tzx d6a3a94957f031e2ead3b96fc64bf2b468feb8256b91c607ad89a373200259b6 https://spectrumcomputing.co.uk/pub/sinclair/games/c/ChaseH.Q..tzx.zip Chase HQ - Side 1.tzx
+game-cobra.tzx 4f6a843d873b0459f49251a51adb5b83d5d97129df18e363d306e6471d72c5e4 https://spectrumcomputing.co.uk/pub/sinclair/games/c/Cobra.tzx.zip Cobra.tzx
+game-rick-dangerous.tzx 8a881ec1b79a34f2a344898439d358875ca4e626533c4cc42486b2aaac72efa8 https://spectrumcomputing.co.uk/pub/sinclair/games/r/RickDangerous.tzx.zip Rick Dangerous.tzx
+game-dynamite-dan.tzx 7faf1ac2c6e07a466c2efb6481e40628d60e84e458c56e66693fefbb463c2a1d https://spectrumcomputing.co.uk/pub/sinclair/games/d/DynamiteDan.tzx.zip Dynamite Dan - Side 1.tzx
+game-rasputin.tzx c89b935e4118f7ae31400375d18a8e8d857aed24f8634ecae791a8aba3e03fb4 https://spectrumcomputing.co.uk/pub/sinclair/games/r/Rasputin48.tzx.zip Rasputin - 48k.tzx
+game-abu-simbel-profanation.tzx e432970008051bfab054996b1dba252baa5e6956300ccd4ee8a55731039f4527 https://spectrumcomputing.co.uk/pub/sinclair/games/a/AbuSimbelProfanation(SmallCase).tzx.zip Abu Simbel Profanation - Small Case.tzx
+game-exolon.tzx eb5b84a1fe7e32157da15444994d25976f95103a0058e9a8be9347c02f8fb3f7 https://spectrumcomputing.co.uk/pub/sinclair/games/e/Exolon.tzx.zip Exolon.tzx
+game-saboteur-2-48.tzx 786092f13982f7989c435014dfcb9a96902cb569e1efb1e7b39107f8d0a9b9bb https://spectrumcomputing.co.uk/pub/sinclair/games/s/SaboteurII.tzx.zip Saboteur II - Avenging Angel - 48k.tzx
+game-saboteur-2-128.tzx c61ba0ebf0795a569cdcde48d63e8292a194579c9f8e2be141caa678d7aa77ef https://spectrumcomputing.co.uk/pub/sinclair/games/s/SaboteurII.tzx.zip Saboteur II - Avenging Angel - 128k.tzx
+game-fantasy-world-dizzy.tzx 1458f6b4fbd6acb3882fad40add8a6fe91c870c84f9fac3f5302da746ccb6ea3 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0009335/Dizzy3-FantasyWorldDizzy.tzx.zip Dizzy3-FantasyWorldDizzy.tzx
+game-black-raven.tzx 2a6253814ef3e4f6cafddf2cb4f86c4420c85ffce43d3c2eb051208f5c7666c0 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0012757/BlackRaven.tzx.zip BlackRaven.tzx
+game-short-circuit.tzx 63776bde8efdef0f59c56e91f87097e2a6cbd12f31f688d2a07389436174fc84 https://spectrumcomputing.co.uk/pub/sinclair/games/s/ShortCircuit.tzx.zip Short Circuit - 48k.tzx
+ref-game-manic-miner.gif 7d88f43536422048b176ea8b7a984c93726ca56310e89d2fe83932abbdaeaf1d https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/m/ManicMiner.gif
+ref-game-manic-miner-load.scr 08e81fe208bb39dee504e2c665aa15854da0c8116bf84c9ecf50bd4782dc9732 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/m/scr/ManicMiner.scr
+ref-game-aquaplane.gif 94a0d23db4edb91617bd0dbd88f0bf78f7b1f5a59684ac39b12a05f6b5da0e32 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/a/Aquaplane.gif
+ref-game-aquaplane-load.scr ee0a68369bfa6bba615d86ec6eb5c05deb10c11690e45c1453cc98cfea959b7e https://spectrumcomputing.co.uk/pub/sinclair/screens/load/a/scr/Aquaplane.scr
+ref-game-daley-thompsons-decathlon.gif 86509f26a5f06bab4a26a1cd4bc5e74d54342d79749ef1e37172ad58cc16dd41 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/d/DaleyThompsonsDecathlon.gif
+ref-game-daley-thompsons-decathlon-load.scr 037418f46c0bcd7e3c7e8ccec980759b0da35c2eca75a5bf575fdd94c6505f98 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/d/scr/DaleyThompsonsDecathlon.scr
+ref-game-arkanoid.gif 03c874ef51e9cb5ec796de16658c19d21bcbc33f6c96caf0359e06ddc96e1c94 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/a/Arkanoid.gif
+ref-game-arkanoid-load.scr c60a2d3cbc102d5ab3ddcf243744d92c7546e276480a404dba2998e22ffd27a8 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/a/scr/Arkanoid.scr
+ref-game-mag-max.gif 8638a7b0b9504f2f202ece52eb63884a4bfdc2ee003ea7aac3dcbd8480197734 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/m/MagMax.gif
+ref-game-mag-max-load.scr cc0671ec06e51513edda7fbe902ef6626cfdd09f4fcc57291192374f95f1ed9f https://spectrumcomputing.co.uk/pub/sinclair/screens/load/m/scr/MagMax.scr
+ref-game-renegade.gif c714bb1e4f2d3a43035aff26aa5c69cd1b06dcba02d39cb1a10a3802d582e31c https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/r/Renegade.gif
+ref-game-renegade-load.scr d4d1cc45312c258eb8844f4bcd959a15ff240292651d32449ce46c2709566005 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/r/scr/Renegade.scr
+ref-game-match-day-2.gif c03327612fef500c9d670c02bf6da302da3b81cab94ebe1164e7840b21a0cd59 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/m/MatchDayII.gif
+ref-game-match-day-2-load.scr df74d2ee9a69a67239c9d9d85722df8bb0e5945b2709e7f2ea7b6e75e0429092 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/m/scr/MatchDayII.scr
+ref-game-platoon.gif 38321101b5ff7b02caa22d795dc282977d7d1fed027c7715cf72e2dc8c84be0c https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/p/Platoon.gif
+ref-game-platoon-load.scr f84be37f460f9b7ca118bdea6361c23ca42ceaba5af8469e04119a2638dee4e5 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/p/scr/Platoon.scr
+ref-game-where-time-stood-still-load.scr 869b61a391d6e55decd2a5c956abfdefafa271864caa71304ef9e51ac4b9f901 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/w/scr/WhereTimeStoodStill.scr
+ref-game-robocop.gif f8c7f59f181882c67ae3e4142571f883ba36a697733bf48a3b580f5ce72165ae https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/r/RoboCop.gif
+ref-game-robocop-load.scr 0c57638170909d4dad65cebf45eebb1200fe8780687e48f647000b9adb05bb46 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/r/scr/RoboCop.scr
+ref-game-chase-hq.gif e1d45091d467a1a2e504fa6e015b19f65e9f0b50759a614a12e36446cdaf138b https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/c/ChaseH.Q..gif
+ref-game-chase-hq-load.scr af45ad5f3e4ba83f9d873bcfa4c069b2859546868907ddeabbf82c42c37030a6 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/c/scr/ChaseH.Q..scr
+ref-game-cobra.gif 6c039c9b8f4ed6d834155d11da955bf61ba1f89716460a41a2f2d83b7b9d45c1 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/c/Cobra.gif
+ref-game-cobra-load.scr 5227c595468973bbef170eaad1f90de6491def265a87917409f178323f5c48b1 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/c/scr/Cobra.scr
+ref-game-rick-dangerous.gif 47700fed3d9d3eefffbddcaf6149b22f24d1bc20ec623dd7e06bfc68a4a30616 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/r/RickDangerous.gif
+ref-game-rick-dangerous-load.scr bb6db5c7002fc0fc57a3da5fdcfd7907df61410579ffe0ff8cc5224712979a6f https://spectrumcomputing.co.uk/pub/sinclair/screens/load/r/scr/RickDangerous.scr
+ref-game-dynamite-dan.gif 2119f877e589428ee05232c455e0ce260efe69da194e43b13137a7f00ccf2218 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/d/DynamiteDan.gif
+ref-game-dynamite-dan-load.scr 409e3e9b2949911567c4bab58bb64b8943d77cdd89f074bb5ce57e2822ed6ce7 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/d/scr/DynamiteDan.scr
+ref-game-rasputin.gif 2c1484703fa53742d9d13d3ffc3c2ae37972e9ae4023078d36f76fb221359e99 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/r/Rasputin.gif
+ref-game-rasputin-load.scr 839aea308be72775c71d693d4af008763f022aeb02f37a40adfbfdba86e08e80 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/r/scr/Rasputin.scr
+ref-game-abu-simbel-profanation.gif ac1ae21544314d75f0732887a0cbd1b8e8aacda5d4d1fa5bc1c49175cd6010d1 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/a/AbuSimbelProfanation.gif
+ref-game-abu-simbel-profanation-load.scr 00d98903356c77331a21c60b521dab3d17a7f584861e251286e83504d6741c04 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/a/scr/AbuSimbelProfanation.scr
+ref-game-exolon-load.scr 4945a730864a0f89efcddf923ccc11dcd969130e75fff7c7077d0133094feb29 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/e/scr/Exolon.scr
+ref-game-saboteur-2.gif ceb9c68d99db980da22fda5466d040797271b06a58c3a64388b6a23103b0eab1 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/s/SaboteurII.gif
+ref-game-saboteur-2-load.scr b2122b2e5e3abcef58e968c4d90772ddfebb0c713e74cde35a29b58e8d6e6d43 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/s/scr/SaboteurII.scr
+ref-game-fantasy-world-dizzy.gif 73e2cfe76471f4f05e1ce449d2498c4e78981dc8da0f29b74134c91eb2f7d833 https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/f/FantasyWorldDizzy.gif
+ref-game-fantasy-world-dizzy-load.scr 23208947aa5ea510d9641a866b56125935f3cb6db6d102951605f78e90861a1b https://spectrumcomputing.co.uk/pub/sinclair/screens/load/f/scr/FantasyWorldDizzy.scr
+ref-game-black-raven.gif ef418aeaa7d1a41730af372c7da1d29456e57d5c13bd2f0df61b8943e3611afe https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/b/BlackRaven.gif
+ref-game-black-raven-load.scr 8c2fc5af0f9fb80cc0e92e2642c81c14e221dadddae872415a6d643c83498a13 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/b/scr/BlackRaven.scr
+ref-game-short-circuit.gif 58be52004e88ba7d594a9b2f19785f45173a9a9c58e5aa07d1be3d5f0dcdca6a https://spectrumcomputing.co.uk/pub/sinclair/screens/in-game/s/ShortCircuit.gif
+ref-game-short-circuit-load.scr ecc47fe281280b6f9aeed75adca9bb3f7f799e861ff588a890281b700fff4498 https://spectrumcomputing.co.uk/pub/sinclair/screens/load/s/scr/ShortCircuit.scr
+ref-game-where-time-stood-still.png 97c7acc67d9aa9d13c49b0c8c7295255bdfdb29d2e21a63ae8aafb26875a4ff0 https://zxinfo.dk/media/zxscreens/0005671/0005671-run-1.png
+ref-game-exolon.png 96dabad6b4f4a23194d2db81c0b6a3d2f39742e8bfbb9256f02cc24c0b6d8686 https://zxinfo.dk/media/zxscreens/0001686/0001686-run-1.png
+snap-v1-acrojet.z80 3f66536c39addfec77a1a2c772d2446a0b585b0591537c5add02b1fc5507a4cc https://spectrumcomputing.co.uk/pub/sinclair/games/a/AcroJet.z80.zip ACROJET.Z80
+snap-v1-raw-caverna.z80 566438f8d21b1349761252df092d445e2bd1db5ffc9db4f1bc51241bc43fc5e5 https://spectrumcomputing.co.uk/pub/sinclair/games/c/CavernaDelDragonDeBronceLa.z80.zip La Caverna Del Dragon De Bronce.z80
+snap-v2-48k-deathtrap.z80 a86ff81795aa3e6353a006473fa5b7f0a950cc44dc6eb76dd87e8a8415cf18ca https://spectrumcomputing.co.uk/pub/sinclair/games/d/DeathTrap.z80.zip DEATHTRA.Z80
+snap-v2-128k-brokeout.z80 372eb81302191bd12dd9c420f3e73aec3c54157797bbb23f008c0a99b8028c34 https://spectrumcomputing.co.uk/pub/sinclair/games/b/BrokeOut.z80.zip BROKE OUT.Z80
+snap-v2-pentagon-21.z80 d3a9ba2bc509dba8742f330bd1898ea365ab8f37a8fafc3fdc3fc415c8219075 https://spectrumcomputing.co.uk/pub/sinclair/games/123/21.z80.zip 21.z80
+snap-v2-plus2-daytona48.z80 b81ba1eb137aed7e0553599f4182c65f27e715ebc7ad305ed2422c67f876d0c7 https://spectrumcomputing.co.uk/pub/sinclair/games/d/DaytonaUSAZX48.z80.zip daytona48.z80
+snap-v3-48k-betting.z80 a2a8acf6de15e8e1f2aa1692eddf1ec081b9100411b19aadb85223faaf0293bb https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0031007/AdvancedBettingSimulator2008.z80.zip AdvancedBettingSimulator2008.z80
+snap-v3-128k-avalanche.z80 543e5590aa3068e1d964624872ce91f5fa928dae6f34af62e6e7b787c3d1edf1 https://spectrumcomputing.co.uk/pub/sinclair/games/a/Avalanche128Demo.z80.zip AVAL128K.Z80
+snap-v3-128k-legybator.z80 1c826fc58d967ca08b02e7dc2cb801131c5f9fb4c00bf9b499f7923f9f7d985e https://spectrumcomputing.co.uk/pub/sinclair/games/l/LegyBator.z80.zip LABI.Z80
+snap-v3-plus2-ministocks.z80 9b5e6099d18677168991489d8d9b7f757a93f4d851fe979605dc9a495303306d https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0035839/MiniStocks128K.z80.zip MiniStocks128K.z80
+snap-v3-plus3-piramids.z80 8622d5acd93f449c3d932e7c2ae3d57f62b53d4ad80d9a00b035323b878e04dd https://spectrumcomputing.co.uk/pub/sinclair/games/l/LookForThePiramidsTreasure_2.z80.zip Look For The Piramid's Treasure.z80
+snap-v3-tc2048-hunchback08.z80 7dda74e945558de4b165e083bdec9653d93e0095059d99ddb459922849f596f1 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0031054/Hunchback08.z80.zip Hunchback08.z80
+snap-128k-chata3.sna 44082dfdd6ca855e3ce57fb0acfb0bdf08e774e201da40712b919c9c6870ce6f https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0034463/ElChatarreroGalactico3(128K).sna.zip chata3-01-128.sna
+snap-128k-lombard.sna 4dc2479d6998c24d0a0dfebb413a2edcb0a5c2562b921d713a65cf5b714b3f83 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0038754/LombardUDGRally.sna.zip LombardUDGRally.sna
+snap-szx13-48k-fruitmachine.szx 777f3bf6b18960e30563c718bc0763f4b96f4534c73af03a36548943f9027d2d https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0031010/AdvancedFruitMachineSimulator.szx.zip AdvancedFruitMachineSimulator.szx
+snap-szx14-48k-piramide.szx 7d52fed63538cff72c4cec0981c78ac89e5f2f3a6193fe2ee685c3c05327883b https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0039404/PiramideDeQueopsA.szx.zip PiramideDeQueopsA.szx
+snap-szx15-128k-littlefish.szx 7335139440e83887c2c3616fabbd8083b75f8c5168cf60d41084a66ab7ace4f4 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0034808/LittleFishBigTale.szx.zip pesciolino-128.szx
+snap-szx13-128k-gamex2.szx 816f980a6cf88359ba4f250fea53b30fe3106d364ee28fc64e60911ae679110d https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0030390/Gamex2PlayingDividends(Vega).szx.zip Gamex2.szx
+snap-slt-heavymetal.slt fb4a993996177f9975d82ee20cdf7fb573e8d5ad487fe12e149249b77a68a3ec https://spectrumcomputing.co.uk/pub/sinclair/games/h/HeavyMetal.slt.zip HEAVY.SLT
+snap-slt-killeduntildead.slt f29d6d67442773addf7fb30983c75b2a202b4b7ece3a3b3c26137e20e5e6716c https://spectrumcomputing.co.uk/pub/sinclair/games/k/KilledUntilDead.slt.zip KILLDEAD.SLT

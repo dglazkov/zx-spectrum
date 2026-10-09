@@ -1,0 +1,24 @@
+{
+  "name": "zx-spectrum-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "The page: the screen, the sound, the keyboard, the tape deck and the library, around the emulator compiled to WebAssembly.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "test:page": "node tests/page.mjs",
+    "shot": "node tests/shot.mjs",
+    "featured": "node tools/featured.mjs",
+    "start": "node server.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "playwright-core": "^1.64.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3"
+  }
+}

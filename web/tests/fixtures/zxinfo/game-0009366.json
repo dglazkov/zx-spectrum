@@ -1,0 +1,690 @@
+{
+ "_index": "zxinfo-20261007-153510",
+ "_id": "0009366",
+ "_version": 1,
+ "_seq_no": 9756,
+ "_primary_term": 3,
+ "found": true,
+ "_source": {
+  "contentType": "SOFTWARE",
+  "zxinfoVersion": "1.0.241",
+  "title": "Knight Lore",
+  "originalYearOfRelease": 1984,
+  "originalMonthOfRelease": null,
+  "originalDayOfRelease": null,
+  "machineType": "ZX-Spectrum 48K",
+  "numberOfPlayers": 1,
+  "multiplayerMode": null,
+  "multiplayerType": null,
+  "xrated": 0,
+  "genre": "Arcade Game: Adventure",
+  "genreType": "Arcade Game",
+  "genreSubType": "Adventure",
+  "isbn": null,
+  "language": "English",
+  "originalPrice": {
+   "amount": "9.95",
+   "currency": "£",
+   "prefix": 1
+  },
+  "availability": "Distribution denied",
+  "score": {
+   "score": 8.41,
+   "votes": 669
+  },
+  "controls": [
+   {
+    "control": "Cursor"
+   },
+   {
+    "control": "Interface 2 (right)"
+   },
+   {
+    "control": "Kempston Joystick"
+   }
+  ],
+  "remarks": null,
+  "hardwareBlurb": null,
+  "knownErrors": null,
+  "publishers": [
+   {
+    "publisherSeq": 1,
+    "name": "Ultimate Play The Game",
+    "country": "UK",
+    "labelType": "Company: Publisher/Manager",
+    "notes": []
+   }
+  ],
+  "authors": [
+   {
+    "type": "Contributor",
+    "authorSeq": 1,
+    "name": "Tim Stamper",
+    "country": "UK",
+    "labelType": "Person",
+    "roles": [
+     {
+      "roleType": "A",
+      "roleName": "Inlay/Poster Art"
+     }
+    ],
+    "groupName": null,
+    "groupCountry": null,
+    "groupType": null,
+    "notes": []
+   },
+   {
+    "type": "Creator",
+    "authorSeq": 2,
+    "name": "Chris Stamper",
+    "country": "UK",
+    "labelType": "Person",
+    "roles": [],
+    "groupName": null,
+    "groupCountry": null,
+    "groupType": null,
+    "notes": []
+   }
+  ],
+  "releases": [
+   {
+    "releaseSeq": 0,
+    "publishers": [
+     {
+      "publisherSeq": 1,
+      "name": "Ultimate Play The Game",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "releaseTitles": [],
+    "yearOfRelease": 1984,
+    "releasePrice": {
+     "amount": "9.95",
+     "currency": "£",
+     "prefix": 1
+    },
+    "code": null,
+    "barcode": null,
+    "dl": null,
+    "files": [
+     {
+      "path": "/denied/entries/0009366/KnightLore.tzx.zip",
+      "size": 24165,
+      "type": "Tape image",
+      "format": "Perfect tape (TZX)",
+      "origin": null,
+      "comments": null,
+      "encodingScheme": "None"
+     }
+    ]
+   },
+   {
+    "releaseSeq": 1,
+    "publishers": [
+     {
+      "publisherSeq": 1,
+      "name": "ABC Soft",
+      "country": "Spain",
+      "labelType": "Company"
+     }
+    ],
+    "releaseTitles": [],
+    "yearOfRelease": null,
+    "releasePrice": {
+     "amount": "1950",
+     "currency": "Ptas",
+     "prefix": 0
+    },
+    "code": null,
+    "barcode": null,
+    "dl": null,
+    "files": []
+   },
+   {
+    "releaseSeq": 2,
+    "publishers": [
+     {
+      "publisherSeq": 1,
+      "name": "Erbe Software S.A.",
+      "country": "Spain",
+      "labelType": "Company"
+     }
+    ],
+    "releaseTitles": [],
+    "yearOfRelease": 1984,
+    "code": null,
+    "barcode": null,
+    "dl": null,
+    "files": []
+   },
+   {
+    "releaseSeq": 3,
+    "publishers": [
+     {
+      "publisherSeq": 1,
+      "name": "Ricochet",
+      "country": "UK",
+      "labelType": "Company"
+     }
+    ],
+    "releaseTitles": [],
+    "yearOfRelease": 1987,
+    "releasePrice": {
+     "amount": "1.99",
+     "currency": "£",
+     "prefix": 1
+    },
+    "code": null,
+    "barcode": null,
+    "dl": null,
+    "files": [
+     {
+      "path": "/denied/entries/0009366/KnightLore(Ricochet).tzx.zip",
+      "size": 22705,
+      "type": "Tape image",
+      "format": "Perfect tape (TZX)",
+      "origin": null,
+      "comments": null,
+      "encodingScheme": "None"
+     }
+    ]
+   },
+   {
+    "releaseSeq": 4,
+    "publishers": [
+     {
+      "publisherSeq": 1,
+      "name": "Dro Soft",
+      "country": "Spain",
+      "labelType": "Company"
+     }
+    ],
+    "releaseTitles": [],
+    "yearOfRelease": 1988,
+    "code": null,
+    "barcode": null,
+    "dl": null,
+    "files": []
+   }
+  ],
+  "series": [
+   {
+    "entry_id": 9408,
+    "title": "Sabre Wulf",
+    "publishers": [
+     {
+      "name": "Ultimate Play The Game",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "groupName": "Sabreman"
+   },
+   {
+    "entry_id": 9446,
+    "title": "Underwurlde",
+    "publishers": [
+     {
+      "name": "Ultimate Play The Game",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "groupName": "Sabreman"
+   },
+   {
+    "entry_id": 9366,
+    "title": "Knight Lore",
+    "publishers": [
+     {
+      "name": "Ultimate Play The Game",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "groupName": "Sabreman"
+   },
+   {
+    "entry_id": 9389,
+    "title": "Pentagram",
+    "publishers": [
+     {
+      "name": "Ultimate Play The Game",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "groupName": "Sabreman"
+   },
+   {
+    "entry_id": 9957,
+    "title": "Mire Mare",
+    "publishers": [
+     {
+      "name": "Ultimate Play The Game",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "groupName": "Sabreman"
+   }
+  ],
+  "otherSystems": [
+   {
+    "name": "Amstrad CPC",
+    "url": "https://www.cpc-power.com/index.php?page=detail&num=1258"
+   },
+   {
+    "name": "Atari 8-bit",
+    "url": "http://www.atarimania.com/game-atari-400-800-xl-xe-knight-lore_20516.html"
+   },
+   {
+    "name": "BBC Micro",
+    "url": "https://bbcmicro.co.uk/game.php?id=208"
+   },
+   {
+    "name": "Commodore 64",
+    "url": "https://www.lemon64.com/game/knight-lore"
+   },
+   {
+    "name": "Commodore 64",
+    "url": "https://www.lemon64.com/game/knight-lore-128"
+   },
+   {
+    "name": "Commodore Plus/4",
+    "url": "https://plus4world.powweb.com/software/Knight_Lore"
+   },
+   {
+    "name": "MSX",
+    "url": "https://www.generation-msx.nl/msxdb/softwareinfo/4221"
+   },
+   {
+    "name": "MSX",
+    "url": "https://www.generation-msx.nl/msxdb/softwareinfo/810"
+   },
+   {
+    "name": "NES",
+    "url": null
+   }
+  ],
+  "inCompilations": [
+   {
+    "entry_id": 13589,
+    "title": "MicroHobby issue 200: Tape 23",
+    "publishers": [
+     {
+      "name": null,
+      "country": null,
+      "labelType": null
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "type": "Covertape"
+   },
+   {
+    "entry_id": 11281,
+    "title": "The Gold Collection II",
+    "publishers": [
+     {
+      "name": "U.S. Gold Ltd",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "type": "Compilation"
+   },
+   {
+    "entry_id": 11372,
+    "title": "They Sold a Million II",
+    "publishers": [
+     {
+      "name": "The Hit Squad",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "type": "Compilation"
+   },
+   {
+    "entry_id": 11391,
+    "title": "Ultimate Play The Game: The Collected Works",
+    "publishers": [
+     {
+      "name": "Ultimate Play The Game",
+      "country": "UK",
+      "labelType": "Company: Publisher/Manager"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K",
+    "type": "Compilation"
+   },
+   {
+    "entry_id": 1001062,
+    "title": "ZX-Spectrum Vega",
+    "publishers": [
+     {
+      "name": "Retro Computers Ltd",
+      "country": "UK",
+      "labelType": "Company"
+     }
+    ],
+    "machineType": null,
+    "type": "Hardware: Computer"
+   }
+  ],
+  "compilationContents": [],
+  "authoredWith": [],
+  "authoring": [],
+  "inspiredBy": [],
+  "modificationOf": [],
+  "modifiedBy": [
+   {
+    "entry_id": 9883,
+    "title": "Knight Lore 2: Conquest of Fairlight",
+    "publishers": [
+     {
+      "name": "High Voltage",
+      "country": "UK",
+      "labelType": "Company"
+     }
+    ],
+    "machineType": "ZX-Spectrum 48K"
+   }
+  ],
+  "otherPlatform": [],
+  "inBook": [],
+  "bookContents": [],
+  "additionalDownloads": [
+   {
+    "path": "/zxdb/sinclair/entries/0009366/KnightLore.jpg",
+    "size": 385836,
+    "type": "Inlay - Front",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0009366/KnightLore_Front.jpg",
+    "size": 580592,
+    "type": "Inlay - Front",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0009366/KnightLore_Back.jpg",
+    "size": 505348,
+    "type": "Inlay - Back",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/screens/load/k/scr/KnightLore.scr",
+    "size": 6912,
+    "type": "Loading screen",
+    "format": "Screen dump (SCR)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/screens/in-game/k/KnightLore.gif",
+    "size": 3876,
+    "type": "Running screen",
+    "format": "Picture (GIF)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0009366/KnightLore(EN).pdf",
+    "size": 645273,
+    "type": "Instructions",
+    "format": "Document (PDF)",
+    "language": "English"
+   },
+   {
+    "path": "/pub/sinclair/games-info/k/KnightLore.txt",
+    "size": 7010,
+    "type": "Instructions",
+    "format": "Document (TXT)",
+    "language": "English"
+   },
+   {
+    "path": "/pub/sinclair/games-maps/k/KnightLore.jpg",
+    "size": 344898,
+    "type": "Game map",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-maps/k/KnightLore_2.jpg",
+    "size": 518488,
+    "type": "Game map",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-maps/k/KnightLore_4.jpg",
+    "size": 1179417,
+    "type": "Game map",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-maps/k/KnightLore_3.png",
+    "size": 352366,
+    "type": "Game map",
+    "format": "Picture (PNG)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/pokes/k/Knight Lore (1984)(Ultimate Play The Game).pok",
+    "size": 531,
+    "type": "POK pokes file",
+    "format": "Pokes (POK)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-adverts/k/KnightLore.jpg",
+    "size": 235741,
+    "type": "Advertisement",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-adverts/k/KnightLore_2.jpg",
+    "size": 148048,
+    "type": "Advertisement",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "https://archive.org/download/ultimate-concept-art/KnightLore_Cargo.jpg",
+    "size": null,
+    "type": "Development material (sketches/notes)",
+    "format": "Picture (JPG)",
+    "language": "English"
+   },
+   {
+    "path": "https://archive.org/download/ultimate-concept-art/KnightLore_Cave.jpg",
+    "size": null,
+    "type": "Development material (sketches/notes)",
+    "format": "Picture (JPG)",
+    "language": "English"
+   },
+   {
+    "path": "https://archive.org/download/ultimate-concept-art/KnightLore_Curse.jpg",
+    "size": null,
+    "type": "Development material (sketches/notes)",
+    "format": "Picture (JPG)",
+    "language": "English"
+   },
+   {
+    "path": "https://archive.org/download/ultimate-concept-art/KnightLore_Furniture.jpg",
+    "size": null,
+    "type": "Development material (sketches/notes)",
+    "format": "Picture (JPG)",
+    "language": "English"
+   },
+   {
+    "path": "https://archive.org/download/ultimate-concept-art/KnightLore_Logo.jpg",
+    "size": null,
+    "type": "Development material (sketches/notes)",
+    "format": "Picture (JPG)",
+    "language": "English"
+   },
+   {
+    "path": "https://archive.org/download/ultimate-concept-art/KnightLore_Mushroom.jpg",
+    "size": null,
+    "type": "Development material (sketches/notes)",
+    "format": "Picture (JPG)",
+    "language": "English"
+   },
+   {
+    "path": "https://archive.org/download/ultimate-concept-art/KnightLore_Room.jpg",
+    "size": null,
+    "type": "Development material (sketches/notes)",
+    "format": "Picture (JPG)",
+    "language": "English"
+   },
+   {
+    "path": "https://archive.org/download/ultimate-concept-art/KnightLore_Sabreman.jpg",
+    "size": null,
+    "type": "Development material (sketches/notes)",
+    "format": "Picture (JPG)",
+    "language": "English"
+   },
+   {
+    "path": "https://archive.org/download/ultimate-concept-art/KnightLore_Screen.jpg",
+    "size": null,
+    "type": "Development material (sketches/notes)",
+    "format": "Picture (JPG)",
+    "language": "English"
+   },
+   {
+    "path": "https://archive.org/download/ultimate-concept-art/KnightLore_Torch.jpg",
+    "size": null,
+    "type": "Development material (sketches/notes)",
+    "format": "Picture (JPG)",
+    "language": "English"
+   },
+   {
+    "path": "https://archive.org/download/ultimate-concept-art/KnightLore_Trophy.jpg",
+    "size": null,
+    "type": "Development material (sketches/notes)",
+    "format": "Picture (JPG)",
+    "language": "English"
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0009366/KnightLore_Tape.jpg",
+    "size": 72695,
+    "type": "Media scan",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/company-pics/u/UltimatePlayTheGame/Posters/KnightLore_Poster.jpg",
+    "size": 1456855,
+    "type": "Official company shipped poster",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/denied/entries/0009366/KnightLore.rzx.zip",
+    "size": 416255,
+    "type": "RZX playback file",
+    "format": "Game recording (RZX)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/music/ay/games/k/KnightLore.ay.zip",
+    "size": 785,
+    "type": "Ripped in-game/theme music in AY format",
+    "format": "Music (AY)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-info/k/KnightLore.jpg",
+    "size": 1495571,
+    "type": "Scanned instructions",
+    "format": "Picture (JPG)",
+    "language": "English"
+   },
+   {
+    "path": "/pub/sinclair/games-inlays/Rereleases/k/KnightLore(ABCSoft).jpg",
+    "size": 109850,
+    "type": "Inlay - Front",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-extras/KnightLore(ABCSoft)_Poster.jpg",
+    "size": 414059,
+    "type": "Poster",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0009366/KnightLore(Ricochet).jpg",
+    "size": 537115,
+    "type": "Inlay - Front",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0009366/KnightLore(Ricochet)_Back.jpg",
+    "size": 579419,
+    "type": "Inlay - Back",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/zxdb/sinclair/entries/0009366/KnightLore(Ricochet)_Media.jpg",
+    "size": 85731,
+    "type": "Media scan",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-inlays/Rereleases/k/KnightLore(DroSoft).jpg",
+    "size": 76976,
+    "type": "Inlay - Front",
+    "format": "Picture (JPG)",
+    "language": null
+   },
+   {
+    "path": "/pub/sinclair/games-info/k/KnightLore(DroSoft).rtf",
+    "size": 4298,
+    "type": "Instructions",
+    "format": "Document (RTF)",
+    "language": "Spanish"
+   }
+  ],
+  "screens": [
+   {
+    "entry_id": 9366,
+    "release_seq": "0",
+    "filename": "KnightLore-load.png",
+    "url": "/zxscreens/0009366/KnightLore-load.png",
+    "scrUrl": "/pub/sinclair/screens/load/k/scr/KnightLore.scr",
+    "size": 6625,
+    "type": "Loading screen",
+    "format": "Picture",
+    "title": ""
+   },
+   {
+    "entry_id": 9366,
+    "release_seq": 0,
+    "filename": "KnightLore.gif",
+    "url": "/pub/sinclair/screens/in-game/k/KnightLore.gif",
+    "size": 3876,
+    "type": "Running screen",
+    "format": "Picture (GIF)",
+    "title": null
+   }
+  ]
+ }
+}

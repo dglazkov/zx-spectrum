@@ -1,0 +1,1453 @@
+{
+ "took": 25,
+ "timed_out": false,
+ "_shards": {
+  "total": 1,
+  "successful": 1,
+  "skipped": 0,
+  "failed": 0
+ },
+ "hits": {
+  "total": {
+   "value": 6,
+   "relation": "eq"
+  },
+  "max_score": 266.9971,
+  "hits": [
+   {
+    "_index": "zxinfo-20261007-153510",
+    "_id": "0004293",
+    "_score": 266.9971,
+    "_source": {
+     "contentType": "SOFTWARE",
+     "zxinfoVersion": "1.0.241",
+     "title": "Saboteur!",
+     "originalYearOfRelease": 1985,
+     "originalMonthOfRelease": null,
+     "originalDayOfRelease": null,
+     "machineType": "ZX-Spectrum 48K",
+     "xrated": 0,
+     "genre": "Arcade Game: Action",
+     "genreType": "Arcade Game",
+     "genreSubType": "Action",
+     "isbn": null,
+     "availability": "Available",
+     "score": {
+      "score": 8.41,
+      "votes": 382
+     },
+     "publishers": [
+      {
+       "publisherSeq": 1,
+       "name": "Durell Software Ltd",
+       "country": "UK",
+       "labelType": "Company: Publisher/Manager",
+       "notes": [
+        {
+         "text": "Durell sold the publishing rights to Elite Systems at the end of 1987 (September or December 1987 according to different sources).",
+         "noteType": "U"
+        }
+       ]
+      }
+     ],
+     "authors": [
+      {
+       "type": "Creator",
+       "authorSeq": 1,
+       "name": "Clive Townsend",
+       "country": "UK",
+       "labelType": "Person",
+       "roles": [],
+       "groupName": null,
+       "groupCountry": null,
+       "groupType": null,
+       "notes": []
+      },
+      {
+       "type": "Contributor",
+       "authorSeq": 2,
+       "name": "Tim Hayward",
+       "country": null,
+       "labelType": "Person",
+       "roles": [
+        {
+         "roleType": "A",
+         "roleName": "Inlay/Poster Art"
+        }
+       ],
+       "groupName": null,
+       "groupCountry": null,
+       "groupType": null,
+       "notes": []
+      }
+     ],
+     "releases": [
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "Durell Software Ltd",
+         "country": "UK",
+         "labelType": "Company: Publisher/Manager"
+        }
+       ],
+       "files": [
+        {
+         "path": "/pub/sinclair/games/s/Saboteur.tap.zip",
+         "size": 29457,
+         "type": "Tape image",
+         "format": "Tape (TAP)",
+         "origin": null,
+         "comments": null,
+         "encodingScheme": "Undetermined"
+        },
+        {
+         "path": "/pub/sinclair/games/s/Saboteur.tzx.zip",
+         "size": 53305,
+         "type": "Tape image",
+         "format": "Perfect tape (TZX)",
+         "origin": "Original release (O)",
+         "comments": null,
+         "encodingScheme": "Unspecified custom loader"
+        }
+       ]
+      },
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "EDOS",
+         "country": "UK",
+         "labelType": "Company"
+        }
+       ],
+       "files": []
+      },
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "Encore",
+         "country": "UK",
+         "labelType": "Company"
+        }
+       ],
+       "files": [
+        {
+         "path": "/pub/sinclair/games/s/Saboteur(Encore).tzx.zip",
+         "size": 26067,
+         "type": "Tape image",
+         "format": "Perfect tape (TZX)",
+         "origin": "Re-release (R)",
+         "comments": null,
+         "encodingScheme": "None"
+        },
+        {
+         "path": "/pub/sinclair/games/s/Saboteur(different)(Encore).tzx.zip",
+         "size": 26169,
+         "type": "Tape image",
+         "format": "Perfect tape (TZX)",
+         "origin": "Re-release (R)",
+         "comments": "(different)",
+         "encodingScheme": "None"
+        }
+       ]
+      },
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "Erbe Software S.A.",
+         "country": "Spain",
+         "labelType": "Company"
+        }
+       ],
+       "files": [
+        {
+         "path": "/pub/sinclair/games/s/Saboteur(MediumCase)(ErbeSoftwareS.A.).tzx.zip",
+         "size": 53938,
+         "type": "Tape image",
+         "format": "Perfect tape (TZX)",
+         "origin": "Re-release (R)",
+         "comments": "(Medium Case)",
+         "encodingScheme": "None"
+        },
+        {
+         "path": "/pub/sinclair/games/s/Saboteur(SmallCase)(ErbeSoftwareS.A.).tzx.zip",
+         "size": 54014,
+         "type": "Tape image",
+         "format": "Perfect tape (TZX)",
+         "origin": "Re-release (R)",
+         "comments": "(Small Case)",
+         "encodingScheme": "Unspecified custom loader"
+        }
+       ]
+      },
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "IBSA",
+         "country": "Spain",
+         "labelType": "Company"
+        }
+       ],
+       "files": [
+        {
+         "path": "/pub/sinclair/games/s/Saboteur(IBSA).tzx.zip",
+         "size": 55163,
+         "type": "Tape image",
+         "format": "Perfect tape (TZX)",
+         "origin": "Re-release (R)",
+         "comments": null,
+         "encodingScheme": "Unspecified custom loader"
+        }
+       ]
+      },
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "Bumfun Software",
+         "country": "Spain",
+         "labelType": null
+        }
+       ],
+       "files": []
+      },
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "Teknamic Software",
+         "country": "Portugal",
+         "labelType": "Company: Publisher/Manager"
+        }
+       ],
+       "files": []
+      }
+     ],
+     "additionalDownloads": [
+      {
+       "path": "/zxdb/sinclair/entries/0004293/Saboteur.jpg",
+       "size": 520309,
+       "type": "Inlay - Front",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/screens/load/s/scr/Saboteur.scr",
+       "size": 6912,
+       "type": "Loading screen",
+       "format": "Screen dump (SCR)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/screens/in-game/s/Saboteur.gif",
+       "size": 5556,
+       "type": "Running screen",
+       "format": "Picture (GIF)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004293/Saboteur(MULTI-LANG).pdf",
+       "size": 233195,
+       "type": "Instructions",
+       "format": "Document (PDF)",
+       "language": "Multi-language: English, French, German"
+      },
+      {
+       "path": "/pub/sinclair/games-info/s/Saboteur.txt",
+       "size": 9379,
+       "type": "Instructions",
+       "format": "Document (TXT)",
+       "language": "English"
+      },
+      {
+       "path": "/pub/sinclair/games-maps/s/Saboteur_4.gif",
+       "size": 414589,
+       "type": "Game map",
+       "format": "Picture (GIF)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-maps/s/Saboteur.jpg",
+       "size": 236099,
+       "type": "Game map",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-maps/s/Saboteur_2.jpg",
+       "size": 424248,
+       "type": "Game map",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-maps/s/Saboteur_5.jpg",
+       "size": 1327006,
+       "type": "Game map",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-maps/s/Saboteur_3.png",
+       "size": 96808,
+       "type": "Game map",
+       "format": "Picture (PNG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/pokes/s/Saboteur! (1985)(Durell Software).pok",
+       "size": 361,
+       "type": "POK pokes file",
+       "format": "Pokes (POK)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-adverts/s/Saboteur.jpg",
+       "size": 133231,
+       "type": "Advertisement",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004293/Saboteur_Tape.jpg",
+       "size": 80166,
+       "type": "Media scan",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/music/ay/games/s/Saboteur.ay.zip",
+       "size": 579,
+       "type": "Ripped in-game/theme music in AY format",
+       "format": "Music (AY)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004293/Saboteur(Encore).jpg",
+       "size": 456221,
+       "type": "Inlay - Front",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004293/Saboteur(Encore)_Back.jpg",
+       "size": 428188,
+       "type": "Inlay - Back",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004293/Saboteur(Encore)_Tape.jpg",
+       "size": 103865,
+       "type": "Media scan",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-inlays/Rereleases/s/Saboteur(ErbeSoftwareS.A.).jpg",
+       "size": 181146,
+       "type": "Inlay - Front",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-inlays/Rereleases/s/Saboteur(ErbeSoftwareS.A.)_2.jpg",
+       "size": 100937,
+       "type": "Inlay - Front",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004293/0004293-load-0.scr",
+       "size": 6912,
+       "type": "Loading screen",
+       "format": "Screen dump (SCR)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-info/s/Saboteur(ErbeSoftwareS.A.).txt",
+       "size": 6167,
+       "type": "Instructions",
+       "format": "Document (TXT)",
+       "language": "Spanish"
+      },
+      {
+       "path": "/pub/sinclair/games-inlays/Rereleases/s/Saboteur(IBSA).jpg",
+       "size": 61707,
+       "type": "Inlay - Front",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004293/Saboteur(BumfunSoftware).jpg",
+       "size": 552725,
+       "type": "Inlay - Front",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004293/Saboteur(BumfunSoftware)_Tape.jpg",
+       "size": 98349,
+       "type": "Media scan",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004293/Saboteur(TeknamicSoftware)_Front.jpg",
+       "size": 702157,
+       "type": "Inlay - Front",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004293/Saboteur(TeknamicSoftware)_Front_2.jpg",
+       "size": 683290,
+       "type": "Inlay - Front",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004293/Saboteur(TeknamicSoftware)_Back.jpg",
+       "size": 1035832,
+       "type": "Inlay - Back",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004293/Saboteur(TeknamicSoftware)_Back_2.jpg",
+       "size": 770455,
+       "type": "Inlay - Back",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004293/Saboteur(TeknamicSoftware)_SideA.jpg",
+       "size": 151433,
+       "type": "Media scan",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004293/Saboteur(TeknamicSoftware)_SideB.jpg",
+       "size": 149196,
+       "type": "Media scan",
+       "format": "Picture (JPG)",
+       "language": null
+      }
+     ],
+     "screens": [
+      {
+       "entry_id": 4293,
+       "release_seq": "0",
+       "filename": "Saboteur-load.png",
+       "url": "/zxscreens/0004293/Saboteur-load.png",
+       "scrUrl": "/pub/sinclair/screens/load/s/scr/Saboteur.scr",
+       "size": 4347,
+       "type": "Loading screen",
+       "format": "Picture",
+       "title": ""
+      },
+      {
+       "entry_id": 4293,
+       "release_seq": 0,
+       "filename": "Saboteur.gif",
+       "url": "/pub/sinclair/screens/in-game/s/Saboteur.gif",
+       "size": 5556,
+       "type": "Running screen",
+       "format": "Picture (GIF)",
+       "title": null
+      },
+      {
+       "entry_id": 4293,
+       "release_seq": "3",
+       "filename": "0004293-load-0.png",
+       "url": "/zxscreens/0004293/0004293-load-0.png",
+       "scrUrl": "/zxdb/sinclair/entries/0004293/0004293-load-0.scr",
+       "size": 4325,
+       "type": "Loading screen",
+       "format": "Picture",
+       "title": ""
+      }
+     ]
+    },
+    "sort": [
+     266.9971,
+     "Saboteur!"
+    ]
+   },
+   {
+    "_index": "zxinfo-20261007-153510",
+    "_id": "0027034",
+    "_score": 199.62329,
+    "_source": {
+     "contentType": "SOFTWARE",
+     "zxinfoVersion": "1.0.241",
+     "title": "Saboteur 3",
+     "originalYearOfRelease": 1991,
+     "originalMonthOfRelease": null,
+     "originalDayOfRelease": null,
+     "machineType": "ZX-Spectrum 48K",
+     "xrated": 0,
+     "genre": "Adventure Game: Text-Only",
+     "genreType": "Adventure Game",
+     "genreSubType": "Text-Only",
+     "isbn": null,
+     "availability": "Available",
+     "score": {
+      "score": 5.5,
+      "votes": 2
+     },
+     "publishers": [
+      {
+       "publisherSeq": 1,
+       "name": "GCC Software",
+       "country": "Czech",
+       "labelType": "Company: Hardware sales",
+       "notes": []
+      }
+     ],
+     "authors": [
+      {}
+     ],
+     "releases": [
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "GCC Software",
+         "country": "Czech",
+         "labelType": "Company: Hardware sales"
+        }
+       ],
+       "files": [
+        {
+         "path": "/pub/sinclair/games/s/Saboteur3.tap.zip",
+         "size": 22588,
+         "type": "Tape image",
+         "format": "Tape (TAP)",
+         "origin": null,
+         "comments": null,
+         "encodingScheme": "Undetermined"
+        }
+       ]
+      }
+     ],
+     "additionalDownloads": [
+      {
+       "path": "/pub/sinclair/screens/load/s/scr/Saboteur3_2.scr",
+       "size": 6912,
+       "type": "Loading screen",
+       "format": "Screen dump (SCR)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/screens/in-game/s/Saboteur3_2.gif",
+       "size": 2576,
+       "type": "Running screen",
+       "format": "Picture (GIF)",
+       "language": null
+      }
+     ],
+     "screens": [
+      {
+       "entry_id": 27034,
+       "release_seq": "0",
+       "filename": "Saboteur3_2-load.png",
+       "url": "/zxscreens/0027034/Saboteur3_2-load.png",
+       "scrUrl": "/pub/sinclair/screens/load/s/scr/Saboteur3_2.scr",
+       "size": 2661,
+       "type": "Loading screen",
+       "format": "Picture",
+       "title": ""
+      },
+      {
+       "entry_id": 27034,
+       "release_seq": 0,
+       "filename": "Saboteur3_2.gif",
+       "url": "/pub/sinclair/screens/in-game/s/Saboteur3_2.gif",
+       "size": 2576,
+       "type": "Running screen",
+       "format": "Picture (GIF)",
+       "title": null
+      }
+     ]
+    },
+    "sort": [
+     199.62329,
+     "Saboteur 3"
+    ]
+   },
+   {
+    "_index": "zxinfo-20261007-153510",
+    "_id": "0004295",
+    "_score": 160.25832,
+    "_source": {
+     "contentType": "SOFTWARE",
+     "zxinfoVersion": "1.0.241",
+     "title": "Saboteur II",
+     "originalYearOfRelease": 1987,
+     "originalMonthOfRelease": null,
+     "originalDayOfRelease": null,
+     "machineType": "ZX-Spectrum 48K/128K",
+     "xrated": 0,
+     "genre": "Arcade Game: Action",
+     "genreType": "Arcade Game",
+     "genreSubType": "Action",
+     "isbn": null,
+     "availability": "Available",
+     "score": {
+      "score": 8.43,
+      "votes": 279
+     },
+     "publishers": [
+      {
+       "publisherSeq": 1,
+       "name": "Durell Software Ltd",
+       "country": "UK",
+       "labelType": "Company: Publisher/Manager",
+       "notes": [
+        {
+         "text": "Durell sold the publishing rights to Elite Systems at the end of 1987 (September or December 1987 according to different sources).",
+         "noteType": "U"
+        }
+       ]
+      }
+     ],
+     "authors": [
+      {
+       "type": "Creator",
+       "authorSeq": 1,
+       "name": "Clive Townsend",
+       "country": "UK",
+       "labelType": "Person",
+       "roles": [
+        {
+         "roleType": "C",
+         "roleName": "Code"
+        },
+        {
+         "roleType": "G",
+         "roleName": "In-game Graphics"
+        }
+       ],
+       "groupName": null,
+       "groupCountry": null,
+       "groupType": null,
+       "notes": []
+      },
+      {
+       "type": "Creator",
+       "authorSeq": 2,
+       "name": "Rob Hubbard",
+       "country": "UK",
+       "labelType": "Person",
+       "roles": [
+        {
+         "roleType": "M",
+         "roleName": "Music"
+        }
+       ],
+       "groupName": null,
+       "groupCountry": null,
+       "groupType": null,
+       "notes": []
+      },
+      {
+       "type": "Contributor",
+       "authorSeq": 3,
+       "name": "Tim Hayward",
+       "country": null,
+       "labelType": "Person",
+       "roles": [
+        {
+         "roleType": "A",
+         "roleName": "Inlay/Poster Art"
+        }
+       ],
+       "groupName": null,
+       "groupCountry": null,
+       "groupType": null,
+       "notes": []
+      }
+     ],
+     "releases": [
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "Durell Software Ltd",
+         "country": "UK",
+         "labelType": "Company: Publisher/Manager"
+        }
+       ],
+       "files": [
+        {
+         "path": "/pub/sinclair/games/s/SaboteurII.tzx.zip",
+         "size": 58484,
+         "type": "Tape image",
+         "format": "Perfect tape (TZX)",
+         "origin": "Original release (O)",
+         "comments": null,
+         "encodingScheme": "None"
+        },
+        {
+         "path": "/pub/sinclair/games/s/SaboteurII128.tap.zip",
+         "size": 32092,
+         "type": "Tape image",
+         "format": "Tape (TAP)",
+         "origin": null,
+         "comments": null,
+         "encodingScheme": "Undetermined"
+        },
+        {
+         "path": "/pub/sinclair/games/s/SaboteurII48.tap.zip",
+         "size": 31073,
+         "type": "Tape image",
+         "format": "Tape (TAP)",
+         "origin": null,
+         "comments": null,
+         "encodingScheme": "Undetermined"
+        },
+        {
+         "path": "/zxdb/sinclair/entries/0004295/SaboteurII.tzx.zip",
+         "size": 29666,
+         "type": "Tape image",
+         "format": "Perfect tape (TZX)",
+         "origin": null,
+         "comments": null,
+         "encodingScheme": "None"
+        }
+       ]
+      },
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "EDOS",
+         "country": "UK",
+         "labelType": "Company"
+        }
+       ],
+       "files": []
+      },
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "Encore",
+         "country": "UK",
+         "labelType": "Company"
+        }
+       ],
+       "files": [
+        {
+         "path": "/pub/sinclair/games/s/SaboteurII(Encore).tzx.zip",
+         "size": 28704,
+         "type": "Tape image",
+         "format": "Perfect tape (TZX)",
+         "origin": "Re-release (R)",
+         "comments": null,
+         "encodingScheme": "None"
+        }
+       ]
+      },
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "Erbe Software S.A.",
+         "country": "Spain",
+         "labelType": "Company"
+        }
+       ],
+       "files": [
+        {
+         "path": "/pub/sinclair/games/s/SaboteurII(ErbeSoftwareS.A.).tzx.zip",
+         "size": 57090,
+         "type": "Tape image",
+         "format": "Perfect tape (TZX)",
+         "origin": "Re-release (R)",
+         "comments": null,
+         "encodingScheme": "None"
+        }
+       ]
+      },
+      {
+       "publishers": [
+        {
+         "publisherSeq": 0,
+         "name": "Durell Software Ltd",
+         "country": null,
+         "labelType": null
+        }
+       ],
+       "files": [
+        {
+         "path": "/pub/sinclair/games/s/SaboteurII48(unknown).z80.zip",
+         "size": 31715,
+         "type": "Snapshot image",
+         "format": "Snapshot (Z80)",
+         "origin": "Re-release (r)",
+         "comments": null,
+         "encodingScheme": "Undetermined"
+        }
+       ]
+      },
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "Bumfun Software",
+         "country": "Spain",
+         "labelType": null
+        }
+       ],
+       "files": []
+      },
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "PIM Software",
+         "country": "Greece",
+         "labelType": "Company"
+        }
+       ],
+       "files": [
+        {
+         "path": "/zxdb/sinclair/entries/0004295/SaboteurII(PIMSoftware).tzx.zip",
+         "size": 29692,
+         "type": "Tape image",
+         "format": "Perfect tape (TZX)",
+         "origin": null,
+         "comments": null,
+         "encodingScheme": "None"
+        }
+       ]
+      }
+     ],
+     "additionalDownloads": [
+      {
+       "path": "/zxdb/sinclair/entries/0004295/SaboteurII.jpg",
+       "size": 388207,
+       "type": "Inlay - Front",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004295/SaboteurII_Back.jpg",
+       "size": 559403,
+       "type": "Inlay - Back",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/screens/load/s/scr/SaboteurII.scr",
+       "size": 6912,
+       "type": "Loading screen",
+       "format": "Screen dump (SCR)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/screens/in-game/s/SaboteurII.gif",
+       "size": 4962,
+       "type": "Running screen",
+       "format": "Picture (GIF)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-info/s/SaboteurII.pdf",
+       "size": 48460,
+       "type": "Instructions",
+       "format": "Document (PDF)",
+       "language": "English"
+      },
+      {
+       "path": "/pub/sinclair/games-info/s/SaboteurII.txt",
+       "size": 8591,
+       "type": "Instructions",
+       "format": "Document (TXT)",
+       "language": "English"
+      },
+      {
+       "path": "/pub/sinclair/games-maps/s/SaboteurII.jpg",
+       "size": 865574,
+       "type": "Game map",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-maps/s/SaboteurII_2.jpg",
+       "size": 453321,
+       "type": "Game map",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-maps/s/SaboteurII_3.jpg",
+       "size": 593591,
+       "type": "Game map",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-maps/s/SaboteurII_5.jpg",
+       "size": 203164,
+       "type": "Game map",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-maps/s/SaboteurII_6.jpg",
+       "size": 354138,
+       "type": "Game map",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-maps/s/SaboteurII_4.png",
+       "size": 389981,
+       "type": "Game map",
+       "format": "Picture (PNG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/pokes/s/Saboteur II (1987)(Durell Software).pok",
+       "size": 362,
+       "type": "POK pokes file",
+       "format": "Pokes (POK)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-adverts/s/SaboteurII.jpg",
+       "size": 178573,
+       "type": "Advertisement",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004295/SaboteurII_SideA.jpg",
+       "size": 84885,
+       "type": "Media scan",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004295/SaboteurII_SideB.jpg",
+       "size": 94312,
+       "type": "Media scan",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/music/ay/games/s/SaboteurII.ay.zip",
+       "size": 3229,
+       "type": "Ripped in-game/theme music in AY format",
+       "format": "Music (AY)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004295/SaboteurII(Encore).jpg",
+       "size": 519032,
+       "type": "Inlay - Front",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004295/SaboteurII(Encore)_Back.jpg",
+       "size": 424040,
+       "type": "Inlay - Back",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004295/SaboteurII(Encore)_Tape.jpg",
+       "size": 73240,
+       "type": "Media scan",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-inlays/Rereleases/s/SaboteurII(ErbeSoftwareS.A.).jpg",
+       "size": 29260,
+       "type": "Inlay - Front",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/pub/sinclair/games-info/s/SaboteurII(ErbeSoftwareS.A.).pdf",
+       "size": 32163,
+       "type": "Instructions",
+       "format": "Document (PDF)",
+       "language": "Spanish"
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004295/SaboteurII(BumfunSoftware).jpg",
+       "size": 550972,
+       "type": "Inlay - Front",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004295/SaboteurII(BumfunSoftware)_Tape.jpg",
+       "size": 72010,
+       "type": "Media scan",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004295/SaboteurII(PIMSoftware)_Front.jpg",
+       "size": 735171,
+       "type": "Inlay - Front",
+       "format": "Picture (JPG)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004295/SaboteurII(PIMSoftware)(EL).pdf",
+       "size": 643953,
+       "type": "Instructions",
+       "format": "Document (PDF)",
+       "language": "Greek"
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0004295/SaboteurII(PIMSoftware)_Media.jpg",
+       "size": 110719,
+       "type": "Media scan",
+       "format": "Picture (JPG)",
+       "language": null
+      }
+     ],
+     "screens": [
+      {
+       "entry_id": 4295,
+       "release_seq": "0",
+       "filename": "SaboteurII-load.png",
+       "url": "/zxscreens/0004295/SaboteurII-load.png",
+       "scrUrl": "/pub/sinclair/screens/load/s/scr/SaboteurII.scr",
+       "size": 4180,
+       "type": "Loading screen",
+       "format": "Picture",
+       "title": ""
+      },
+      {
+       "entry_id": 4295,
+       "release_seq": 0,
+       "filename": "SaboteurII.gif",
+       "url": "/pub/sinclair/screens/in-game/s/SaboteurII.gif",
+       "size": 4962,
+       "type": "Running screen",
+       "format": "Picture (GIF)",
+       "title": null
+      }
+     ]
+    },
+    "sort": [
+     160.25832,
+     "Saboteur II"
+    ]
+   },
+   {
+    "_index": "zxinfo-20261007-153510",
+    "_id": "0041308",
+    "_score": 87.35942,
+    "_source": {
+     "contentType": "SOFTWARE",
+     "zxinfoVersion": "1.0.241",
+     "title": "Hunt Saboteur",
+     "originalYearOfRelease": 1984,
+     "originalMonthOfRelease": 7,
+     "originalDayOfRelease": null,
+     "machineType": "ZX-Spectrum 16K",
+     "xrated": 0,
+     "genre": "Arcade Game: Action",
+     "genreType": "Arcade Game",
+     "genreSubType": "Action",
+     "isbn": null,
+     "availability": "Available",
+     "score": {
+      "score": null,
+      "votes": null
+     },
+     "publishers": [
+      {
+       "publisherSeq": 0,
+       "name": "ECC Publications Ltd",
+       "country": null,
+       "labelType": "Company: Publisher/Manager",
+       "notes": []
+      }
+     ],
+     "authors": [
+      {
+       "type": "Creator",
+       "authorSeq": 1,
+       "name": "Nathan Roche",
+       "country": "UK",
+       "labelType": "Person",
+       "roles": [],
+       "groupName": null,
+       "groupCountry": null,
+       "groupType": null,
+       "notes": []
+      }
+     ],
+     "releases": [
+      {
+       "publishers": [
+        {
+         "publisherSeq": 0,
+         "name": "Sinclair Programs - type-in from magazine issue #21 - 1984/Jul",
+         "country": null,
+         "labelType": null
+        }
+       ],
+       "files": [
+        {
+         "path": "/zxdb/sinclair/entries/0041308/HuntSaboteur.tap.zip",
+         "size": 1125,
+         "type": "Tape image",
+         "format": "Tape (TAP)",
+         "origin": null,
+         "comments": null,
+         "encodingScheme": "None"
+        }
+       ]
+      }
+     ],
+     "additionalDownloads": [
+      {
+       "path": "/zxdb/sinclair/entries/0041308/HuntSaboteur-RUN-1.scr",
+       "size": 6912,
+       "type": "Running screen",
+       "format": "Screen dump (SCR)",
+       "language": null
+      }
+     ],
+     "screens": [
+      {
+       "entry_id": 41308,
+       "release_seq": "0",
+       "filename": "HuntSaboteur-RUN-1.gif",
+       "url": "/zxscreens/0041308/HuntSaboteur-RUN-1.gif",
+       "scrUrl": "/zxdb/sinclair/entries/0041308/HuntSaboteur-RUN-1.scr",
+       "size": 4009,
+       "type": "Running screen",
+       "format": "Picture",
+       "title": ""
+      }
+     ]
+    },
+    "sort": [
+     87.35942,
+     "Hunt Saboteur"
+    ]
+   },
+   {
+    "_index": "zxinfo-20261007-153510",
+    "_id": "0042977",
+    "_score": 32.151882,
+    "_ignored": [
+     "textscan.text.keyword"
+    ],
+    "_source": {
+     "contentType": "SOFTWARE",
+     "zxinfoVersion": "1.0.241",
+     "title": "Saboteur II - theALFEST mod",
+     "originalYearOfRelease": 2024,
+     "originalMonthOfRelease": 3,
+     "originalDayOfRelease": 2,
+     "machineType": "ZX-Spectrum 48K/128K",
+     "xrated": 0,
+     "genre": "Arcade Game: Action",
+     "genreType": "Arcade Game",
+     "genreSubType": "Action",
+     "isbn": null,
+     "availability": "Available",
+     "score": {
+      "score": null,
+      "votes": null
+     },
+     "publishers": [
+      {
+       "publisherSeq": 1,
+       "name": "theALFEST",
+       "country": "Ukraine",
+       "labelType": "Company: Publisher/Manager",
+       "notes": []
+      }
+     ],
+     "authors": [
+      {
+       "type": "Creator",
+       "authorSeq": 1,
+       "name": "theALFEST",
+       "country": "Ukraine",
+       "labelType": "Company: Publisher/Manager",
+       "roles": [],
+       "groupName": null,
+       "groupCountry": null,
+       "groupType": null,
+       "notes": []
+      },
+      {
+       "type": "Creator",
+       "authorSeq": 2,
+       "name": "Clive Townsend",
+       "country": "UK",
+       "labelType": "Person",
+       "roles": [],
+       "groupName": null,
+       "groupCountry": null,
+       "groupType": null,
+       "notes": []
+      }
+     ],
+     "releases": [
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "theALFEST",
+         "country": "Ukraine",
+         "labelType": "Company: Publisher/Manager"
+        }
+       ],
+       "files": [
+        {
+         "path": "/zxdb/sinclair/entries/0042977/SaboteurII-TheALFESTMod(EN).tap.zip",
+         "size": 28744,
+         "type": "Tape image",
+         "format": "Tape (TAP)",
+         "origin": null,
+         "comments": null,
+         "encodingScheme": "None"
+        },
+        {
+         "path": "/zxdb/sinclair/entries/0042977/SaboteurII-TheALFESTMod.dsk.zip",
+         "size": 32400,
+         "type": "Disk image",
+         "format": "+3 disk (DSK)",
+         "origin": null,
+         "comments": null,
+         "encodingScheme": "None"
+        },
+        {
+         "path": "/zxdb/sinclair/entries/0042977/SaboteurII-TheALFESTMod.tap.zip",
+         "size": 30002,
+         "type": "Tape image",
+         "format": "Tape (TAP)",
+         "origin": null,
+         "comments": null,
+         "encodingScheme": "None"
+        }
+       ]
+      }
+     ],
+     "additionalDownloads": [
+      {
+       "path": "/zxdb/sinclair/entries/0042977/SaboteurII(theALFESTMOD)-OPEN-1.scr",
+       "size": 6912,
+       "type": "Opening screen",
+       "format": "Screen dump (SCR)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0042977/SaboteurII(theALFESTMOD)-RUN-1.scr",
+       "size": 6912,
+       "type": "Running screen",
+       "format": "Screen dump (SCR)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0042977/SaboteurII-TheALFESTMod(EN).txt",
+       "size": 2973,
+       "type": "Instructions",
+       "format": "Document (TXT)",
+       "language": "English"
+      }
+     ],
+     "screens": [
+      {
+       "entry_id": 42977,
+       "release_seq": "0",
+       "filename": "SaboteurII(theALFESTMOD)-OPEN-1.png",
+       "url": "/zxscreens/0042977/SaboteurII(theALFESTMOD)-OPEN-1.png",
+       "scrUrl": "/zxdb/sinclair/entries/0042977/SaboteurII(theALFESTMOD)-OPEN-1.scr",
+       "size": 3947,
+       "type": "Opening screen",
+       "format": "Picture",
+       "title": ""
+      },
+      {
+       "entry_id": 42977,
+       "release_seq": "0",
+       "filename": "SaboteurII(theALFESTMOD)-RUN-1.png",
+       "url": "/zxscreens/0042977/SaboteurII(theALFESTMOD)-RUN-1.png",
+       "scrUrl": "/zxdb/sinclair/entries/0042977/SaboteurII(theALFESTMOD)-RUN-1.scr",
+       "size": 4246,
+       "type": "Running screen",
+       "format": "Picture",
+       "title": ""
+      }
+     ]
+    },
+    "sort": [
+     32.151882,
+     "Saboteur II - theALFEST mod"
+    ]
+   },
+   {
+    "_index": "zxinfo-20261007-153510",
+    "_id": "0042978",
+    "_score": 28.42435,
+    "_source": {
+     "contentType": "SOFTWARE",
+     "zxinfoVersion": "1.0.241",
+     "title": "Saboteur 2 - Alex Rider Edition",
+     "originalYearOfRelease": 2015,
+     "originalMonthOfRelease": null,
+     "originalDayOfRelease": null,
+     "machineType": "ZX-Spectrum 48K/128K",
+     "xrated": 0,
+     "genre": "Arcade Game: Action",
+     "genreType": "Arcade Game",
+     "genreSubType": "Action",
+     "isbn": null,
+     "availability": "Available",
+     "score": {
+      "score": null,
+      "votes": null
+     },
+     "publishers": [
+      {
+       "publisherSeq": 1,
+       "name": "Alex Rider",
+       "country": "Russia",
+       "labelType": "Company: Publisher/Manager",
+       "notes": []
+      }
+     ],
+     "authors": [
+      {
+       "type": "Creator",
+       "authorSeq": 1,
+       "name": "Alexey Semizarov",
+       "country": "Russia",
+       "labelType": "Person",
+       "roles": [],
+       "groupName": null,
+       "groupCountry": null,
+       "groupType": null,
+       "notes": []
+      }
+     ],
+     "releases": [
+      {
+       "publishers": [
+        {
+         "publisherSeq": 1,
+         "name": "Alex Rider",
+         "country": "Russia",
+         "labelType": "Company: Publisher/Manager"
+        }
+       ],
+       "files": [
+        {
+         "path": "/zxdb/sinclair/entries/0042978/SaboteurII(AlexRiderMOD)(128K).tap.zip",
+         "size": 29768,
+         "type": "Tape image",
+         "format": "Tape (TAP)",
+         "origin": null,
+         "comments": null,
+         "encodingScheme": "None"
+        },
+        {
+         "path": "/zxdb/sinclair/entries/0042978/SaboteurII(AlexRiderMOD)(48K).tap.zip",
+         "size": 28252,
+         "type": "Tape image",
+         "format": "Tape (TAP)",
+         "origin": null,
+         "comments": null,
+         "encodingScheme": "None"
+        },
+        {
+         "path": "/zxdb/sinclair/entries/0042978/SaboteurII(AlexRiderMOD)(Pentagon).trd.zip",
+         "size": 31979,
+         "type": "Disk image",
+         "format": "TR-DOS disk (TRD)",
+         "origin": null,
+         "comments": null,
+         "encodingScheme": "None"
+        },
+        {
+         "path": "/zxdb/sinclair/entries/0042978/SaboteurII(AlexRiderMOD).trd.zip",
+         "size": 30445,
+         "type": "Disk image",
+         "format": "TR-DOS disk (TRD)",
+         "origin": null,
+         "comments": null,
+         "encodingScheme": "None"
+        }
+       ]
+      }
+     ],
+     "additionalDownloads": [
+      {
+       "path": "/zxdb/sinclair/entries/0042978/SaboteurII(AlexRiderMOD)-OPEN-1.scr",
+       "size": 6912,
+       "type": "Opening screen",
+       "format": "Screen dump (SCR)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0042978/SaboteurII(AlexRiderMOD)-RUN-1.scr",
+       "size": 6912,
+       "type": "Running screen",
+       "format": "Screen dump (SCR)",
+       "language": null
+      },
+      {
+       "path": "/zxdb/sinclair/entries/0042978/SaboteurII(AlexRiderMOD)(EN).txt",
+       "size": 1395,
+       "type": "Instructions",
+       "format": "Document (TXT)",
+       "language": "English"
+      }
+     ],
+     "screens": [
+      {
+       "entry_id": 42978,
+       "release_seq": "0",
+       "filename": "SaboteurII(AlexRiderMOD)-OPEN-1.png",
+       "url": "/zxscreens/0042978/SaboteurII(AlexRiderMOD)-OPEN-1.png",
+       "scrUrl": "/zxdb/sinclair/entries/0042978/SaboteurII(AlexRiderMOD)-OPEN-1.scr",
+       "size": 3350,
+       "type": "Opening screen",
+       "format": "Picture",
+       "title": ""
+      },
+      {
+       "entry_id": 42978,
+       "release_seq": "0",
+       "filename": "SaboteurII(AlexRiderMOD)-RUN-1.png",
+       "url": "/zxscreens/0042978/SaboteurII(AlexRiderMOD)-RUN-1.png",
+       "scrUrl": "/zxdb/sinclair/entries/0042978/SaboteurII(AlexRiderMOD)-RUN-1.scr",
+       "size": 2617,
+       "type": "Running screen",
+       "format": "Picture",
+       "title": ""
+      }
+     ]
+    },
+    "sort": [
+     28.42435,
+     "Saboteur 2 - Alex Rider Edition"
+    ]
+   }
+  ]
+ }
+}
