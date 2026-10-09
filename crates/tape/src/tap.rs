@@ -5,16 +5,23 @@
 //! each is played at the ROM's, with the second of silence after it that a TZX block 0x10 has by default.
 
 use crate::block::{Block, rom};
-use crate::{Error, Format, Tape};
+use crate::{Error, Format, MAX_BLOCKS, Tape};
 
 /// Reads a TAP file. A TAP has no signature, so this is also how [`Tape::parse`] decides that a file is one:
 /// its lengths must account for it to the last byte, but for a last block cut short, which is kept as far as
-/// it goes, with a warning.
+/// it goes, with a warning. A block of no bytes at all (not even the flag) is nothing SA-BYTES ever wrote: it
+/// is left out, with a warning, so that a file of zeros (whose lengths account for it exactly) is no tape.
 pub fn parse(bytes: &[u8]) -> Result<Tape, Error> {
     let mut blocks = Vec::new();
     let mut warnings = Vec::new();
+    let mut empty = 0usize;
     let mut at = 0;
     while at < bytes.len() {
+        if blocks.len() >= MAX_BLOCKS {
+            return Err(Error::Corrupt(format!(
+                "more than {MAX_BLOCKS} blocks, which no tape has"
+            )));
+        }
         if at + 2 > bytes.len() {
             if blocks.is_empty() {
                 return Err(Error::Unrecognised);
@@ -24,6 +31,10 @@ pub fn parse(bytes: &[u8]) -> Result<Tape, Error> {
         }
         let len = u16::from_le_bytes([bytes[at], bytes[at + 1]]) as usize;
         at += 2;
+        if len == 0 {
+            empty += 1;
+            continue;
+        }
         let end = at + len;
         if end > bytes.len() {
             if blocks.is_empty() {
@@ -44,6 +55,12 @@ pub fn parse(bytes: &[u8]) -> Result<Tape, Error> {
     }
     if blocks.is_empty() {
         return Err(Error::Unrecognised);
+    }
+    if empty > 0 {
+        warnings.push(format!(
+            "{empty} block{} of no bytes, left out",
+            if empty == 1 { "" } else { "s" }
+        ));
     }
     Ok(Tape {
         format: Format::Tap,

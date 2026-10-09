@@ -1,6 +1,8 @@
-// Which emulator the page runs. The real core, when it is wired in, is web/src/emulator/wasm.ts, exporting
-// `createWasmEmulator(): Promise<Emulator>` (docs/web.md says what it must do); until that file exists the page runs
-// the stand-in (stub.ts). `?emulator=stub` in the page's address asks for the stand-in whatever there is.
+// Which emulator the page runs: the real machine (wasm.ts, crates/spectrum compiled to WebAssembly), or, when the
+// page's address asks for it (`?emulator=stub`, for tests of the page alone), the stand-in (stub.ts). The stand-in is
+// never put in the real one's place: a machine that will not start (the module not fetched, a browser without
+// WebAssembly) is an error the page says, with a way to try again, rather than a Spectrum whose games stop at their
+// loading screens.
 
 import type { Emulator } from './emulator';
 
@@ -15,15 +17,13 @@ export interface Running {
   readonly kind: 'wasm' | 'stub';
 }
 
-export async function createEmulator(prefer: 'auto' | 'stub' = 'auto'): Promise<Running> {
-  const wasm = cores['./wasm.ts'];
-  if (prefer === 'auto' && wasm) {
-    try {
-      return { emulator: await (await wasm()).createWasmEmulator(), kind: 'wasm' };
-    } catch (e) {
-      console.error('The emulator core would not start; running the stand-in instead.', e);
-    }
+export async function createEmulator(prefer: 'wasm' | 'stub' = 'wasm'): Promise<Running> {
+  if (prefer === 'stub') {
+    const { createStub } = await import('./stub');
+    return { emulator: await createStub(), kind: 'stub' };
   }
-  const { createStub } = await import('./stub');
-  return { emulator: await createStub(), kind: 'stub' };
+  const wasm = cores['./wasm.ts'];
+  if (!wasm) throw new Error('this page was built without the machine');
+  if (typeof WebAssembly !== 'object') throw new Error('this browser runs no WebAssembly');
+  return { emulator: await (await wasm()).createWasmEmulator(), kind: 'wasm' };
 }

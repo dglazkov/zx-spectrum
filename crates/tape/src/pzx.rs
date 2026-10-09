@@ -6,7 +6,7 @@
 //! A block of any other tag is skipped, as the specification asks.
 
 use crate::block::*;
-use crate::{Error, Format, Tape};
+use crate::{Error, Format, MAX_BLOCKS, Tape};
 
 /// The tag a PZX file starts with.
 pub const SIGNATURE: &[u8; 4] = b"PZXT";
@@ -21,6 +21,11 @@ pub fn parse(bytes: &[u8]) -> Result<Tape, Error> {
     let (mut major, mut minor) = (1, 0);
     let mut at = 0;
     while at < bytes.len() {
+        if blocks.len() >= MAX_BLOCKS {
+            return Err(Error::Corrupt(format!(
+                "more than {MAX_BLOCKS} blocks, which no tape has"
+            )));
+        }
         if at + 8 > bytes.len() {
             warnings.push(format!("a block header cut short at offset {at}"));
             break;

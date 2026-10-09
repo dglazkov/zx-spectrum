@@ -1,5 +1,7 @@
 // The settings: the machine, the picture, the keyboard and joystick, the tape, the sound. Each change is applied at
-// once and remembered (state/settings.ts).
+// once and remembered (state/settings.ts). A sheet at the side, not a modal: the screen stays live and in view beside
+// it, so that the picture, its colours and the room's glow are chosen against the picture itself, and the inspector
+// shows the machine it stops. Escape or the close button puts it away.
 
 import { MODEL_IDS, MODELS, type AyStereo, type JoystickKind, type Model } from '../emulator/emulator';
 import { FIRE_KEYS } from '../input/keymap';
@@ -18,6 +20,17 @@ export interface SettingsPanel {
 }
 
 export function createSettings(initial: Settings, change: (patch: Partial<Settings>) => void, about: () => string, inspector: HTMLElement): SettingsPanel {
+  const level = toggle('Lift the 128’s sound to the 48K’s loudness', initial.levelSound, (v) => change({ levelSound: v }));
+  const calm = segmented<Settings['calmStripes']>(
+    'Loading stripes',
+    [
+      { value: 'auto', label: 'Automatic', title: 'Calm when the system asks for reduced motion' },
+      { value: 'on', label: 'Calm', title: 'The border one colour while a tape loads' },
+      { value: 'off', label: 'As they were', title: 'The stripes as the loader drew them' },
+    ],
+    initial.calmStripes,
+    (v) => change({ calmStripes: v }),
+  );
   const model = select<Model>('Machine', MODEL_IDS.map((m) => ({ value: m, label: MODELS[m].name })), initial.model, (v) => change({ model: v }));
   const issue2 = toggle('Issue 2 keyboard', initial.issue2, (v) => change({ issue2: v }));
   const stereo = segmented<AyStereo>('AY stereo', [{ value: 'mono', label: 'Mono' }, { value: 'abc', label: 'ABC' }, { value: 'acb', label: 'ACB' }], initial.ayStereo, (v) => change({ ayStereo: v }));
@@ -63,25 +76,30 @@ export function createSettings(initial: Settings, change: (patch: Partial<Settin
     h('header', { class: 'dialog-head' }, h('h2', {}, 'Settings'), close),
     h('div', { class: 'dialog-body' },
       h('section', {}, h('h3', {}, 'Machine'), field('Model', model.el, 'Switching starts it afresh; a tape stays in the deck.'), field('Keyboard', issue2.el, 'Some early games read the EAR bit as the first boards had it.'), field('AY stereo', stereo.el, 'Where the 128’s three channels sit.')),
-      h('section', {}, h('h3', {}, 'Picture'), field('Display', display.el), field('Picture', crop.el), field('Colours', palette.el), field('Room', ambient.el)),
-      h('section', {}, h('h3', {}, 'Keyboard and joystick'), field('PC keyboard', mapping.el, 'Typing: “ is SYMBOL SHIFT and P, Backspace is DELETE, Tab extended mode. Games: Shift is CAPS SHIFT, Ctrl or Alt SYMBOL SHIFT. Shift+Tab leaves the machine for the page’s controls, Escape goes back.'), field('Joystick', joystick.el, 'A gamepad is the joystick too.'), field('Keys', arrows.el, 'When the keyboard is automatic, from when a program is loaded: at BASIC the arrows move the cursor.'), field('Fire', fire.el)),
+      h('section', {}, h('h3', {}, 'Picture'), field('Display', display.el), field('Picture', crop.el), field('Colours', palette.el), field('Room', ambient.el), field('Stripes', calm.el, 'A loader’s stripes flash the whole border: calm draws it in one colour while a tape loads.')),
+      h('section', {}, h('h3', {}, 'Keyboard and joystick'), field('PC keyboard', mapping.el, 'Typing: “ is SYMBOL SHIFT and P, <> <= >= their own keys, Backspace is DELETE, Tab extended mode. SYMBOL SHIFT with a key is Alt with it (Ctrl too, but the browser keeps Ctrl+W, T and N for itself: Ctrl+W closes the tab). Games: Shift is CAPS SHIFT, Alt SYMBOL SHIFT. Shift+Tab leaves the machine for the page’s controls, Escape goes back; F1 lists every key.'), field('Joystick', joystick.el, 'A gamepad is the joystick too.'), field('Keys', arrows.el, 'When the keyboard is automatic, from when a program is loaded: at BASIC the arrows move the cursor.'), field('Fire', fire.el)),
       h('section', {}, h('h3', {}, 'Tape'), field('Loading', loading.el), field('Motor', autoTape.el)),
-      h('section', {}, h('h3', {}, 'Sound'), field('Volume', volume)),
+      h('section', {}, h('h3', {}, 'Sound'), field('Volume', volume), field('Level', level.el, 'The 128’s music and beeper are quieter than a 48K’s beeper, as their circuits make them.')),
       h('section', {}, h('h3', {}, 'Inside the machine'), inspector),
       h('section', {}, h('h3', {}, 'About'), aboutText),
     ),
   );
   close.addEventListener('click', () => el.close());
-  // A click on the backdrop (the dialog itself, outside its content) closes it.
-  el.addEventListener('click', (e) => {
-    if (e.target === el) el.close();
+  // Not modal, so Escape is not the browser's: it is the sheet's, as long as the keys are in it.
+  el.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || e.target instanceof HTMLSelectElement) return;
+    e.preventDefault();
+    e.stopPropagation();
+    el.close();
   });
 
   return {
     el,
     open() {
       aboutText.textContent = about();
-      el.showModal();
+      if (!el.open) el.show();
+      // The keys go to the sheet, where its controls are.
+      close.focus({ preventScroll: true });
     },
     sync(s) {
       model.set(s.model);
@@ -98,6 +116,8 @@ export function createSettings(initial: Settings, change: (patch: Partial<Settin
       loading.set(s.loading);
       autoTape.set(s.autoTape);
       volume.value = String(s.volume);
+      level.set(s.levelSound);
+      calm.set(s.calmStripes);
     },
   };
 }

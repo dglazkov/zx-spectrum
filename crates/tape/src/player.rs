@@ -8,6 +8,7 @@
 //! with nothing rounded on the way, so the tape keeps exact time however long it plays.
 
 use std::collections::VecDeque;
+use std::sync::Arc;
 
 use crate::block::Block;
 use crate::instant;
@@ -17,7 +18,9 @@ use crate::{RomBlock, Tape};
 /// A tape in the deck.
 #[derive(Clone, Debug)]
 pub struct Player {
-    tape: Tape,
+    /// Shared, not copied: a deck keeps the tape as it went in beside the player, a probe of the instant load
+    /// clones the player, and a recording can be tens of megabytes.
+    tape: Arc<Tape>,
     /// Each block's length, in 3.5 MHz T-states.
     durations: Vec<u64>,
     /// The machine's clock, and whether it is a 48K (for the blocks that stop only a 48K).
@@ -69,8 +72,10 @@ pub struct Status {
 }
 
 impl Player {
-    /// A tape in the deck, stopped at its start, for a machine whose clock runs at `clock_hz`.
-    pub fn new(tape: Tape, clock_hz: u32) -> Player {
+    /// A tape in the deck, stopped at its start, for a machine whose clock runs at `clock_hz`. The tape can be
+    /// shared (an `Arc<Tape>`): nothing here changes it.
+    pub fn new(tape: impl Into<Arc<Tape>>, clock_hz: u32) -> Player {
+        let tape: Arc<Tape> = tape.into();
         let durations = tape.blocks.iter().map(signal::duration).collect();
         Player {
             tape,

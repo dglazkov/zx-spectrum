@@ -1,6 +1,8 @@
 //! Loading anything: tapes (inserted, not started), snapshots (with the model they need), screens, and a .zip
 //! of any of these; and the tape deck's controls.
 
+use std::sync::Arc;
+
 use tape::{Block, Tape};
 use unzip::Kind;
 
@@ -123,6 +125,7 @@ impl Machine {
             Some(Kind::Tzx | Kind::Tap | Kind::Csw | Kind::Pzx) => {
                 let tape =
                     Tape::parse(bytes).map_err(|e| LoadError::Damaged(format!("{name}: {e}")))?;
+                playable(&tape, name)?;
                 self.insert_tape(tape, deck::hash(bytes), name.to_string());
                 Ok(loaded(LoadedKind::Tape, None))
             }
@@ -144,7 +147,9 @@ impl Machine {
                 k.extension()
             ))),
             None => {
-                if let Ok(tape) = Tape::parse(bytes) {
+                if let Ok(tape) = Tape::parse(bytes)
+                    && playable(&tape, name).is_ok()
+                {
                     self.insert_tape(tape, deck::hash(bytes), name.to_string());
                     return Ok(loaded(LoadedKind::Tape, None));
                 }
@@ -159,10 +164,10 @@ impl Machine {
 
     /// Puts a tape in the deck, stopped at its start (the tape there before is taken out). `hash` says which
     /// tape it is to a saved state.
-    pub(crate) fn insert_tape(&mut self, tape: Tape, hash: u64, name: String) {
+    pub(crate) fn insert_tape(&mut self, tape: impl Into<Arc<Tape>>, hash: u64, name: String) {
         let model = self.model();
         let deck = Deck::new(
-            tape,
+            tape.into(),
             hash,
             name,
             model.clock_hz(),
@@ -274,6 +279,24 @@ impl Machine {
             })
             .collect()
     }
+}
+
+/// A tape with something on it to play: a block of data, or of signal. One of nothing but text, pauses and
+/// groups (a damaged file whose first real block could not be read, say) goes nowhere near the deck, so that the
+/// machine is not started afresh to LOAD it.
+fn playable(tape: &Tape, name: &str) -> Result<(), LoadError> {
+    if tape
+        .blocks
+        .iter()
+        .any(|b| matches!(block_kind(b), "header" | "data" | "turbo" | "tone"))
+    {
+        return Ok(());
+    }
+    let why = tape.warnings.first().map_or_else(
+        || "it has no block that plays".to_string(),
+        |w| format!("it has no block that plays ({w})"),
+    );
+    Err(LoadError::Damaged(format!("{name}: {why}")))
 }
 
 fn block_kind(b: &Block) -> &'static str {

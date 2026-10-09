@@ -1,8 +1,10 @@
 // The deployed server: hands out the built page (dist/), and passes two things through for it.
 //
-//   /archive/<path>    https://spectrumcomputing.co.uk/<path>, for paths under /pub/sinclair/ and /zxdb/sinclair/
-//                      only: the archive's files come without cross-origin headers, so the page cannot fetch them
-//                      itself. Up to 16 MB, 20 s; nothing is kept on disk.
+//   /archive/<path>    https://spectrumcomputing.co.uk/<path>, for the files the page uses only: Spectrum files,
+//                      their manuals and their pictures, in the archive's directories of software (games, demos,
+//                      utilities...) and the ZXDB's entries; not its books or magazines. The archive's files come
+//                      without cross-origin headers, so the page cannot fetch them itself. Up to 16 MB, a minute for
+//                      the whole of it; nothing is kept on disk.
 //   /zxinfo/v3/<path>  https://api.zxinfo.dk/v3/<path>, for /search, /games/<id> and /suggest/<term> only: the API's
 //                      answers carry Access-Control-Allow-Origin twice, which browsers refuse (docs/web.md), and it
 //                      asks its clients to say who they are, which a browser cannot.
@@ -13,10 +15,12 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join } from 'node:path';
+import { Readable, Transform } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { brotliCompressSync, constants, gzipSync } from 'node:zlib';
 
-const AGENT = 'zx-spectrum (https://zx-spectrum.lab.glazkov.ai; dimitri@glazkov.com)';
+const AGENT = 'zx-spectrum (https://zx-spectrum.lab.glazkov.ai)';
 
 /** What may be passed through, where to, and how much of it. */
 export const ROUTES = [
@@ -24,9 +28,10 @@ export const ROUTES = [
     prefix: '/archive',
     origin: 'https://spectrumcomputing.co.uk',
     hosts: ['spectrumcomputing.co.uk', 'www.spectrumcomputing.co.uk'],
-    allow: /^\/(pub|zxdb)\/sinclair\/[^?#]+$/,
+    // The software's directories and the ZXDB's entries (and its pokes); Spectrum files, text and pictures.
+    allow: /^\/(pub\/sinclair\/(games|games-info|games-inlays|games-maps|screens|demos|utils|tools|educational|compilations|slt)|zxdb\/sinclair\/(entries|pokes))\/[^?#]+\.(zip|tap|tzx|csw|pzx|z80|sna|szx|slt|scr|txt|pok|jpe?g|gif|png)$/i,
     maxBytes: 16 * 1024 * 1024,
-    timeoutMs: 20_000,
+    timeoutMs: 60_000,
     query: false,
     cache: 'public, max-age=86400',
   },
@@ -71,14 +76,41 @@ export function passTarget(rawPath, rawQuery = '', routes = ROUTES) {
  * was. Redirects are followed only to the route's own hosts, three at most; the body is streamed, and cut off past the
  * route's size. (Tests make one with routes to a server of their own.)
  */
-export function makePassThrough(routes = ROUTES) {
-  return (req, res) => pass(req, res, routes);
+export function makePassThrough(routes = ROUTES, limit = makeLimiter()) {
+  return (req, res) => pass(req, res, routes, limit);
 }
 
 /** The pass-through, to the archive and the ZXInfo API. */
 export const passThrough = makePassThrough();
 
-async function pass(req, res, routes) {
+/**
+ * Requests passed through, a client at a time: so many a minute, as a token bucket refilled steadily. The page asks
+ * for a few a game (its tape, its manual, its inlay, a search or two); a client asking for hundreds a minute is not
+ * the page. The client is the first address of X-Forwarded-For (the platform's load balancer puts it there), or the
+ * socket's.
+ */
+export function makeLimiter({ perMinute = 120, burst = 60, now = () => Date.now() } = {}) {
+  const buckets = new Map();
+  let swept = now();
+  return (req) => {
+    const t = now();
+    const ip = String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim() || req.socket?.remoteAddress || '?';
+    const b = buckets.get(ip) ?? { tokens: burst, at: t };
+    b.tokens = Math.min(burst, b.tokens + ((t - b.at) / 60_000) * perMinute);
+    b.at = t;
+    buckets.set(ip, b);
+    // Clients not heard from in ten minutes are forgotten.
+    if (t - swept > 600_000) {
+      swept = t;
+      for (const [k, v] of buckets) if (t - v.at > 600_000) buckets.delete(k);
+    }
+    if (b.tokens < 1) return false;
+    b.tokens -= 1;
+    return true;
+  };
+}
+
+async function pass(req, res, routes, limit) {
   const raw = req.url ?? '/';
   const q = raw.indexOf('?');
   const target = passTarget(q < 0 ? raw : raw.slice(0, q), q < 0 ? '' : raw.slice(q + 1), routes);
@@ -96,6 +128,13 @@ async function pass(req, res, routes) {
     res.end('Method not allowed\n');
     return true;
   }
+  if (limit && !limit(req)) {
+    res.writeHead(429, { 'Content-Type': 'text/plain; charset=utf-8', 'Retry-After': '30' });
+    res.end('Too many requests: try again in a little while\n');
+    return true;
+  }
+  // The whole exchange, the body's streaming to the client included, within the route's time: a client that stops
+  // reading is let go of then, and the archive's connection with it.
   const signal = AbortSignal.timeout(route.timeoutMs);
   try {
     let url = target.url;
@@ -129,6 +168,8 @@ async function pass(req, res, routes) {
       // What comes through is data for the page, never a page: an HTML answer (an error page) opened on this origin
       // runs nothing and reaches nothing.
       'Content-Security-Policy': "default-src 'none'; sandbox",
+      // For this page's own use: another site's page may not take it.
+      'Cross-Origin-Resource-Policy': 'same-origin',
     };
     if (length) headers['Content-Length'] = length;
     res.writeHead(upstream.status, headers);
@@ -136,24 +177,19 @@ async function pass(req, res, routes) {
       res.end();
       return true;
     }
+    // Streamed, as the client takes it (back-pressure), cut off past the route's size; on the time running out, the
+    // client going, or the cap, every part of it is torn down.
     let sent = 0;
-    for await (const chunk of upstream.body) {
-      sent += chunk.length;
-      if (sent > route.maxBytes) {
-        res.destroy();
-        return true;
-      }
-      // Wait for the client to take it, or to go (a closed socket never drains, and the upstream would be held).
-      if (!res.write(chunk)) await new Promise((resolve) => (res.once('drain', resolve), res.once('close', resolve)));
-      if (res.destroyed) {
-        await upstream.body.cancel().catch(() => {});
-        return true;
-      }
-    }
-    res.end();
+    const cap = new Transform({
+      transform(chunk, _encoding, done) {
+        sent += chunk.length;
+        done(sent > route.maxBytes ? new Error('too large to pass through') : null, chunk);
+      },
+    });
+    await pipeline(Readable.fromWeb(upstream.body), cap, res, { signal });
   } catch (e) {
     if (!res.headersSent) {
-      res.writeHead(e?.name === 'TimeoutError' ? 504 : 502, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.writeHead(e?.name === 'TimeoutError' || signal.aborted ? 504 : 502, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end(`The archive could not be reached: ${e?.message ?? e}\n`);
     } else res.destroy();
   }

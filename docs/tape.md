@@ -28,7 +28,8 @@ tape::rom::{PILOT, SYNC1, SYNC2, ZERO, ONE, HEADER_PILOT_PULSES, DATA_PILOT_PULS
 CLOCK_48K = 3_500_000;  CLOCK_128K = 3_546_900
 
 // The deck. `t` is always a T-state of the current frame, as every part counts it.
-Player::new(tape: Tape, clock_hz: u32) -> Player          // stopped, at the start
+Player::new(tape: impl Into<Arc<Tape>>, clock_hz) -> Player  // stopped, at the start; the tape shared, not copied
+                                                          // (a player cloned, as the instant load's probe is, shares it)
 player.level_at(t: u32) -> bool                           // the EAR level; asked at every IN from 0xFE
                                                           // (low while the tape is not playing)
 player.next_edge(t: u32) -> Option<u32>                   // when it next changes (may be past the frame)
@@ -287,6 +288,25 @@ with the build. No wall clock anywhere: time is the T-states the tests count.
 - Saboteur's TZX: 11 blocks, 238.966 s, 837,508 edges; its TAP: 8 blocks, 290.055 s.
 - Speed (release build, this machine): `level_at` about 4 ns a call, asked every 50 T-states through the whole
   of Saboteur at 128K, edges included; `next_edge` about 37 ns an edge; a `Player` for Saboteur made in 0.1 ms.
+
+## Limits
+
+What is no tape, however it parses, is refused rather than built: a file of anything can need memory without end,
+and the browser's machine never gives memory back (an engineer's review loaded 1 MB of zeros as half a million TAP
+blocks, and a 64 KB CSW that inflated to 1.15 GB).
+
+- **A TAP block of no bytes** (not even the flag) is nothing SA-BYTES ever wrote: it is left out, with a warning, so a
+  file of zeros (whose lengths add up exactly) is no TAP.
+- **`MAX_BLOCKS`, 8,192 blocks**, in TAP, TZX and PZX alike, checked as they are read: the longest real tapes
+  (compilations, Bleepload's many small blocks) have a few hundred.
+- **CSW**: Z-RLE inflates to 16 MB at most (`INFLATE_LIMIT`), and a recording holds **`MAX_PULSES`, 8,388,608
+  pulses**, three quarters of an hour at the densest loaders' rate (a whole side of a 128K multi-load is a few
+  million); the pulses are allocated once, as many as there can be, rather than doubling to their last.
+
+`tests/formats.rs` holds each: zeros refused, empty blocks left out and said, 8,193 blocks refused in TAP and TZX
+(8,192 taken), a CSW of 12 million pulses in 12 KB refused, one that inflates past 16 MB refused as it inflates, a
+player and its clone sharing their tape. (The machine refuses files over 16 MB, and a tape with nothing on it to play:
+docs/machine.md.)
 
 ## Known gaps and choices
 

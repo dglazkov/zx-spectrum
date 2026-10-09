@@ -8,9 +8,113 @@
     <meta name="theme-color" content="#0c0b0f" />
     <meta name="color-scheme" content="dark" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <style>
+      /* The first paint, before the page's code and the machine have come: the bar and the set, its tube dark, which
+         the page switches on (src/app.ts takes this away as it builds the page). Its own few rules, here, so that it
+         shows at once. */
+      html,
+      body {
+        margin: 0;
+        background: #0c0b0f;
+        color: #ede9e1;
+        font: 400 15px/1.45 ui-sans-serif, system-ui, sans-serif;
+      }
+      .boot-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 64px;
+        padding: 0 28px;
+        border-bottom: 1px solid rgb(255 255 255 / 0.075);
+        font-weight: 760;
+        font-style: italic;
+        font-size: 22px;
+        letter-spacing: -0.01em;
+      }
+      .boot-bar svg {
+        width: 34px;
+        height: 22px;
+      }
+      .boot-stage {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 392px;
+        gap: 28px;
+        max-width: 1760px;
+        margin: 0 auto;
+        padding: 22px 28px;
+      }
+      .boot-tube {
+        position: relative;
+        aspect-ratio: 1.32;
+        max-height: calc(100vh - 160px);
+        margin: 0 auto;
+        width: 100%;
+        max-width: calc((100vh - 160px) * 1.32);
+        border-radius: 30px;
+        padding: 14px;
+        box-sizing: border-box;
+        background: radial-gradient(120% 90% at 50% 0%, #26252b, #121115 60%);
+        box-shadow: 0 0 0 1px rgb(0 0 0 / 0.8), 0 40px 90px -30px rgb(0 0 0 / 0.95);
+      }
+      .boot-tube::before {
+        content: '';
+        position: absolute;
+        inset: 14px;
+        border-radius: 18px;
+        background: radial-gradient(80% 70% at 50% 45%, #141418, #050506);
+      }
+      .boot-side {
+        border-radius: 16px;
+        border: 1px solid rgb(255 255 255 / 0.075);
+        background: rgb(255 255 255 / 0.03);
+        min-height: 420px;
+      }
+      @media (max-width: 1180px) {
+        .boot-stage {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .boot-side {
+          display: none;
+        }
+      }
+      @media (max-width: 760px) {
+        .boot-bar {
+          height: 56px;
+          padding: 0 16px;
+          font-size: 19px;
+        }
+        .boot-stage {
+          padding: 12px 16px;
+        }
+        .boot-tube {
+          border-radius: 16px;
+          padding: 6px;
+        }
+        .boot-tube::before {
+          inset: 6px;
+          border-radius: 11px;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div class="boot" aria-busy="true">
+        <div class="boot-bar">
+          <svg viewBox="0 0 40 24" aria-hidden="true">
+            <path d="M6 24 L16 0 H23 L13 24 Z" fill="#e3342b" />
+            <path d="M13 24 L23 0 H30 L20 24 Z" fill="#f6c51e" />
+            <path d="M20 24 L30 0 H37 L27 24 Z" fill="#4fb447" />
+            <path d="M27 24 L37 0 H44 L34 24 Z" fill="#1d9fd8" />
+          </svg>
+          <span>ZX Spectrum</span>
+        </div>
+        <div class="boot-stage">
+          <div class="boot-tube" aria-label="The television, switching on"></div>
+          <div class="boot-side"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

@@ -13,9 +13,15 @@ export interface Library {
   progress(id: string, value: number | null | string): void;
 }
 
-const SHELF: readonly ZxEntry[] = (featured.entries as ZxHit[]).map(entryOf);
+/** The shelf: loved games, recorded from the ZXDB (tools/featured.mjs). */
+export const SHELF: readonly ZxEntry[] = (featured.entries as ZxHit[]).map(entryOf);
 
-const machineShort = (m: string | null) => (m ?? '').replace(/^ZX-Spectrum\s*/, '').replace('128 ', '');
+/** A card's badge: the machine, where a 48K will not do (a game for the 128 alone, the +3, the Pentagon); none otherwise. */
+export function machineBadge(m: string | null): string | null {
+  const name = (m ?? '').replace(/^ZX-Spectrum\s*/, '').replace('128 ', '');
+  if (!name || /48K|16K/.test(name)) return null;
+  return name;
+}
 
 export function createLibrary(onPick: (entry: ZxEntry) => void): Library {
   const cards = new Map<string, HTMLElement>();
@@ -36,7 +42,7 @@ export function createLibrary(onPick: (entry: ZxEntry) => void): Library {
       { type: 'button', class: `card${why ? ' card-off' : ''}`, 'data-id': entry.id, title: why ?? `Load ${entry.title}` },
       h('div', { class: 'card-picture' }, picture, h('div', { class: 'card-load' }, icon('play'), h('span', {}, why ? 'Not here' : 'Load')), h('div', { class: 'card-bar' })),
       h('div', { class: 'card-text' }, h('div', { class: 'card-title' }, entry.title), h('div', { class: 'card-meta' }, [entry.year, entry.publisher].filter(Boolean).join(' · ') || ' ')),
-      entry.machine ? h('span', { class: 'card-machine' }, machineShort(entry.machine)) : null,
+      machineBadge(entry.machine) ? h('span', { class: 'card-machine' }, machineBadge(entry.machine)) : null,
     );
     el.addEventListener('click', () => {
       if (!why) onPick(entry);
@@ -59,6 +65,7 @@ export function createLibrary(onPick: (entry: ZxEntry) => void): Library {
   const showShelf = () => {
     heading.textContent = 'From the shelf';
     status.textContent = '';
+    status.classList.remove('error');
     grid.replaceChildren(...SHELF.map(card));
     more.hidden = true;
   };
@@ -72,16 +79,27 @@ export function createLibrary(onPick: (entry: ZxEntry) => void): Library {
       status.textContent = 'Searching…';
       grid.classList.add('waiting');
     }
+    const signal = controller.signal;
     try {
-      const result = await search(text, { offset, size: 24, signal: controller.signal });
+      // The games the archive may hand out; and, beside them, how many more the ZXDB knows that it may not.
+      const [result, all] = await Promise.all([search(text, { offset, size: 24, signal }), append ? null : search(text, { size: 0, availableOnly: false, signal }).catch(() => null)]);
       if (!append) grid.replaceChildren();
       grid.append(...result.entries.map(card));
       offset += result.entries.length;
-      status.textContent = result.total ? `${result.total.toLocaleString()} found` : 'Nothing found. ZXDB knows games by their titles, their authors and their publishers.';
+      const hidden = all ? all.total - result.total : 0;
+      status.classList.remove('error');
+      status.replaceChildren(
+        result.total ? `${result.total.toLocaleString()} found.` : 'Nothing found to load. ZXDB knows games by their titles, their authors and their publishers.',
+        hidden > 0 ? h('span', { class: 'library-hidden' }, ` ${hidden.toLocaleString()} more ${hidden === 1 ? 'is' : 'are'} in the ZXDB but not in the archive to load: their rights holders asked for them not to be handed out (Ultimate’s among them).`) : '',
+      );
       more.hidden = offset >= result.total;
     } catch (e) {
       if ((e as Error).name === 'AbortError') return;
-      status.textContent = `The ZXDB could not be reached: ${(e as Error).message}.`;
+      if (!append) grid.replaceChildren();
+      const again = h('button', { type: 'button', class: 'btn' }, 'Try again');
+      again.addEventListener('click', () => run(text, append));
+      status.classList.add('error');
+      status.replaceChildren(h('strong', {}, 'The ZXDB could not be reached'), h('span', {}, ` (${(e as Error).message}). The shelf still works: clear the search to go back to it.`), again);
     } finally {
       grid.classList.remove('waiting');
     }

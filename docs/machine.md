@@ -299,7 +299,12 @@ comparison).
 `load(bytes, name)` takes a TAP, TZX, CSW or PZX (inserted, stopped), a .z80, .sna, .szx or .slt (the machine
 switched on as its model and restored), a .scr (onto the screen), or a .zip of any of them (`unzip::spectrum_files`:
 the first tape, else snapshot, else screen; the others named in `Loaded::others`). Disk images are refused by
-name. The super level loader's `ED FBh` trap loads level A to HL from the snapshot's levels (Fuse's `slt_trap`).
+name. The super level loader's `ED FBh` trap loads level A to HL from the snapshot's levels (Fuse's `slt_trap`). A
+tape with nothing on it to play (no header, data, turbo or tone block: a damaged file whose first real block could not
+be read, or one of text alone) is refused as damaged, the deck as it was, so that the page does not switch the
+machine on afresh to LOAD it. A zip's members are extracted, to tell what they are, to 64 MB in all
+(`unzip::spectrum_files`), each to 64 MB. The deck's tape is shared (`Arc<Tape>`) with its player, a probe's clone of
+it and every copy of the machine (a state loaded keeps one to fall back on): one copy of a recording, not five.
 
 ## State
 
@@ -323,7 +328,10 @@ name. The super level loader's `ED FBh` trap loads level A to HL from the snapsh
   while a loader reads the tape mid-frame heard them twice, and its sound went its own way), and the ROMs when
   they are not the model's own (a snapshot's custom ROM, which a state loaded into another machine lost). Not in it, being the person's: keys held, the joystick's bits,
   typing, breakpoints, the preference options, the tape's contents (a state from another tape leaves the deck
-  stopped where it is), a SAVE in progress. 4-9 KB for a running game. Run, save, run 120 frames; load, run 120
+  stopped where it is), a SAVE in progress. 4-9 KB for a running game (34 KB for Saboteur's, once its tape has
+  played). `Machine::state_picture(bytes)` reads the picture a state holds without building a machine from it (no
+  RAM copied, no tape replayed: the inflating alone, 0.76 ms in the browser), for the page's rewind preview; the
+  wasm crate's test holds it to the picture `load_state` gives, for every model. Run, save, run 120 frames; load, run 120
   frames: the frames, the sound and the state after are the same to the bit, in the same machine and in a fresh
   one of another model (`state › determinism`: the 48K loading Saboteur, the 128K loading Where Time Stood
   Still, the +3 and the Pentagon loading test programs), and taken mid-frame, with the picture half drawn and
@@ -493,6 +501,10 @@ tape player even between edges (now cached).
   so that the machine's state can carry the sound and go on bit for bit (the contract: "loadState() puts the
   machine back exactly, sound and tape position included"). Nothing else in `audio` changes; the test
   `a_state_put_back_goes_on_to_the_bit` checks it through every tone.
+
+- **`tape`: bounds, and a shared tape.** `MAX_BLOCKS`, `MAX_PULSES`, a smaller `INFLATE_LIMIT` and TAP's empty blocks
+  left out (docs/tape.md, Limits); `Player::new` takes an `Arc<Tape>` (a `Tape` still does), so that a recording is
+  held once. **`unzip`**: what `spectrum_files` extracts is 64 MB in all.
 
 ## Decisions
 

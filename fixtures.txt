@@ -195,3 +195,5 @@ snap-szx15-128k-littlefish.szx 7335139440e83887c2c3616fabbd8083b75f8c5168cf60d41
 snap-szx13-128k-gamex2.szx 816f980a6cf88359ba4f250fea53b30fe3106d364ee28fc64e60911ae679110d https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0030390/Gamex2PlayingDividends(Vega).szx.zip Gamex2.szx
 snap-slt-heavymetal.slt fb4a993996177f9975d82ee20cdf7fb573e8d5ad487fe12e149249b77a68a3ec https://spectrumcomputing.co.uk/pub/sinclair/games/h/HeavyMetal.slt.zip HEAVY.SLT
 snap-slt-killeduntildead.slt f29d6d67442773addf7fb30983c75b2a202b4b7ece3a3b3c26137e20e5e6716c https://spectrumcomputing.co.uk/pub/sinclair/games/k/KilledUntilDead.slt.zip KILLDEAD.SLT
+saboteur-manual.txt 2f15de06c2d13e097375dab309815ec5146af0aacc684942899248019e48bef5 https://spectrumcomputing.co.uk/pub/sinclair/games-info/s/Saboteur.txt
+saboteur-inlay.jpg 65d0425cd7494c690295cab3c2b71c0f93c164357e990332e3e8448a4f45a5f2 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0004293/Saboteur.jpg

@@ -366,6 +366,37 @@ impl Machine {
         out
     }
 
+    /// The picture a saved state holds (the frame it was taken after, 352 × 296 colours), read without building
+    /// a machine from it: no memory copied in, no tape replayed. The page shows it while choosing a moment to go
+    /// back to, so it must cost no more than the state's inflating; it reads the fields `save_state` writes before
+    /// the picture, and the tests hold it to `load_state`'s picture.
+    pub fn state_picture(bytes: &[u8]) -> Result<Vec<u8>, StateError> {
+        if bytes.len() < 6 || &bytes[..4] != MAGIC {
+            return Err(StateError::NotAState);
+        }
+        let version = u16::from_le_bytes([bytes[4], bytes[5]]);
+        if version != VERSION {
+            return Err(StateError::Version(version));
+        }
+        let body = miniz_oxide::inflate::decompress_to_vec_with_limit(&bytes[6..], 16 << 20)
+            .map_err(|e| StateError::Damaged(format!("{e:?}")))?;
+        let mut r = R { b: &body, at: 0 };
+        let model = *Model::ALL
+            .get(r.u8()? as usize)
+            .ok_or_else(|| StateError::Damaged("model".into()))?;
+        // The options (4), the CPU (8 bytes, 9 words, 5 bytes, 5 flags), T, frames, NMI and frame start.
+        r.take(4 + 8 + 9 * 2 + 5 + 5 + 4 + 8 + 1 + 1)?;
+        // RAM, the paging ports and lock, port FEh, the joystick, the frame's absolute T, the bus, FE reads.
+        r.take(model.banks().len() * BANK + 3 + 1 + 1 + 8 + 8 + 1 + 4)?;
+        // The ULA: its position (row, unit), the border, FLASH's count; then the picture.
+        r.take(4 + 4 + 1 + 4)?;
+        let n = crate::video::FRAME_WIDTH * crate::video::FRAME_HEIGHT;
+        let packed = r.take(n.div_ceil(2))?;
+        let mut out = vec![0; n];
+        unpack_pixels(packed, &mut out);
+        Ok(out)
+    }
+
     /// Puts the machine back as `save_state` had it. The model changes if the state's is another; the frame
     /// counter (`frame_count`) goes on.
     pub fn load_state(&mut self, bytes: &[u8]) -> Result<(), StateError> {

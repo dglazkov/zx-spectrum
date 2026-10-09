@@ -53,7 +53,7 @@ describe('frames on the display’s clock (no sound yet)', () => {
  * page's clock), saying when it has played a frame's worth, its messages arriving late by a few milliseconds; and the
  * page, refreshing at 60 Hz with jitter, running the frames the scheduler asks for (each frame 958 or 959 samples).
  */
-function simulate(o: { seconds: number; drift: number; speed?: 1 | 2; stallAt?: number; stallMs?: number; seed?: number; audioStopAt?: number; audioStopMs?: number; hiddenAt?: number; hiddenMs?: number }) {
+function simulate(o: { seconds: number; drift: number; speed?: 1 | 2; stallAt?: number; stallMs?: number; seed?: number; audioStopAt?: number; audioStopMs?: number; hiddenAt?: number; hiddenMs?: number; refreshHz?: number; burstSamples?: number }) {
   const rate = 48_000;
   const rnd = random(o.seed ?? 1);
   const s = new FrameScheduler(FRAME_RATE);
@@ -83,10 +83,16 @@ function simulate(o: { seconds: number; drift: number; speed?: 1 | 2; stallAt?: 
   const blockMs = (128 / (rate * (1 + o.drift))) * 1000;
   let nextBlock = 0;
   let nextRefresh = 0;
+  let refreshes = 0;
   const end = o.seconds * 1000;
   let t = 0;
   let framesWhileStopped = 0;
   let maxSent = 0;
+  // Frames run on each refresh, and on reports while the page is shown (frames no refresh shows), after the start.
+  const perRefresh = new Map<number, number>();
+  let onReportsShown = 0;
+  const burst = o.burstSamples ?? 128;
+  let blockCount = 0;
   while (t < end) {
     t = Math.min(nextBlock, nextRefresh, inbox[0]?.at ?? Infinity);
     const stalled = o.stallAt !== undefined && t >= o.stallAt && t < o.stallAt + (o.stallMs ?? 0);
@@ -116,7 +122,9 @@ function simulate(o: { seconds: number; drift: number; speed?: 1 | 2; stallAt?: 
           finished = true;
         }
       }
-      if (finished) inbox.push({ at: t + 1 + rnd() * 7, played });
+      // The audio thread renders a hardware buffer's blocks back to back: its reports come in bursts.
+      if (finished) inbox.push({ at: t + 1 + rnd() * 7 + (burst > 128 ? ((blockCount % (burst / 128)) * -blockMs) % (burst / rate * 1000) : 0), played });
+      blockCount++;
       if (t > 1000) {
         const q = queuedFrames();
         minQueued = Math.min(minQueued, q);
@@ -128,9 +136,12 @@ function simulate(o: { seconds: number; drift: number; speed?: 1 | 2; stallAt?: 
         const before = framesRun;
         runFrames(s.due(t, true));
         if (stopped) framesWhileStopped += framesRun - before;
+        if (t > 2000) perRefresh.set(framesRun - before, (perRefresh.get(framesRun - before) ?? 0) + 1);
       }
       maxSent = Math.max(maxSent, queuedFrames());
-      nextRefresh += 1000 / 60 + (rnd() - 0.5) * 3;
+      // The display's refreshes keep their own crystal's time; each is handled a little late, by up to 3 ms.
+      refreshes++;
+      nextRefresh = (refreshes * 1000) / (o.refreshHz ?? 60) + rnd() * 3;
     } else {
       if (stalled) {
         inbox[0].at = o.stallAt! + o.stallMs!; // the main thread is busy: the message waits
@@ -139,18 +150,25 @@ function simulate(o: { seconds: number; drift: number; speed?: 1 | 2; stallAt?: 
       }
       const m = inbox.shift()!;
       s.reported(m.played, t);
+      const before = framesRun;
       runFrames(s.due(t, false));
+      if (t > 2000 && !hidden && !stalled) onReportsShown += framesRun - before;
     }
   }
-  return { framesRun, played, underruns, minQueued, maxQueued, perFrame: s.samplesPerFrame(), framesWhileStopped, maxQueuedEver: maxSent };
+  return { framesRun, played, underruns, minQueued, maxQueued, perFrame: s.samplesPerFrame(), framesWhileStopped, maxQueuedEver: maxSent, perRefresh, onReportsShown };
 }
 
 describe('frames on the sound card’s clock', () => {
-  it(`keeps ${AUDIO_TARGET_FRAMES} to 4 frames queued, with no underrun, over ten minutes`, () => {
+  // The queue: about 3 frames before a refresh's frame goes in and 4 after, let drift a third of a frame either way
+  // before it is pulled back (QUEUE_BAND), so never under 1.5 nor over 5 (100 ms).
+  const LOW = AUDIO_TARGET_FRAMES - 1.5;
+  const HIGH = AUDIO_TARGET_FRAMES + 2;
+
+  it(`keeps about ${AUDIO_TARGET_FRAMES} to 4 frames queued, with no underrun, over ten minutes`, () => {
     const r = simulate({ seconds: 600, drift: 0 });
     expect(r.underruns).toBe(0);
-    expect(r.minQueued).toBeGreaterThan(AUDIO_TARGET_FRAMES - 1.5);
-    expect(r.maxQueued).toBeLessThan(AUDIO_TARGET_FRAMES + 1.5);
+    expect(r.minQueued).toBeGreaterThan(LOW);
+    expect(r.maxQueued).toBeLessThan(HIGH);
   });
 
   it('follows the sound card’s crystal, not the page’s clock, when they drift apart', () => {
@@ -159,7 +177,8 @@ describe('frames on the sound card’s clock', () => {
       expect(r.underruns).toBe(0);
       // Frames run match the samples played, whatever the page's clock said: the queue neither empties nor grows.
       expect(Math.abs(r.framesRun - r.played / r.perFrame)).toBeLessThan(AUDIO_TARGET_FRAMES + 2);
-      expect(r.maxQueued).toBeLessThan(AUDIO_TARGET_FRAMES + 1.5);
+      expect(r.minQueued).toBeGreaterThan(LOW);
+      expect(r.maxQueued).toBeLessThan(HIGH);
     }
   });
 
@@ -185,6 +204,30 @@ describe('frames on the sound card’s clock', () => {
     expect(r.maxQueuedEver).toBeLessThan(AUDIO_TARGET_FRAMES + 8);
     // And when it plays again, what little was queued plays out and the queue is as it was.
     expect(r.underruns).toBe(0);
+  });
+
+  it('runs frames on the refreshes alone while the page is shown, never two on one: no frame goes unseen', () => {
+    for (const [drift, burstSamples, seed] of [[0, 128, 1], [0.004, 128, 2], [-0.004, 512, 3], [0.001, 1024, 4]] as const) {
+      const r = simulate({ seconds: 120, drift, burstSamples, seed });
+      expect(r.underruns).toBe(0);
+      expect(r.onReportsShown).toBe(0);
+      // At 60 Hz, 50 frames a second: one on five refreshes in six, none on the sixth.
+      expect([...r.perRefresh.keys()].sort()).toEqual([0, 1]);
+      const ones = r.perRefresh.get(1)! / (r.perRefresh.get(0)! + r.perRefresh.get(1)!);
+      expect(Math.abs(ones - (FRAME_RATE * (1 + drift)) / 60)).toBeLessThan(0.01);
+      expect(r.minQueued).toBeGreaterThan(LOW);
+      // (What a burst of the audio thread's has not rendered yet counts as queued until the next burst.)
+      expect(r.maxQueued).toBeLessThan(HIGH + (burstSamples - 128) / r.perFrame);
+    }
+    // On a 50 Hz display, a frame a refresh, and now and then two or none for the drift (the machine is 50.08 Hz).
+    for (const drift of [0, 0.002, -0.002]) {
+      const fifty = simulate({ seconds: 120, drift, refreshHz: 50 });
+      expect(fifty.underruns).toBe(0);
+      expect(fifty.perRefresh.get(1)! / [...fifty.perRefresh.values()].reduce((a, b) => a + b)).toBeGreaterThan(0.97);
+    }
+    // And on a fast one (144 Hz), one frame a refresh at most.
+    const fast = simulate({ seconds: 60, drift: 0.001, refreshHz: 144 });
+    expect([...fast.perRefresh.keys()].sort()).toEqual([0, 1]);
   });
 
   it('keeps playing in a hidden tab, on the sound card’s reports alone', () => {

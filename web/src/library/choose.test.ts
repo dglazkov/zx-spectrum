@@ -106,3 +106,27 @@ describe('reading the API’s answers', () => {
     expect(new URLSearchParams(searchQuery('x', { availableOnly: false })).has('availability')).toBe(false);
   });
 });
+
+describe('what the game’s panel shows of an entry', () => {
+  it('finds Saboteur’s inlay (the original’s front, not a re-release’s), its instructions in English, and its controls', () => {
+    const e = game('0004293');
+    expect(e.inlay).toBe('/zxdb/sinclair/entries/0004293/Saboteur.jpg');
+    expect(e.instructions).toBe('/pub/sinclair/games-info/s/Saboteur.txt');
+    expect(e.controls).toEqual(['Cursor', 'Kempston Joystick', 'Redefineable keys']);
+  });
+
+  it('knows them for every game on the shelf, as recorded', () => {
+    for (const hit of featured.entries as ZxHit[]) {
+      const e = entryOf(hit);
+      expect(e.inlay, e.title).toMatch(/\.(jpe?g|png|gif)$/i);
+      expect(e.inlay, e.title).not.toMatch(/_Spanish/);
+      if (e.instructions) expect(e.instructions, e.title).toMatch(/^\/pub\/sinclair\/games-info\/.+\.txt$/);
+    }
+  });
+
+  it('says nothing of them where the record did not say (a fetch of the entry will)', () => {
+    const e = entryOf({ _id: '0000001', _source: { title: 'X' } });
+    expect(e.inlay).toBeUndefined();
+    expect(e.instructions).toBeUndefined();
+  });
+});

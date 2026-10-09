@@ -104,6 +104,17 @@ describe('typing into the ROM', () => {
     expect(rom.typed).toEqual(['H', 'E', 'L', 'L', 'O']);
   });
 
+  it('takes keys whose presses and releases all came within one frame, in order (a paste, a paused clock)', () => {
+    const { down, feeder, rom } = setup();
+    const line = '10 rem hi';
+    [...line].forEach((ch, i) => {
+      feeder.hold(`k${i}`, charChords(ch)?.[0] ?? [], 0, 'rom', true);
+      feeder.release(`k${i}`, 0);
+    });
+    run(feeder, down, rom, 0, 300);
+    expect(rom.typed).toEqual(['1', '0', 'SPACE', 'R', 'E', 'M', 'SPACE', 'H', 'I']);
+  });
+
   it('lets a held key repeat as the ROM repeats it', () => {
     const { down, feeder, rom } = setup();
     feeder.hold('a', [KEY.A], 0, 'rom', true);

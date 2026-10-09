@@ -25,6 +25,10 @@ export interface Settings {
   ayStereo: AyStereo;
   volume: number;
   muted: boolean;
+  /** The 128 family's sound lifted to the 48K's loudness (audio/sound.ts). */
+  levelSound: boolean;
+  /** A loading tape's stripes drawn calmly (the border one colour, its loudest): 'auto' follows the system's reduced motion. */
+  calmStripes: 'auto' | 'on' | 'off';
   /** The drawn keyboard is shown. */
   keyboard: boolean;
 }
@@ -45,6 +49,8 @@ export const DEFAULTS: Readonly<Settings> = {
   ayStereo: 'acb',
   volume: 0.8,
   muted: false,
+  levelSound: true,
+  calmStripes: 'auto',
   keyboard: true,
 };
 

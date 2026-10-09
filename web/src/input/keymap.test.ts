@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { JOY } from '../emulator/emulator';
 import { CAPS_SHIFT, ENTER, KEY, SPACE, SYMBOL_SHIFT } from '../emulator/keys';
-import { arrowsAreJoystick, charChords, mapKey, type PcKey } from './keymap';
+import { arrowsAreJoystick, charChords, mapKey, operatorChords, type PcKey } from './keymap';
 
 const press = (key: string, code = '', more: Partial<PcKey> = {}): PcKey => ({ key, code, ...more });
 
@@ -91,5 +91,21 @@ describe('the joystick on the keys', () => {
     expect(arrowsAreJoystick({ ...o, mapping: 'positional', programLoaded: false })).toBe(true);
     expect(arrowsAreJoystick({ ...o, joystick: 'none', mapping: 'positional', programLoaded: true })).toBe(false);
     expect(arrowsAreJoystick({ ...o, arrowsJoystick: false, mapping: 'positional', programLoaded: true })).toBe(false);
+  });
+});
+
+describe('the operators typed as two characters', () => {
+  it('types <>, <= and >= as their own keys, taking the first character back', () => {
+    const del = [KEY['CAPS SHIFT'], KEY['0']];
+    expect(operatorChords('<', '>')).toEqual([del, [KEY['SYMBOL SHIFT'], KEY.W]]);
+    expect(operatorChords('<', '=')).toEqual([del, [KEY['SYMBOL SHIFT'], KEY.Q]]);
+    expect(operatorChords('>', '=')).toEqual([del, [KEY['SYMBOL SHIFT'], KEY.E]]);
+  });
+
+  it('leaves everything else alone', () => {
+    expect(operatorChords(null, '>')).toBeNull();
+    expect(operatorChords('>', '<')).toBeNull();
+    expect(operatorChords('=', '=')).toBeNull();
+    expect(operatorChords('<', 'a')).toBeNull();
   });
 });

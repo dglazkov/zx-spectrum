@@ -1,5 +1,9 @@
 # What nerd needs to know to deploy this project. `nerd guide` lists what else can go here.
 name = "zx-spectrum"
+# After a deploy: the page, the archive, the manual and the ZXDB through the server, the emulator served as
+# WebAssembly, and the deployed machine starting in Chrome as the one the tests passed (web/tests/smoke.mjs; it needs
+# `npm install` in web/ and the network).
+smoke = "cd web && node tests/smoke.mjs"
 
 # The tests, a layer each, fastest first: `nerd test` runs the ones that cover what changed. Each crate is built
 # into a target directory of its own, so that tests side by side do not wait on one another's build lock.
@@ -50,6 +54,18 @@ run = "CARGO_TARGET_DIR=target/test-z80 cargo test -q -p z80 -- --ignored"
 covers = ["crates/z80/**"]
 limit = "5m"
 
+# The machine as the browser runs it (crates/wasm, docs/web.md): its C interface natively (every call, its errors and
+# its JSON), then the WebAssembly build itself in Node through the page's wrapper (web/tests/wasm/): the same frames
+# as the native build (examples/digest.rs, Saboteur's tape among them), the contention tables a release build once got
+# wrong, every model, tapes, states, snapshots, SAVE, damaged files and files too large; and Saboteur's start route
+# (web/src/library/start.ts) driven from its REWARD screen to the mission, by the keys and by the joystick. Builds the
+# module first, reproducibly (cargo is incremental: seconds when nothing changed; a minute from nothing). About 20 s.
+[[test]]
+name = "wasm"
+run = "bash scripts/build-wasm.sh && CARGO_TARGET_DIR=target/wasm-native cargo test -q -p zx-wasm && cd web && npx vitest run -c vitest.wasm.config.ts"
+covers = ["crates/wasm/**", "crates/spectrum/src/**", "crates/z80/src/**", "crates/audio/src/**", "crates/ay/src/**", "crates/tape/src/**", "crates/snapshot/src/**", "crates/unzip/src/**", "roms/**", "Cargo.toml", "Cargo.lock", "scripts/build-wasm.sh", "web/src/emulator/wasm.ts", "web/src/emulator/emulator.ts", "web/src/emulator/keys.ts", "web/src/library/start.ts", "web/tests/wasm/**", "web/vitest.wasm.config.ts", "fixtures.txt"]
+limit = "3m"
+
 # The page (web/, docs/web.md): its TypeScript checked whole, in a second or two.
 [[test]]
 name = "web-types"
@@ -59,21 +75,39 @@ limit = "1m"
 
 # The page's parts without a browser (Vitest): the key mappings and the ROM-paced typing (against a model of the
 # ROM's KEYBOARD routine), the frame scheduler on simulated clocks, the file chosen from ZXInfo's recorded answers,
-# the keyboard's legends against roms/48.rom, the stand-in emulator, rewinding, settings, the server's pass-through.
-# A few seconds.
+# a manual's keys, the keyboard's legends against roms/48.rom, the stand-in emulator, rewinding, settings, the
+# server's pass-through. A few seconds.
 [[test]]
 name = "web-unit"
 run = "cd web && npm run --silent test:unit"
 covers = ["web/src/**", "web/tests/*.test.mjs", "web/tests/fixtures/**", "web/server.mjs", "web/vite.config.ts", "web/package-lock.json", "roms/48.rom"]
 limit = "1m"
 
-# The page in Chrome against the stand-in, on the page's own clock (Playwright's page.clock): ready, rendering, keys,
-# tapes, the library (answered from recordings), snapshots, rewind, settings, sound, a phone. Four parts at a time,
-# each reported; those a change cannot touch are skipped. About 40 s; WebGL is drawn in software (SwiftShader).
+# The page in Chrome on the real machine (the WebAssembly build, built first), on the page's own clock
+# (Playwright's page.clock): power-on to the copyright read from the frame, keys (<> typed as two characters), a tape
+# from a file (LOAD "" typed when the ROM is ready, the stripes, the screen), the 128's Tape Loader, Saboteur from the
+# library to its REWARD screen flat out (from the fixture cache; skipped without it) with its inlay and manual, then
+# Start the mission; a game from a link, and its snapshot opened as the game again; save slots across a reload,
+# snapshots, rewind and its preview, a SAVE as a TAP named for itself, a breakpoint, the Kempston across a power-on, a
+# frame that throws and the machine started again, files refused, the machine that will not start, the warm-up,
+# settings, sound, a phone upright and sideways; any console error fails a part. Four parts at a time, the slowest
+# first, each reported; those a change cannot touch are skipped. About 80 s; WebGL is drawn in software (SwiftShader),
+# and Saboteur's 9,200 frames are the longest part.
 [[test]]
 name = "web-page"
 run = "cd web && node tests/page.mjs"
-covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/public/**", "web/tests/page.mjs", "web/tests/fixtures/**", "web/vite.config.ts", "web/server.mjs", "web/package-lock.json", "roms/48.rom"]
+covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/public/**", "web/tests/page.mjs", "web/tests/fixtures/**", "web/vite.config.ts", "web/server.mjs", "web/package-lock.json", "roms/**", "crates/wasm/src/**", "crates/wasm/Cargo.toml", "crates/spectrum/src/**", "crates/z80/src/**", "crates/audio/src/**", "crates/ay/src/**", "crates/tape/src/**", "crates/snapshot/src/**", "crates/unzip/src/**", "Cargo.toml", "Cargo.lock", "scripts/build-wasm.sh", "fixtures.txt"]
+inputs = ["web/src/emulator/zx.wasm"]
+limit = "3m"
+
+# The page built for production (vite build, with the module the tests ran) and served by the production server, with
+# the smoke test's checks against it but the archive's and the ZXDB's, which need the network (web/tests/build.mjs): what
+# only the production build gets wrong is found before a deploy, not after. About 10 s.
+[[test]]
+name = "web-build"
+run = "cd web && node tests/build.mjs"
+covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/public/**", "web/vite.config.ts", "web/server.mjs", "web/package.json", "web/package-lock.json", "web/tests/build.mjs", "web/tests/smoke.mjs", "roms/**", "scripts/build-wasm.sh"]
+inputs = ["web/src/emulator/zx.wasm"]
 limit = "2m"
 
 # The machine (crates/spectrum) and zx (crates/cli), on programs the tests build and the ROMs alone: every model

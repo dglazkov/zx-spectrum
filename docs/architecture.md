@@ -18,12 +18,13 @@ crates/
   unzip/      what is inside a .zip, as the archive hands most files out
   spectrum/   the machine: memory and paging, the ULA (video, contention, the floating bus, the keyboard, EAR/MIC),
               the beeper, the models (16K, 48K, 128K, +2, +2A/+3 without disks, Pentagon 128), loading anything
-  wasm/       the C interface the browser calls, over `spectrum`
+  wasm/       the C interface the browser calls, over `spectrum` (docs/web.md lists it)
   cli/        `zx`, the emulator headless, for tests and agents
-web/          the page: the screen, the sound, the keyboard, the tape deck, the library
+web/          the page: the screen, the sound, the keyboard, the tape deck, the library, the game in the machine
 roms/         the machines' ROMs (README.md: whose they are, and Amstrad's permission)
 docs/         this, and a record of each part: what it does, the sources it was built from, how it is tested
-scripts/      fixture (test files that are not ours to commit), build-wasm.sh
+scripts/      fixture (test files that are not ours to commit), build-wasm.sh (the machine for the page)
+Dockerfile    the deployed site: the module built in a Rust stage, the page around it in a node stage, served
 ```
 
 Each crate builds and tests alone (`cargo test -p tape`). The lower crates do not know the Spectrum exists: `z80`
@@ -127,27 +128,42 @@ machine turns them into a Sinclair or cursor joystick's keys when that is the ki
 
 ### `wasm` and the page
 
-The browser loads `zx.wasm` (`crates/wasm`, a C interface: `zx_*` functions taking and returning numbers, files
-passed through a buffer in the module's memory) and wraps it in `web/src/emulator/` as the `Emulator` interface
-that the rest of the page uses. Nothing else in the page touches the module. The page owns the clock: it runs
-frames as the sound card takes the samples (an AudioWorklet, fed by messages), presents the latest frame on each
+The browser loads `zx.wasm` (`crates/wasm`, a C interface: `zx_*` functions taking and returning numbers, a machine
+as a handle, files and states passed in through memory the page asks the module for, and what comes back that is
+not a number, a file or a JSON answer or an error's reason, left in the handle's out-buffer; the picture and the
+sound read in place as views into the module's memory) and wraps it in `web/src/emulator/wasm.ts` as the `Emulator`
+interface that the rest of the page uses. Nothing else in the page touches the module. Errors are negative return
+codes, never a panic across the boundary; a trap (out of memory, a bug) kills the instance, which the page then
+makes again and puts back where it was. Files over 16 MB are refused, and tapes with nothing to play;
+`scripts/build-wasm.sh` builds it (a release build, fat LTO, symbols stripped, `--locked`, the paths compiled in
+remapped so that the build is reproducible) into `web/src/emulator/zx.wasm`, which git ignores and the page's build
+and tests make when it is missing or stale; the Dockerfile builds it with the same script in a Rust stage of its own,
+with the toolchain the tests run (rustc 1.98.1, docs/toolchain/), and so makes the very bytes the tests ran. The same interface is an rlib too: its tests run it natively, and
+`examples/digest.rs` gives what the native machine shows at chosen frames, which the module, run in Node, must show
+to the bit (`nerd test wasm`). The stand-in the page was first built against (`web/src/emulator/stub.ts`) is kept for
+tests of the page alone (`?emulator=stub`), and never runs in the real machine's place. The page owns the clock: it
+runs frames on the display's refreshes at the rate the sound card takes the samples (an AudioWorklet, fed by
+messages; a frame more or less now and then for the drift between their clocks), presents the latest frame on each
 display refresh through WebGL (palette, then the television), and maps the PC's keyboard and gamepads onto the
 Spectrum's keys and joysticks.
 
 ### Files from the archive
 
-The page searches the ZXDB through the ZXInfo API (`https://api.zxinfo.dk/v3/`, which allows cross-origin
-requests) and shows its screenshots straight from spectrumcomputing.co.uk. The archive's files themselves come
+The page searches the ZXDB through the ZXInfo API, by way of its own server at `/zxinfo/v3/` (the API's answers
+carry their cross-origin header twice, which browsers refuse: docs/web.md), and shows its screenshots straight from
+zxinfo.dk and spectrumcomputing.co.uk. A game's inlay and its instructions (as text) come through `/archive` with its
+files. The archive's files themselves come
 without cross-origin headers, so the server (`web/server.mjs`) fetches them for the page at
-`/archive/pub/sinclair/...` and `/archive/zxdb/sinclair/...`, from spectrumcomputing.co.uk alone, keeping
-nothing. The archive holds only what its rights holders allow to be distributed; the page loads only what ZXDB
+`/archive/pub/sinclair/...` and `/archive/zxdb/sinclair/...` (the software's directories and the ZXDB's entries;
+Spectrum files, text and pictures), from spectrumcomputing.co.uk alone, keeping nothing, a client at a time at most
+120 a minute. The archive holds only what its rights holders allow to be distributed; the page loads only what ZXDB
 lists as available.
 
 ## Tests
 
 `nerd test` runs each part's tests (nerd.toml lists them, a layer each): the CPU against the test suites written
-for it, each other crate against its formats and sources, the machine against the ROM and the test programs,
-the page in Chrome. Fixtures that are not ours to commit (the GPL'd test suites, games) are fetched once into a
+for it, each other crate against its formats and sources, the machine against the ROM and the test programs, the
+WebAssembly build against the native one, the page in Chrome on the real machine. Fixtures that are not ours to commit (the GPL'd test suites, games) are fetched once into a
 cache by `scripts/fixture` and pinned by hash (`fixtures.txt`); a test whose fixture cannot be fetched says it
 was skipped, never that it passed.
 

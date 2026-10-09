@@ -93,6 +93,19 @@ export function charChords(ch: string): Chord[] | null {
   return null;
 }
 
+/**
+ * The Spectrum's two-character operators, each a single key of its own: <> is SYMBOL SHIFT and W, <= Q, >= E. Typed
+ * as two characters, as on a PC, they are two symbols the ROM does not take for the operator (IF 1<>2 is a syntax
+ * error), so the second character of one is typed as DELETE (taking the first back) and the operator's key.
+ */
+export const OPERATORS: Readonly<Record<string, string>> = { '<>': 'W', '<=': 'Q', '>=': 'E' };
+
+/** What typing `ch` right after `previous` should type instead, where the two make an operator; else null. */
+export function operatorChords(previous: string | null, ch: string): Chord[] | null {
+  const key = previous !== null ? OPERATORS[previous + ch] : undefined;
+  return key ? [CAPS_DIGIT('0'), [SYMBOL_SHIFT, k(key)]] : null;
+}
+
 /** The Spectrum key in the place of a PC key (KeyboardEvent.code), for the positional mapping. */
 function positional(code: string): Chord | null {
   let m = /^Key([A-Z])$/.exec(code);

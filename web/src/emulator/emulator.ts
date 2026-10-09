@@ -1,9 +1,9 @@
 // The emulator as the rest of the page sees it. Nothing else in the page touches the core: the real one (Rust compiled
-// to WebAssembly, crates/wasm) is wrapped to this interface, and so is the stand-in (stub.ts) that the page is built
-// and tested against until the core is wired in. docs/web.md says what each member must do.
+// to WebAssembly, crates/wasm) is wrapped to this interface (wasm.ts), and so is the stand-in (stub.ts) the page was
+// built against, kept for tests of the page alone. docs/web.md says what each member must do.
 //
-// Everything here is synchronous and runs on the page's main thread: a frame of the 48K is 69,888 T-states, a few
-// milliseconds of WebAssembly at most, and the page decides when to run one (the emulator never reads a clock).
+// Everything here is synchronous and runs on the page's main thread: a frame of the 48K is 69,888 T-states, a fifth
+// of a millisecond of WebAssembly, and the page decides when to run one (the emulator never reads a clock).
 
 /** The machines, as docs/architecture.md lists them. */
 export type Model = '16k' | '48k' | '128k' | 'plus2' | 'plus2a' | 'plus3' | 'pentagon';
@@ -165,6 +165,17 @@ export interface Registers {
 
 export type SnapshotFormat = 'z80' | 'szx' | 'sna';
 
+/** What a step did: ran an instruction, ran the frame's last one (the picture and the sound are the frame's), or stopped at a breakpoint. */
+export type StepResult = 'instruction' | 'frame' | 'breakpoint';
+
+/** An instruction, as the debugger lists it. */
+export interface Instruction {
+  readonly addr: number;
+  readonly len: number;
+  /** `LD HL,#4000` */
+  readonly text: string;
+}
+
 export interface Emulator {
   /** The picture's size: FRAME_WIDTH × FRAME_HEIGHT. */
   readonly frameWidth: number;
@@ -210,8 +221,34 @@ export interface Emulator {
   saveState(): Uint8Array;
   loadState(state: Uint8Array): void;
 
+  /**
+   * The picture a saved state holds (the frame it was taken after), without disturbing the machine; null if the
+   * emulator cannot say (the page then keeps each moment's picture beside its state).
+   */
+  statePicture(state: Uint8Array): Uint8Array | null;
+  /** Whether frames make sound: off while the page runs flat out, when nothing would play it. */
+  setSound(on: boolean): void;
+  /** What a SAVE has recorded on the MIC line, as a TAP file (empty while nothing has been saved). */
+  savedTap(): Uint8Array;
+  /** The screen read as text against the ROM's font: 24 rows of 32 characters, joined by newlines. */
+  screenText(): string;
+
   /** Memory as the CPU sees it now (paging included). */
   peek(address: number): number;
   poke(address: number, value: number): void;
   registers(): Registers;
+  /** `count` instructions from `address`, as the CPU sees memory now. */
+  disassemble(address: number, count: number): readonly Instruction[];
+  /** The addresses a frame stops at, before the instruction there (the machine goes on from it when run again). */
+  setBreakpoints(addresses: readonly number[]): void;
+  breakpoints(): readonly number[];
+  /** Where a breakpoint stopped the last runFrame(), or null when it ran to the frame's end. */
+  readonly breakpoint: number | null;
+  /** One instruction. */
+  step(): StepResult;
+
+  /** Why the machine has stopped for good (the real core's module trapped), or null while it runs. */
+  readonly stopped?: string | null;
+  /** After it stopped: a new machine of the same build, switched on, its options as they were (the page puts back the tape and the moment). */
+  revive?(): Promise<void>;
 }

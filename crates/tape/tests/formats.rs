@@ -973,3 +973,60 @@ fn every_kind_of_block_says_what_it_is() {
         assert_eq!(tape.blocks[0].describe(), want);
     }
 }
+
+#[test]
+fn files_that_only_parse_as_tapes_are_not_tapes() {
+    // A file of zeros accounts for itself exactly as TAP blocks of no bytes: none is a block SA-BYTES wrote.
+    assert_eq!(Tape::parse(&vec![0u8; 1 << 20]), Err(Error::Unrecognised));
+    // Empty blocks among real ones are left out, and said.
+    let mut bytes = tap::write(&[tap::block(0xFF, &[1, 2, 3])]);
+    bytes.extend_from_slice(&[0, 0, 0, 0]);
+    bytes.extend(tap::write(&[tap::block(0xFF, &[4])]));
+    let tape = Tape::parse(&bytes).unwrap();
+    assert_eq!(tape.blocks.len(), 2);
+    assert_eq!(tape.warnings, ["2 blocks of no bytes, left out"]);
+    // More blocks than any tape has: refused, in each format, before they are all made.
+    let many = tap::write(&vec![tap::block(0xFF, &[]); MAX_BLOCKS + 1]);
+    assert!(matches!(Tape::parse(&many), Err(Error::Corrupt(why)) if why.contains("blocks")));
+    let pauses: Vec<Vec<u8>> = (0..=MAX_BLOCKS).map(|_| vec![0x20, 0x10, 0x00]).collect();
+    assert!(
+        matches!(Tape::parse(&tzx(&pauses)), Err(Error::Corrupt(why)) if why.contains("blocks"))
+    );
+    // As many as that is still a tape.
+    let most = tap::write(&vec![tap::block(0xFF, &[]); MAX_BLOCKS]);
+    assert_eq!(Tape::parse(&most).unwrap().blocks.len(), MAX_BLOCKS);
+}
+
+#[test]
+fn a_recording_that_inflates_past_any_tape_is_refused_before_it_fills_memory() {
+    // 12 million one-sample pulses: 12 MB of Z-RLE that deflates to 12 KB, past MAX_PULSES.
+    let rle = vec![1u8; 12 << 20];
+    let packed = miniz_oxide::deflate::compress_to_vec_zlib(&rle, 9);
+    assert!(packed.len() < 64 << 10, "{} bytes", packed.len());
+    let mut f = csw::SIGNATURE.to_vec();
+    f.extend_from_slice(&[2, 0]);
+    f.extend_from_slice(&44_100u32.to_le_bytes());
+    f.extend_from_slice(&0u32.to_le_bytes());
+    f.extend_from_slice(&[2, 0, 0]);
+    f.extend_from_slice(&[0; 16]);
+    let mut pulses = f.clone();
+    pulses.extend_from_slice(&packed);
+    assert!(
+        matches!(Tape::parse(&pulses), Err(Error::Corrupt(why)) if why.contains("pulses")),
+        "{:?}",
+        Tape::parse(&pulses).map(|t| t.blocks.len())
+    );
+    // And one that inflates past 16 MB is refused as it inflates.
+    let packed = miniz_oxide::deflate::compress_to_vec_zlib(&vec![7u8; 20 << 20], 9);
+    let mut big = f;
+    big.extend_from_slice(&packed);
+    assert!(matches!(Tape::parse(&big), Err(Error::Corrupt(why)) if why.contains("inflate")));
+}
+
+#[test]
+fn a_player_shares_its_tape() {
+    let tape = std::sync::Arc::new(Tape::from_blocks(&[tap::block(0xFF, &noise(3, 1000))]));
+    let p = Player::new(tape.clone(), CLOCK_48K);
+    let copy = p.clone();
+    assert!(std::ptr::eq(p.tape(), &*tape) && std::ptr::eq(copy.tape(), &*tape));
+}

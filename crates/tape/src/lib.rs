@@ -43,6 +43,16 @@ pub use signal::{StopReason, duration};
 pub const CLOCK_48K: u32 = 3_500_000;
 pub const CLOCK_128K: u32 = 3_546_900;
 
+/// The most blocks a tape may have. The longest real tapes (compilations, Bleepload's hundreds of small blocks)
+/// have a few hundred; a file of more is not a tape but something else that happens to parse as one (a file of
+/// zeros is half a million empty TAP blocks), and each block costs memory and a row in the page's list.
+pub const MAX_BLOCKS: usize = 8192;
+
+/// The most pulses a recording (CSW, or TZX's CSW block) may hold: 8 million, three quarters of an hour of tape at
+/// the densest loaders' rate (a whole side of a 128K multi-load is a few million). A few kilobytes of Z-RLE can
+/// inflate to far more, and the browser's machine never gives memory back.
+pub const MAX_PULSES: usize = 8 << 20;
+
 /// A tape: its blocks, in order.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Tape {

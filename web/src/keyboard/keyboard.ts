@@ -6,7 +6,9 @@
 //
 // Everything is measured, in key pitches, from a photograph of a 48K from straight above (docs/web.md): the keys'
 // faces and rows (GEOMETRY), where each legend sits and how big it is, the logotype's size, the stripe's slope and
-// its bands' width. On a phone (under 760 px) it is drawn compact: taller keys to press, their main legends only.
+// its bands' width. On a phone (under 760 px) it is drawn compact: keys as wide as the case allows and taller than
+// they are wide, to press with a thumb, their main legends only. The keys a game uses can be marked (outlined), as
+// the overlays some games came with marked them.
 
 import { KEY } from '../emulator/keys';
 import { capture, s } from '../ui/dom';
@@ -43,9 +45,9 @@ export interface Look {
 }
 
 export function look(compact: boolean): Look {
-  const keyW = (compact ? 0.8 : GEOMETRY.keyWidth) * P;
-  const keyH = (compact ? 0.8 : GEOMETRY.keyHeight) * P;
-  const row = GEOMETRY.rowPitch * P;
+  const keyW = (compact ? 0.88 : GEOMETRY.keyWidth) * P;
+  const keyH = (compact ? 1.3 : GEOMETRY.keyHeight) * P;
+  const row = compact ? keyH + 0.14 * P : GEOMETRY.rowPitch * P;
   // The back is 2.2 pitches deep on the case; here it keeps the logos at their size and less of the plain black.
   const header = compact ? 70 : 136;
   // The digits' row is 0.57 of a pitch into the plate, under the colours' names.
@@ -163,6 +165,8 @@ export interface KeyboardView {
   readonly el: SVGSVGElement;
   /** Shows whether the machine has key `code` down. */
   light(code: number, down: boolean): void;
+  /** Outlines the keys a game uses (none: an empty list). */
+  mark(codes: readonly number[]): void;
 }
 
 /**
@@ -175,6 +179,7 @@ export function createKeyboard(press: (code: number, down: boolean) => void): Ke
   const latched = new Set<number>();
   const lit = new Set<number>();
   const held = new Set<number>(); // pressed by the pointer
+  let marked = new Set<number>();
 
   const draw = (l: Look) => {
     // A key held across a redraw would never hear its pointer lift: let it go first.
@@ -255,12 +260,13 @@ export function createKeyboard(press: (code: number, down: boolean) => void): Ke
       const legends = s('g', { class: 'kb-legends' });
       const cx = x + w / 2;
       if (l.compact) {
+        const mid = y + keyH / 2;
         if (k.key === 'CAPS SHIFT' || k.key === 'SYMBOL SHIFT') {
           const red = k.key === 'SYMBOL SHIFT' ? ' kb-red' : '';
-          legends.append(text(cx, y + 36, k.key.split(' ')[0], `kb-name${red}`, 'middle'), text(cx, y + 60, 'SHIFT', `kb-name${red}`, 'middle'));
-        } else if (k.key === 'ENTER' || k.key === 'SPACE') legends.append(text(cx, y + 48, k.key, 'kb-name', 'middle'));
-        else if (k.key === '0') legends.append(slashedZero(x + 12, y + 52, 38));
-        else legends.append(text(x + 12, y + 52, k.main, 'kb-main'));
+          legends.append(text(cx, mid - 4, k.key.split(' ')[0], `kb-name${red}`, 'middle'), text(cx, mid + 20, 'SHIFT', `kb-name${red}`, 'middle'));
+        } else if (k.key === 'ENTER' || k.key === 'SPACE') legends.append(text(cx, mid + 8, k.key, 'kb-name', 'middle'));
+        else if (k.key === '0') legends.append(slashedZero(cx - 12, mid + 14, 38));
+        else legends.append(text(cx, mid + 14, k.main, 'kb-main', 'middle'));
       } else if (k.key === 'CAPS SHIFT') {
         legends.append(text(cx, y + 22, 'CAPS', 'kb-name', 'middle'), text(cx, y + 41, 'SHIFT', 'kb-name', 'middle'));
       } else if (k.key === 'SYMBOL SHIFT') {
@@ -290,6 +296,7 @@ export function createKeyboard(press: (code: number, down: boolean) => void): Ke
     keys.forEach((g, code) => {
       g.classList.toggle('lit', lit.has(code));
       g.classList.toggle('latched', latched.has(code));
+      g.classList.toggle('marked', marked.has(code));
     });
   };
 
@@ -349,6 +356,10 @@ export function createKeyboard(press: (code: number, down: boolean) => void): Ke
       if (on) lit.add(code);
       else lit.delete(code);
       keys.get(code)?.classList.toggle('lit', on);
+    },
+    mark(codes) {
+      marked = new Set(codes);
+      keys.forEach((g, code) => g.classList.toggle('marked', marked.has(code)));
     },
   };
 }

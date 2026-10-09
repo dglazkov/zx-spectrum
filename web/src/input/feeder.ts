@@ -63,6 +63,8 @@ export class KeyFeeder {
   ];
   /** The frame the last typed sequence ends at. */
   private typedUntil = -Infinity;
+  /** The frame the last key typed live (serially) goes up at: the next goes down no sooner, even if its own press and release came first. */
+  private serialUntil = -Infinity;
 
   /** `send` puts a key down or up on the machine. */
   constructor(private readonly send: (code: number, down: boolean) => void) {}
@@ -71,8 +73,12 @@ export class KeyFeeder {
   hold(id: string, chord: Chord, now: number, pacing: Pacing, serial = false): void {
     if (this.held.has(id)) return;
     let from = Math.max(now, this.typedUntil);
-    // One key at a time, in the order they came: this one goes down once the one before it is up.
-    if (serial) for (const [other, h] of this.held) if (h.pacing === 'rom') from = Math.max(from, this.release(other, now));
+    // One key at a time, in the order they came: this one goes down once the one before it is up (whether it is still
+    // held, or its press and release came and went in the frame: keys pasted, or typed faster than frames run).
+    if (serial) {
+      for (const [other, h] of this.held) if (h.pacing === 'rom') from = Math.max(from, this.release(other, now));
+      from = Math.max(from, this.serialUntil);
+    }
     let set = -1;
     if (pacing === 'rom') [from, set] = this.claim(mainKey(chord), from, Infinity);
     for (const code of chord) this.at(from, code, true);
@@ -87,6 +93,7 @@ export class KeyFeeder {
     const until = Math.max(now, h.from + (h.pacing === 'rom' ? TYPING.hold - 1 : 1));
     for (const code of h.chord) this.at(until, code, false);
     if (h.set >= 0) this.sets[h.set].freeAt = until + SET_FREE_AFTER;
+    if (h.pacing === 'rom') this.serialUntil = Math.max(this.serialUntil, until);
     return until;
   }
 
@@ -132,6 +139,7 @@ export class KeyFeeder {
     this.queue = [];
     this.held.clear();
     this.typedUntil = -Infinity;
+    this.serialUntil = -Infinity;
     for (const s of this.sets) {
       s.key = -1;
       s.freeAt = -Infinity;

@@ -1,6 +1,14 @@
-# What `nerd deploy` leaves behind when it sends the project to be built.
+# What `nerd deploy` leaves behind when it sends the project to be built: what is only this machine's, and everything
+# the Dockerfile builds for itself or does not need (the build takes Cargo.toml, Cargo.lock, crates/, roms/, scripts/
+# and web/). The test fixtures are in a cache outside the repository (scripts/fixture) and never reach it.
 .git
 .gitignore
 .claude
 .env
+target
+out
 node_modules
+web/node_modules
+web/dist
+web/src/emulator/zx.wasm
+docs

@@ -1,8 +1,8 @@
 // The server's pass-through: what it lets through and what it refuses, against an origin of the test's own.
-import { createServer } from 'node:http';
+import { createServer, get } from 'node:http';
 import { gzipSync } from 'node:zlib';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { makePassThrough, passTarget } from '../server.mjs';
+import { makeLimiter, makePassThrough, passTarget } from '../server.mjs';
 
 describe('which paths are passed through', () => {
   it('passes the archive’s game files and the ZXDB’s own', () => {
@@ -28,6 +28,11 @@ describe('which paths are passed through', () => {
       '/archive/pub/sinclair/games/a%00b.zip',
       '/archive/pub/sinclair/games/%zz.zip',
       '/archive//evil.example/pub/sinclair/x',
+      // The archive's books and magazines, and anything that is not a Spectrum file, text or a picture: not the page's.
+      '/archive/pub/sinclair/books-pics/m/Manual.pdf',
+      '/archive/pub/sinclair/magazines/Crash/Issue01.zip',
+      '/archive/pub/sinclair/games/s/Saboteur.exe',
+      '/archive/pub/sinclair/games/s/',
       '/zxinfo/v3/admin',
       '/zxinfo/v3/games/../search',
       '/zxinfo/v2/search',
@@ -55,6 +60,17 @@ describe('passing through', () => {
         return res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Encoding': 'gzip', 'Content-Length': body.length }).end(body);
       }
       if (req.url === '/pub/sinclair/error.html') return res.writeHead(404, { 'Content-Type': 'text/html' }).end('<script>alert(1)</script>');
+      // Far more than a socket holds, for a client that stops reading.
+      if (req.url === '/pub/sinclair/huge.tap') {
+        res.writeHead(200, { 'Content-Type': 'application/octet-stream' });
+        const chunk = Buffer.alloc(64 * 1024, 1);
+        const more = () => {
+          while (!res.destroyed && res.write(chunk));
+          if (!res.destroyed) res.once('drain', more);
+        };
+        res.on('close', () => (origin.huge = 'closed'));
+        return more();
+      }
       if (req.url === '/pub/sinclair/chunked.tap') {
         res.writeHead(200, { 'Content-Type': 'application/octet-stream' });
         res.write(big.subarray(0, 2500));
@@ -65,7 +81,9 @@ describe('passing through', () => {
     await new Promise((r) => origin.listen(0, '127.0.0.1', r));
     const host = `127.0.0.1:${origin.address().port}`;
     const pass = makePassThrough([
-      { prefix: '/archive', origin: `http://${host}`, hosts: [host], allow: /^\/pub\/sinclair\/[^?#]+$/, maxBytes: 4000, timeoutMs: 5000, query: false, cache: 'public, max-age=60' },
+      { prefix: '/archive', origin: `http://${host}`, hosts: [host], allow: /^\/pub\/sinclair\/(?!huge)[^?#]+$/, maxBytes: 4000, timeoutMs: 5000, query: false, cache: 'public, max-age=60' },
+      // A route of its own for the stalled client: a large cap, and a short time for the whole exchange.
+      { prefix: '/slow', origin: `http://${host}`, hosts: [host], allow: /^\/pub\/sinclair\/huge\.tap$/, maxBytes: 1 << 30, timeoutMs: 300, query: false, cache: 'no-store' },
     ]);
     front = createServer(async (req, res) => {
       if (!(await pass(req, res))) res.writeHead(418).end();
@@ -114,8 +132,53 @@ describe('passing through', () => {
     expect(res.headers.get('x-content-type-options')).toBe('nosniff');
   });
 
+  it('lets go of a client that stops reading once the time is up, the archive’s connection with it, leaving no listener behind', async () => {
+    const warnings = [];
+    const warn = (w) => warnings.push(w.name);
+    process.on('warning', warn);
+    // Read the first bytes, then read no more: the server's writes back up, and it must not wait for ever. Its time up,
+    // it tears the exchange down, the archive's connection with it (which the origin sees close).
+    let client;
+    await new Promise((resolve) => {
+      client = get(`${base}/slow/pub/sinclair/huge.tap`, (res) => {
+        res.once('data', () => {
+          res.pause();
+          resolve();
+        });
+      });
+      client.on('error', () => {});
+    });
+    for (let i = 0; i < 250 && origin.huge !== 'closed'; i++) await new Promise((r) => setTimeout(r, 20));
+    client.destroy();
+    process.off('warning', warn);
+    expect(origin.huge).toBe('closed');
+    expect(warnings).not.toContain('MaxListenersExceededWarning');
+  });
+
+  it('marks what it passes through as the page’s own: no other site may take it', async () => {
+    expect((await fetch(`${base}/archive/pub/sinclair/ok.tap`)).headers.get('cross-origin-resource-policy')).toBe('same-origin');
+  });
+
   it('refuses a path it does not pass, and leaves other paths to the page', async () => {
     expect((await fetch(`${base}/archive/pub/other/x`)).status).toBe(403);
     expect((await fetch(`${base}/index.html`)).status).toBe(418);
+  });
+});
+
+describe('a client asking too often', () => {
+  it('is refused past its burst, and let back in as the minute goes on', () => {
+    let t = 0;
+    const allow = makeLimiter({ perMinute: 60, burst: 10, now: () => t });
+    const req = (ip) => ({ headers: { 'x-forwarded-for': `${ip}, 10.0.0.1` }, socket: { remoteAddress: '10.0.0.1' } });
+    const granted = Array.from({ length: 15 }, () => allow(req('1.2.3.4'))).filter(Boolean).length;
+    expect(granted).toBe(10);
+    // Another client is its own.
+    expect(allow(req('5.6.7.8'))).toBe(true);
+    // A second later, one more; five seconds later, five.
+    t += 1000;
+    expect(allow(req('1.2.3.4'))).toBe(true);
+    expect(allow(req('1.2.3.4'))).toBe(false);
+    t += 5000;
+    expect(Array.from({ length: 8 }, () => allow(req('1.2.3.4'))).filter(Boolean).length).toBe(5);
   });
 });

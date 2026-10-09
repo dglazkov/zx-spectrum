@@ -2,7 +2,7 @@
 // at, or to the joystick. Keys typed into the page's own fields (the library's search) are theirs, not the machine's.
 
 import type { KeyFeeder } from './feeder';
-import { mapKey, type JoystickKeys, type Mapping } from './keymap';
+import { mapKey, operatorChords, type JoystickKeys, type Mapping } from './keymap';
 
 export interface PcKeyboardHooks {
   readonly feeder: KeyFeeder;
@@ -14,6 +14,8 @@ export interface PcKeyboardHooks {
   joystickBits(bits: number): void;
   /** Called on the first key, which is a gesture that allows sound. */
   gesture(): void;
+  /** Called on every key the machine takes (the page then guards against being closed by accident). */
+  typed?(): void;
 }
 
 /** The keys that move between the page's controls and work them. */
@@ -38,6 +40,9 @@ export function listenToKeyboard(hooks: PcKeyboardHooks): () => void {
   let bits = 0;
   const joyKeys = new Map<string, number>();
 
+  /** The character typed last, in the natural mapping (an operator's first half, if it is one), and nothing since. */
+  let previous: string | null = null;
+  let previousCode = '';
   const down = (e: KeyboardEvent) => {
     if (forThePage(e)) {
       // Escape on a control gives the keys back to the machine.
@@ -51,13 +56,27 @@ export function listenToKeyboard(hooks: PcKeyboardHooks): () => void {
     if (!m) return;
     e.preventDefault();
     if (e.repeat) return; // the Spectrum repeats keys itself
+    hooks.typed?.();
     const now = hooks.frame();
+    const typing = mapping === 'natural';
+    const ch = typing && 'hold' in m && !e.ctrlKey && !e.altKey && [...e.key].length === 1 ? e.key : null;
+    // <> <= >= typed as two characters: the operator's own key.
+    const operator = ch !== null ? operatorChords(previous, ch) : null;
+    const before = previousCode;
+    previous = ch;
+    previousCode = e.code;
+    if (operator) {
+      previous = null;
+      // The first character's key up first, if it is still held (Shift held across both, the keys rolled).
+      const up = hooks.feeder.release(before, now);
+      hooks.feeder.type(operator, up + 1);
+      return;
+    }
     if ('joystick' in m) {
       joyKeys.set(e.code, m.joystick);
       bits |= m.joystick;
       hooks.joystickBits(bits);
     } else if ('hold' in m) {
-      const typing = mapping === 'natural';
       hooks.feeder.hold(e.code, m.hold, now, typing ? 'rom' : 'free', typing);
     } else {
       hooks.feeder.type(m.type, now);

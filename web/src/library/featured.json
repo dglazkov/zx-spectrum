@@ -110,6 +110,79 @@
      {
       "files": []
      }
+    ],
+    "controls": [
+     {
+      "control": "Cursor"
+     },
+     {
+      "control": "Kempston Joystick"
+     },
+     {
+      "control": "Redefineable keys"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0004293/Saboteur.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/s/Saboteur.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0004293/Saboteur(Encore).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/s/Saboteur(ErbeSoftwareS.A.).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/s/Saboteur(ErbeSoftwareS.A.)_2.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/s/Saboteur(ErbeSoftwareS.A.).txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "Spanish"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/s/Saboteur(IBSA).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0004293/Saboteur(BumfunSoftware).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0004293/Saboteur(TeknamicSoftware)_Front.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0004293/Saboteur(TeknamicSoftware)_Front_2.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     }
     ]
    }
   },
@@ -227,6 +300,55 @@
        }
       ]
      }
+    ],
+    "controls": [
+     {
+      "control": "Cursor"
+     },
+     {
+      "control": "Kempston Joystick"
+     },
+     {
+      "control": "Redefineable keys"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0004295/SaboteurII.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/s/SaboteurII.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0004295/SaboteurII(Encore).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/s/SaboteurII(ErbeSoftwareS.A.).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0004295/SaboteurII(BumfunSoftware).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0004295/SaboteurII(PIMSoftware)_Front.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     }
     ]
    }
   },
@@ -341,6 +463,63 @@
      {
       "files": []
      }
+    ],
+    "controls": [],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0003012/ManicMiner.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0003012/ManicMiner_2.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/m/ManicMiner.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-info/m/ManicMiner_historical.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0003012/ManicMiner(SoftwareProjects).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/m/ManicMiner(SoftwareProjectsLtd).txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/m/ManicMiner(Ventamatic).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0003012/ManicMiner(MastertronicAddedDimension).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0003012/ManicMiner(EDOS)_Front.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     }
     ]
    }
   },
@@ -447,6 +626,51 @@
        }
       ]
      }
+    ],
+    "controls": [],
+    "additionalDownloads": [
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/j/JetSetWilly_Spanish.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0002589/JetSetWilly.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/j/JetSetWilly(StormWarningMix).txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-info/j/JetSetWilly.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-info/j/JetSetWilly_historical.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/j/JetSetWilly(Ventamatic).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0002589/JetSetWilly(CPLComputerPlusSoftGmbH)(DE).txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "German"
+     }
     ]
    }
   },
@@ -532,6 +756,58 @@
        }
       ]
      }
+    ],
+    "controls": [
+     {
+      "control": "Cursor"
+     },
+     {
+      "control": "Interface 2 (right)"
+     },
+     {
+      "control": "Kempston Joystick"
+     },
+     {
+      "control": "Redefineable keys"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0002259/HeadOverHeels.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/h/HeadOverHeels.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-info/h/HeadOverHeels_2.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0002259/HeadOverHeels(ErbeSoftwareSA).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0002259/HeadOverHeels(IBSA)_Front.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0002259/HeadOverHeels(HitSquad).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     }
     ]
    }
   },
@@ -613,6 +889,27 @@
      {
       "files": []
      }
+    ],
+    "controls": [],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0001601/Elite(Opus)_Front.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0001601/Elite_Front.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/e/Elite.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     }
     ]
    }
   },
@@ -686,6 +983,33 @@
      },
      {
       "files": []
+     }
+    ],
+    "controls": [],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0006604/LordsOfMidnightThe_Front.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/l/LordsOfMidnightThe.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-info/l/LordsOfMidnightThe_TechnicalInfo.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0006604/LordsOfMidnightThe(Infogrames[FR])_Front.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
      }
     ]
    }
@@ -766,6 +1090,39 @@
      },
      {
       "files": []
+     }
+    ],
+    "controls": [],
+    "additionalDownloads": [
+     {
+      "path": "/pub/sinclair/games-inlays/s/SkoolDaze.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/s/SkoolDaze.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-info/s/SkoolDaze_historical.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0004549/SkoolDaze(299Classics).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0004549/SkoolDaze(AlternativeSoftware).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
      }
     ]
    }
@@ -856,6 +1213,52 @@
        }
       ]
      }
+    ],
+    "controls": [
+     {
+      "control": "Cursor"
+     },
+     {
+      "control": "Interface 2 (left)"
+     },
+     {
+      "control": "Interface 2 (right)"
+     },
+     {
+      "control": "Kempston Joystick"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0003067/MatchDay.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/m/MatchDay.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/m/MatchDay(IBSA).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0003067/MatchDay(HitSquad).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/m/MatchDay(ZafiChip).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     }
     ]
    }
   },
@@ -938,6 +1341,58 @@
         "comments": null
        }
       ]
+     }
+    ],
+    "controls": [
+     {
+      "control": "Cursor"
+     },
+     {
+      "control": "Interface 2 (right)"
+     },
+     {
+      "control": "Kempston Joystick"
+     },
+     {
+      "control": "Redefineable keys"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0001551/DynamiteDan.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/d/DynamiteDan.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/d/DynamiteDan(CirculoDeSoft).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/d/DynamiteDan(CirculoDeSoft).txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "Spanish"
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0001551/DynamiteDan(SilverbirdSoftware).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/d/DynamiteDan(MCMSoftwareS.A.).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
      }
     ]
    }
@@ -1024,6 +1479,58 @@
        }
       ]
      }
+    ],
+    "controls": [
+     {
+      "control": "Cursor"
+     },
+     {
+      "control": "Interface 2 (right)"
+     },
+     {
+      "control": "Kempston Joystick"
+     },
+     {
+      "control": "Redefineable keys"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0004873/Starquake.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/s/Starquake.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/s/Starquake(DroSoft).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/s/Starquake(ZafiChip).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/s/Starquake(ZCobra).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0004873/Starquake(Ricochet).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     }
     ]
    }
   },
@@ -1106,6 +1613,33 @@
      {
       "files": []
      }
+    ],
+    "controls": [],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0001712/Fairlight.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/f/Fairlight.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/f/Fairlight(ABCSoft).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0001712/Fairlight(TheMicroSelection)_Front.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     }
     ]
    }
   },
@@ -1180,6 +1714,31 @@
         "comments": null
        }
       ]
+     }
+    ],
+    "controls": [
+     {
+      "control": "Cursor"
+     },
+     {
+      "control": "Interface 2 (right)"
+     },
+     {
+      "control": "Kempston Joystick"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/pub/sinclair/games-info/b/Batty.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0000472/Batty(Encore).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
      }
     ]
    }
@@ -1296,6 +1855,46 @@
        }
       ]
      }
+    ],
+    "controls": [
+     {
+      "control": "Interface 2 (right)"
+     },
+     {
+      "control": "Kempston Joystick"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0000617/BombJack_Front.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0000617/BombJack(Encore).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0000617/BombJack(Encore)_Front_2.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/b/BombJack(MCMSoftwareS.A.).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/b/BombJack(ZCobra).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     }
     ]
    }
   },
@@ -1388,6 +1987,49 @@
      },
      {
       "files": []
+     }
+    ],
+    "controls": [
+     {
+      "control": "Interface 2 (right)"
+     },
+     {
+      "control": "Kempston Joystick"
+     },
+     {
+      "control": "Redefineable keys"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0001686/Exolon.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/e/Exolon.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/e/Exolon(ErbeSoftwareS.A.).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/e/Exolon(ErbeSoftwareS.A.).txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "Spanish"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/e/Exolon(IBSA).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
      }
     ]
    }
@@ -1495,6 +2137,49 @@
         "comments": null
        }
       ]
+     }
+    ],
+    "controls": [
+     {
+      "control": "Interface 2 (right)"
+     },
+     {
+      "control": "Kempston Joystick"
+     },
+     {
+      "control": "Redefineable keys"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0001196/Cybernoid.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/c/Cybernoid.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/c/Cybernoid(ErbeSoftwareS.A.).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/c/Cybernoid(IBSA).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0001196/Cybernoid(Kixx).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
      }
     ]
    }
@@ -1607,6 +2292,61 @@
        }
       ]
      }
+    ],
+    "controls": [
+     {
+      "control": "Cursor"
+     },
+     {
+      "control": "Interface 2 (right)"
+     },
+     {
+      "control": "Kempston Joystick"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0004135/RickDangerous_Front.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0004135/RickDangerous_Front_2.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/r/RickDangerous.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/r/RickDangerous(ErbeSoftwareS.A.)_Front.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/r/RickDangerous(IBSA).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0004135/RickDangerous(Kixx).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/r/RickDangerous(MCMSoftwareS.A.).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     }
     ]
    }
   },
@@ -1697,6 +2437,55 @@
        }
       ]
      }
+    ],
+    "controls": [
+     {
+      "control": "Cursor"
+     },
+     {
+      "control": "Kempston Joystick"
+     },
+     {
+      "control": "Redefineable keys"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0000438/Batman(48K).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0000438/Batman.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/b/Batman.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/b/Batman(ErbeSoftwareS.A.).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/b/Batman(ErbeSoftwareS.A.).txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "Spanish"
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0000438/Batman(HitSquad).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     }
     ]
    }
   },
@@ -1783,6 +2572,64 @@
         "comments": null
        }
       ]
+     }
+    ],
+    "controls": [
+     {
+      "control": "Interface 2 (left)"
+     },
+     {
+      "control": "Interface 2 (right)"
+     },
+     {
+      "control": "Kempston Joystick"
+     },
+     {
+      "control": "Redefineable keys"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0004087/Target-Renegade_Front_2.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0004087/TargetRenegade.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/t/TargetRenegade.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/t/TargetRenegade(ErbeSoftwareS.A.).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/t/TargetRenegade(ErbeSoftwareS.A.)_2.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/t/TargetRenegade(ErbeSoftwareS.A.).txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "Spanish"
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0004087/TargetRenegade(HitSquad).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
      }
     ]
    }
@@ -1875,6 +2722,52 @@
        }
       ]
      }
+    ],
+    "controls": [
+     {
+      "control": "Cursor"
+     },
+     {
+      "control": "Interface 2 (right)"
+     },
+     {
+      "control": "Kempston Joystick"
+     },
+     {
+      "control": "Redefineable keys"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0000722/BubbleBobble.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/b/BubbleBobble.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/b/BubbleBobble(DroSoft).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/b/BubbleBobble(Musical1S.A.).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0000722/BubbleBobble(HitSquad).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     }
     ]
    }
   },
@@ -1924,6 +2817,31 @@
      },
      {
       "files": []
+     }
+    ],
+    "controls": [
+     {
+      "control": "Kempston Joystick"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0009333/TreasureIslandDizzy.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/t/TreasureIslandDizzy.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/t/TreasureIslandDizzy(EDOS).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
      }
     ]
    }
@@ -2007,6 +2925,33 @@
         "comments": null
        }
       ]
+     }
+    ],
+    "controls": [],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0006440/HobbitThe.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0006440/HobbitThe_2.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/h/HobbitTheV1.0.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/h/HobbitThe(SinclairResearchLtd).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
      }
     ]
    }
@@ -2102,6 +3047,37 @@
        }
       ]
      }
+    ],
+    "controls": [
+     {
+      "control": "Kempston Joystick"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0001303/Deathchase_Front.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/d/Deathchase.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0001303/Deathchase(299Classics).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0001303/Deathchase(ZeppelinGames).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     }
     ]
    }
   },
@@ -2187,6 +3163,27 @@
      {
       "files": []
      }
+    ],
+    "controls": [],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0000210/AntAttack.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/a/AntAttack.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/a/AntAttack(Hormigas)(Microbyte).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     }
     ]
    }
   },
@@ -2253,6 +3250,33 @@
         "comments": null
        }
       ]
+     }
+    ],
+    "controls": [],
+    "additionalDownloads": [
+     {
+      "path": "/pub/sinclair/games-inlays/h/HoraceGoesSkiing(InlayMisprint).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0002351/HoraceGoesSkiing.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/h/HoraceGoesSkiing.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/h/HoraceGoesSkiing(HoracioEsquiador)(InvestronicaS.A.).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
      }
     ]
    }
@@ -2350,6 +3374,64 @@
        }
       ]
      }
+    ],
+    "controls": [
+     {
+      "control": "Cursor"
+     },
+     {
+      "control": "Interface 2 (right)"
+     },
+     {
+      "control": "Kempston Joystick"
+     },
+     {
+      "control": "Redefineable keys"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0001217/DaleyThompsonsDecathlon.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0001217/DaleyThompsonsDecathlon_2.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/d/DaleyThompsonsDecathlon.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/d/DaleyThompsonsDecathlon(IBSA).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/d/DaleyThompsonsDecathlon(ZafiChip).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/d/DaleyThompsonsDecathlon(ZafiChip).txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "Spanish"
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0001217/DaleyThompsonsDecathlon(HitSquad).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     }
     ]
    }
   },
@@ -2432,6 +3514,46 @@
         "comments": null
        }
       ]
+     }
+    ],
+    "controls": [
+     {
+      "control": "Interface 2 (right)"
+     },
+     {
+      "control": "Kempston Joystick"
+     }
+    ],
+    "additionalDownloads": [
+     {
+      "path": "/zxdb/sinclair/entries/0000255/Arkanoid.jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/a/Arkanoid.txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "English"
+     },
+     {
+      "path": "/pub/sinclair/games-inlays/Rereleases/a/Arkanoid(ErbeSoftwareS.A.).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
+     },
+     {
+      "path": "/pub/sinclair/games-info/a/Arkanoid(ErbeSoftwareS.A.).txt",
+      "type": "Instructions",
+      "format": "Document (TXT)",
+      "language": "Spanish"
+     },
+     {
+      "path": "/zxdb/sinclair/entries/0000255/Arkanoid(HitSquad).jpg",
+      "type": "Inlay - Front",
+      "format": "Picture (JPG)",
+      "language": null
      }
     ]
    }

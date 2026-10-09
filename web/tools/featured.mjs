@@ -9,7 +9,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const API = 'https://api.zxinfo.dk/v3';
-const AGENT = 'zx-spectrum-emulator (https://zx-spectrum.lab.glazkov.ai; dimitri@glazkov.com)';
+const AGENT = 'zx-spectrum-emulator (https://zx-spectrum.lab.glazkov.ai)';
 
 /** ZXDB ids, in the shelf's order. */
 const SHELF = [
@@ -74,6 +74,11 @@ for (const [id, name] of SHELF) {
       publishers: (s.publishers ?? []).slice(0, 1).map((p) => ({ name: p.name })),
       screens: (s.screens ?? []).map((x) => ({ url: x.url, type: x.type })),
       releases: (s.releases ?? []).map((r) => ({ files: (r.files ?? []).map((f) => ({ path: f.path, size: f.size, type: f.type, format: f.format, origin: f.origin, comments: f.comments })) })),
+      // For the game's panel: the cassette's inlay, its instructions as text, how it is played.
+      controls: (s.controls ?? []).map((c) => ({ control: c.control })),
+      additionalDownloads: (s.additionalDownloads ?? [])
+        .filter((d) => d.type === 'Inlay - Front' || (d.type === 'Instructions' && /TXT/.test(d.format ?? '')))
+        .map((d) => ({ path: d.path, type: d.type, format: d.format, language: d.language })),
     },
   });
   console.log(`ok: ${s.title} (${s.originalYearOfRelease}, ${s.machineType})`);

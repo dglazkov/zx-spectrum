@@ -7,6 +7,8 @@
 //! level and loop counters and all. It costs time in proportion to how much tape has played (tens of
 //! milliseconds for a whole game), and only on loading a state.
 
+use std::sync::Arc;
+
 use tape::{Player, RomBlock, Status, Tape};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -27,8 +29,9 @@ pub(crate) struct LogEntry {
 /// Why the deck last started or stopped itself, for the automatic stop.
 #[derive(Clone, Debug)]
 pub(crate) struct Deck {
-    /// The tape as inserted (the player is rebuilt from it to replay the log), and its file's hash.
-    pristine: Tape,
+    /// The tape as inserted (the player is rebuilt from it to replay the log), and its file's hash. Shared with the
+    /// player, and with every copy of the machine (a state loaded keeps one to fall back on).
+    pristine: Arc<Tape>,
     pub hash: u64,
     pub name: String,
     pub player: Player,
@@ -56,7 +59,7 @@ pub(crate) struct Deck {
 
 impl Deck {
     pub fn new(
-        tape: Tape,
+        tape: Arc<Tape>,
         hash: u64,
         name: String,
         clock: u32,
@@ -105,7 +108,7 @@ impl Deck {
         level
     }
 
-    pub fn tape(&self) -> &Tape {
+    pub fn tape(&self) -> &Arc<Tape> {
         &self.pristine
     }
 

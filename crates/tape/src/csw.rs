@@ -9,13 +9,14 @@
 //! RLE: a byte from 1 to 255 is a pulse of that many samples; a 0 is followed by a 32-bit length.
 
 use crate::block::{Block, Csw};
-use crate::{Error, Format, Tape};
+use crate::{Error, Format, MAX_PULSES, Tape};
 
 /// The signature a CSW file starts with, and the end-of-text marker after it.
 pub const SIGNATURE: &[u8; 23] = b"Compressed Square Wave\x1A";
 
-/// The most a Z-RLE stream may inflate to: a recording of hours at 44.1 kHz is a few megabytes.
-const INFLATE_LIMIT: usize = 256 << 20;
+/// The most a Z-RLE stream may inflate to: a recording of an hour at 44.1 kHz is a few megabytes, and every
+/// byte here is at least a fifth of a pulse (`MAX_PULSES` bounds what comes of it).
+const INFLATE_LIMIT: usize = 16 << 20;
 
 /// Reads a CSW file, version 1 or 2, as a tape of one block.
 pub fn parse(bytes: &[u8]) -> Result<Tape, Error> {
@@ -101,9 +102,22 @@ pub(crate) fn decode(compression: u8, data: &[u8], count: u32) -> Result<Vec<u32
         }
         c => return Err(format!("compression type {c}, which CSW does not define")),
     };
-    let mut pulses = Vec::with_capacity((count as usize).min(rle.len()));
+    // As many as there can be (each pulse takes a byte at least; the header's count, where it gives one, is a
+    // closer guess), at once: grown a doubling at a time, a large recording would need half as much again at its
+    // last step.
+    let most = rle.len().min(MAX_PULSES);
+    let mut pulses = Vec::with_capacity(if count > 0 {
+        (count as usize).min(most)
+    } else {
+        most
+    });
     let mut at = 0;
     while at < rle.len() {
+        if pulses.len() >= MAX_PULSES {
+            return Err(format!(
+                "more than {MAX_PULSES} pulses, longer than any tape"
+            ));
+        }
         let b = rle[at];
         at += 1;
         if b != 0 {

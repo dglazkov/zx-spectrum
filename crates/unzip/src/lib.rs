@@ -46,6 +46,10 @@ const FLAG_UTF8: u16 = 1 << 11;
 /// smaller; this is a manual's scan or a video someone zipped alongside).
 const LARGEST_TO_SNIFF: u64 = 64 << 20;
 
+/// And no more than this in all is extracted by `spectrum_files`: a few kilobytes of deflate can claim gigabytes
+/// across many entries, each under the limit above.
+const MOST_TO_SNIFF: u64 = 64 << 20;
+
 /// Whether `data` begins as a ZIP archive does: with a local file header, or the end record of an empty archive.
 /// (A self-extracting archive begins with a program instead; `Archive::new` reads those too.)
 pub fn is_zip(data: &[u8]) -> bool {
@@ -357,10 +361,15 @@ impl<'a> Archive<'a> {
     /// is damaged or encrypted is an error, rather than quietly missing.
     pub fn spectrum_files(&self) -> Result<Vec<SpectrumFile>, Error> {
         let mut files = Vec::new();
+        let mut extracted = 0u64;
         for (index, entry) in self.entries.iter().enumerate() {
             if entry.is_dir() || entry.is_junk() || entry.size > LARGEST_TO_SNIFF {
                 continue;
             }
+            if extracted + entry.size > MOST_TO_SNIFF {
+                break;
+            }
+            extracted += entry.size;
             let named = Kind::from_name(&entry.name).is_some();
             match self.extract(entry) {
                 Ok(data) => {

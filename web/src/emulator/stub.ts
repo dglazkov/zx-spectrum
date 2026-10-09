@@ -1,5 +1,6 @@
-// A stand-in for the emulator, for building and testing the page before the real core (Rust compiled to WebAssembly)
-// is wired in. It runs no Z80. It keeps a 48K's memory and draws it as the ULA would (bitmap, attributes, BRIGHT,
+// A stand-in for the emulator, which the page was built and tested against before the real machine (wasm.ts) was
+// wired in, and is kept for tests of the page alone (?emulator=stub), and for when the machine will not start. It runs
+// no Z80. It keeps a 48K's memory and draws it as the ULA would (bitmap, attributes, BRIGHT,
 // FLASH, the border), in the ROM's own font (3D00h in roms/48.rom), and acts out what a person sees of a Spectrum:
 // the RAM test and the copyright message at power on (or the 128's menu), keys echoed on the bottom line in the
 // ROM's keywords, LOAD "" (or the menu's tape loader) starting the tape, the border's stripes and the tape's sound
@@ -13,12 +14,14 @@ import {
   LoadError,
   MODELS,
   type Emulator,
+  type Instruction,
   type JoystickKind,
   type LoadResult,
   type Model,
   type Options,
   type Registers,
   type SnapshotFormat,
+  type StepResult,
   type Tape,
   type TapeBlock,
   type TapeState,
@@ -69,6 +72,8 @@ export class StubEmulator implements Emulator {
   /** The joystick as last set: for tests. */
   joystickState: { kind: JoystickKind; bits: number } = { kind: 'none', bits: 0 };
   readonly tape: Tape;
+  /** The stand-in runs no code, so nothing stops at a breakpoint. */
+  readonly breakpoint: number | null = null;
 
   private readonly rom: Uint8Array;
   private readonly tokens: string[];
@@ -609,6 +614,54 @@ export class StubEmulator implements Emulator {
   poke(address: number, value: number): void {
     address &= 0xffff;
     if (address >= 0x4000) this.ram[address - 0x4000] = value & 0xff;
+  }
+
+  statePicture(): Uint8Array | null {
+    return null;
+  }
+
+  setSound(): void {}
+
+  savedTap(): Uint8Array {
+    return new Uint8Array(0);
+  }
+
+  /** The screen read against the ROM's font, ink or paper either way round, as the machine reads it. */
+  screenText(): string {
+    const rows: string[] = [];
+    for (let row = 0; row < 24; row++) {
+      let line = '';
+      for (let col = 0; col < 32; col++) {
+        const cell = ((row >> 3) << 11) | ((row & 7) << 5) | col;
+        const bytes = Array.from({ length: 8 }, (_, i) => this.ram[cell + (i << 8)]);
+        let ch = '\u2592';
+        for (let c = 32; c < 128 && ch === '\u2592'; c++) {
+          const glyph = 0x3d00 + (c - 32) * 8;
+          if (bytes.every((b, i) => b === this.rom[glyph + i]) || bytes.every((b, i) => b === (~this.rom[glyph + i] & 0xff))) ch = c === 0x7f ? '©' : c === 0x60 ? '£' : String.fromCharCode(c);
+        }
+        line += ch;
+      }
+      rows.push(line);
+    }
+    return rows.join('\n');
+  }
+
+  /** Bytes, as the stand-in has no disassembler. */
+  disassemble(address: number, count: number): readonly Instruction[] {
+    return Array.from({ length: count }, (_, i) => {
+      const addr = (address + i) & 0xffff;
+      return { addr, len: 1, text: `DEFB #${this.peek(addr).toString(16).toUpperCase().padStart(2, '0')}` };
+    });
+  }
+
+  setBreakpoints(): void {}
+
+  breakpoints(): readonly number[] {
+    return [];
+  }
+
+  step(): StepResult {
+    return 'instruction';
   }
 
   registers(): Registers {

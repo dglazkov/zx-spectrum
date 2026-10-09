@@ -7,7 +7,7 @@
 use crate::block::*;
 use crate::csw;
 use crate::text::latin1;
-use crate::{Error, Format, Tape};
+use crate::{Error, Format, MAX_BLOCKS, Tape};
 
 /// The signature a TZX file starts with: "ZXTape!" and the end-of-text marker.
 pub const SIGNATURE: &[u8; 8] = b"ZXTape!\x1A";
@@ -28,6 +28,11 @@ pub fn parse(bytes: &[u8]) -> Result<Tape, Error> {
     let mut warnings = Vec::new();
     let mut r = Reader { bytes, at: 10 };
     while r.at < bytes.len() {
+        if blocks.len() >= MAX_BLOCKS {
+            return Err(Error::Corrupt(format!(
+                "more than {MAX_BLOCKS} blocks, which no tape has"
+            )));
+        }
         let start = r.at;
         let id = r.u8().unwrap_or(0);
         match block(id, &mut r) {

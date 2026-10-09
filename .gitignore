@@ -2,9 +2,10 @@
 .env
 .claude/settings.local.json
 node_modules
-# What builds make.
+# What builds make: the emulator compiled to WebAssembly (scripts/build-wasm.sh) among them.
 target
 web/dist
 web/node_modules
+web/src/emulator/zx.wasm
 # What a test or a tool leaves to be looked at.
 out

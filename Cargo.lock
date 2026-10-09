@@ -186,5 +186,6 @@ dependencies = [
 name = "zx-wasm"
 version = "0.1.0"
 dependencies = [
+ "snapshot",
  "spectrum",
 ]
