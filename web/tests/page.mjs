@@ -130,6 +130,7 @@ const queue = [];
 // What changed (nerd's NERD_CHANGED, one path a line): a part runs if a file it covers changed, all of them if a file
 // they share did (the machine itself among them), or one no part claims; with nothing given, all of them.
 const changed = (process.env.NERD_CHANGED ?? '').split('\n').filter(Boolean);
+// web/server.mjs is only the dev server's pass-through, which the page's routes answer before it: starting is its test.
 const SHARED = ['web/src/app.ts', 'web/src/main.ts', 'web/src/style.css', 'web/index.html', 'web/vite.config.ts', 'web/tests/page.mjs', 'web/src/emulator/', 'web/src/video/', 'web/src/ui/dom.ts', 'web/src/ui/controls.ts', 'web/src/ui/toast.ts', 'web/src/clock/', 'web/package-lock.json', 'roms/', 'crates/', 'scripts/build-wasm.sh', 'Cargo.toml', 'Cargo.lock', 'fixtures.txt'];
 const claims = (covers, path) => covers.some((c) => path === c || path.startsWith(c));
 
@@ -339,7 +340,7 @@ const openFile = (page, name, buffer) => page.setInputFiles('input[type=file]', 
 // --- The tests -----------------------------------------------------------------------------------------------------
 
 try {
-  test('becomes ready on the real machine, drawn in WebGL 2', ['web/src/keyboard/', 'web/src/ui/library.ts', 'web/src/library/'], async () => {
+  test('becomes ready on the real machine, drawn in WebGL 2', ['web/src/keyboard/', 'web/src/ui/library.ts', 'web/src/library/', 'web/public/', 'web/server.mjs'], async () => {
     const page = await open();
     const ready = await page.evaluate(() => ({ emulator: document.body.dataset.emulator, renderer: document.body.dataset.renderer, keys: document.querySelectorAll('.kb-key').length, cards: document.querySelectorAll('.card').length }));
     assert(ready.emulator === 'wasm' && ready.renderer === 'webgl2', JSON.stringify(ready));
@@ -878,7 +879,7 @@ try {
     return stopped.code.split('\n')[0].trim();
   });
 
-  test('switching on warms the tube up (a fade where motion is reduced), and the footer says Amstrad’s words', ['web/src/style.css'], async () => {
+  test('switching on warms the tube up (a fade where motion is reduced), and the footer says Amstrad’s words', ['web/src/style.css', 'web/src/fonts/'], async () => {
     const page = await open();
     await page.evaluate(() => {
       window.warmed = 0;

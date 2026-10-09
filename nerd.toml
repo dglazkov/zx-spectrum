@@ -93,10 +93,12 @@ limit = "1m"
 # settings, sound, a phone upright and sideways; any console error fails a part. Four parts at a time, the slowest
 # first, each reported; those a change cannot touch are skipped. About 25 s; Chrome is launched from nerd's CHROME and
 # CHROME_ARGS, so WebGL is drawn on the GPU, and Saboteur's 9,200 frames are the longest part.
+# Not covered: what the page never loads (how.html's sheet and its Plex Mono, the fonts' licences) and the
+# crates' unit tests, which are not in the WebAssembly module.
 [[test]]
 name = "web-page"
 run = "cd web && node tests/page.mjs"
-covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/public/**", "web/tests/page.mjs", "web/tests/fixtures/**", "web/vite.config.ts", "web/server.mjs", "web/package-lock.json", "roms/**", "crates/wasm/src/**", "crates/wasm/Cargo.toml", "crates/spectrum/src/**", "crates/z80/src/**", "crates/audio/src/**", "crates/ay/src/**", "crates/tape/src/**", "crates/snapshot/src/**", "crates/unzip/src/**", "Cargo.toml", "Cargo.lock", "scripts/build-wasm.sh", "fixtures.txt"]
+covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/public/**", "web/tests/page.mjs", "web/tests/fixtures/**", "web/vite.config.ts", "web/server.mjs", "web/package-lock.json", "roms/**", "crates/wasm/src/**", "crates/wasm/Cargo.toml", "crates/spectrum/src/**", "crates/z80/src/**", "crates/audio/src/**", "crates/ay/src/**", "crates/tape/src/**", "crates/snapshot/src/**", "crates/unzip/src/**", "Cargo.toml", "Cargo.lock", "scripts/build-wasm.sh", "fixtures.txt", "!web/src/how/**", "!web/src/fonts/plex-mono-*", "!web/src/fonts/*.txt", "!crates/**/tests.rs"]
 inputs = ["web/src/emulator/zx.wasm"]
 limit = "3m"
 
