@@ -63,7 +63,7 @@ limit = "5m"
 [[test]]
 name = "wasm"
 run = "bash scripts/build-wasm.sh && CARGO_TARGET_DIR=target/wasm-native cargo test -q -p zx-wasm && cd web && npx vitest run -c vitest.wasm.config.ts"
-covers = ["crates/wasm/**", "crates/spectrum/src/**", "crates/z80/src/**", "crates/audio/src/**", "crates/ay/src/**", "crates/tape/src/**", "crates/snapshot/src/**", "crates/unzip/src/**", "roms/**", "Cargo.toml", "Cargo.lock", "scripts/build-wasm.sh", "web/src/emulator/wasm.ts", "web/src/emulator/emulator.ts", "web/src/emulator/keys.ts", "web/src/library/start.ts", "web/tests/wasm/**", "web/vitest.wasm.config.ts", "fixtures.txt"]
+covers = ["crates/wasm/**", "crates/spectrum/src/**", "crates/z80/src/**", "crates/audio/src/**", "crates/ay/src/**", "crates/tape/src/**", "crates/snapshot/src/**", "crates/unzip/src/**", "roms/**", "Cargo.toml", "Cargo.lock", "scripts/build-wasm.sh", "web/src/emulator/wasm.ts", "web/src/emulator/emulator.ts", "web/src/emulator/keys.ts", "web/src/library/**", "web/tests/wasm/**", "web/vitest.wasm.config.ts", "fixtures.txt"]
 limit = "3m"
 
 # The page (web/, docs/web.md): its TypeScript checked whole, in a second or two.

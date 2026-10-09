@@ -32,15 +32,10 @@ export interface StartChoice {
 /** What to do next: press a key for so many frames (then wait `after`), wait, or nothing more: the game has begun. */
 export type Move = { readonly press: string; readonly hold: number; readonly after: number } | { readonly wait: number } | { readonly done: true };
 
-export interface StartRoute {
-  /** ZXDB's entry. */
-  readonly id: string;
+/** The part of a start route that a pilot drives and a person reads: what a game card (card.ts) carries. */
+export interface Route {
   /** The steps as a person reads them, each with the keys it names (shown as keycaps; 'any' is any key). */
   readonly steps: readonly { readonly text: string; readonly keys: readonly string[] }[];
-  /** The game's own keys, as its manual sets them out: each key and what it does. */
-  readonly keys: readonly { readonly key: string; readonly does: string }[];
-  /** What the joystick does in it, said plainly. */
-  readonly joystick: string;
   /** The skill levels it asks for, or null. */
   readonly skills: readonly [number, number] | null;
   /** The longest the route may take, frames: past it the page gives up and says so. */
@@ -49,6 +44,15 @@ export interface StartRoute {
   ready(screen: Screen): boolean;
   /** The next move from this screen. */
   next(screen: Screen, choice: StartChoice): Move;
+}
+
+export interface StartRoute extends Route {
+  /** ZXDB's entry. */
+  readonly id: string;
+  /** The game's own keys, as its manual sets them out: each key and what it does. */
+  readonly keys: readonly { readonly key: string; readonly does: string }[];
+  /** What the joystick does in it, said plainly. */
+  readonly joystick: string;
 }
 
 /** The rows with flashing cells in columns `from`–`to`, each followed by how many: [row, count, row, count...]. */
@@ -131,7 +135,7 @@ export class StartPilot {
   state: 'driving' | 'done' | 'gave up' = 'driving';
 
   constructor(
-    readonly route: StartRoute,
+    readonly route: Route,
     readonly choice: StartChoice,
     frame: number,
   ) {
