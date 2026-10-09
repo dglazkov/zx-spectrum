@@ -1,0 +1,4 @@
+# Never committed: what is only this machine's.
+.env
+.claude/settings.local.json
+node_modules

@@ -1,0 +1,6 @@
+# What `nerd deploy` leaves behind when it sends the project to be built.
+.git
+.gitignore
+.claude
+.env
+node_modules
