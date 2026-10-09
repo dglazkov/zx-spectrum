@@ -55,3 +55,26 @@ export interface GameCard {
   /** Where the card's facts came from: the manual, the inlay, ZXDB, and anything else read. */
   readonly sources: readonly { readonly title: string; readonly url: string }[];
 }
+
+/** A start route the page cannot drive: the steps for the person to follow, marked so the page shows them instead of
+ * a start button. Most cards use one; a route that reads the game's screens is kept for menus that are hard by hand. */
+export interface ByHand extends Route {
+  readonly byHand: true;
+}
+
+/** The start of a game the person makes themselves, by these steps (each with the keys it names, shown as keycaps). */
+export function byHand(steps: Route['steps'], skills: Route['skills'] = null): ByHand {
+  return {
+    byHand: true,
+    steps,
+    skills,
+    within: 0,
+    ready: () => false,
+    next: () => ({ wait: 1_000_000 }),
+  };
+}
+
+/** Whether a card's start is one the person makes by hand. */
+export function isByHand(route: Route): route is ByHand {
+  return (route as Partial<ByHand>).byHand === true;
+}
