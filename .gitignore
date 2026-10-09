@@ -2,3 +2,9 @@
 .env
 .claude/settings.local.json
 node_modules
+# What builds make.
+target
+web/dist
+web/node_modules
+# What a test or a tool leaves to be looked at.
+out

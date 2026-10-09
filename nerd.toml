@@ -1,2 +1,33 @@
 # What nerd needs to know to deploy this project. `nerd guide` lists what else can go here.
 name = "zx-spectrum"
+
+# The tests, a layer each, fastest first: `nerd test` runs the ones that cover what changed. Each crate is built
+# into a target directory of its own, so that tests side by side do not wait on one another's build lock.
+# Fixtures that are not ours to commit are fetched by scripts/fixture into a cache; a test whose fixture cannot be
+# fetched reports itself skipped.
+
+# The CPU, instruction by instruction: every opcode's result, flags, MEMPTR and timing, and the order and timing of
+# its bus cycles, against the FUSE test suite and its own tests.
+[[test]]
+name = "z80"
+run = "CARGO_TARGET_DIR=target/test-z80 cargo test -q -p z80"
+covers = ["crates/z80/**", "Cargo.toml", "fixtures.txt"]
+limit = "2m"
+
+[[test]]
+name = "audio"
+run = "CARGO_TARGET_DIR=target/test-audio cargo test -q -p audio -p ay"
+covers = ["crates/audio/**", "crates/ay/**", "Cargo.toml"]
+limit = "1m"
+
+[[test]]
+name = "tape"
+run = "CARGO_TARGET_DIR=target/test-tape cargo test -q -p tape"
+covers = ["crates/tape/**", "Cargo.toml", "fixtures.txt"]
+limit = "1m"
+
+[[test]]
+name = "snapshot"
+run = "CARGO_TARGET_DIR=target/test-snapshot cargo test -q -p snapshot -p unzip"
+covers = ["crates/snapshot/**", "crates/unzip/**", "Cargo.toml", "fixtures.txt"]
+limit = "1m"

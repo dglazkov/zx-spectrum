@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# Test fixtures that are not ours to commit (test suites under the GPL, games that belong to their authors) are
+# fetched once into a cache on this machine, pinned by their SHA-256, and never enter the repository or an image.
+#
+#   scripts/fixture NAME                print the local path of fixture NAME, fetching it first if need be
+#   scripts/fixture add NAME URL [MEMBER]
+#                                       fetch URL (and, if it is a zip, take MEMBER out of it), and add the
+#                                       fixture to fixtures.txt with its hash
+#   scripts/fixture list                the fixtures fixtures.txt names, and whether each is cached
+#
+# fixtures.txt has one fixture a line: NAME SHA256 URL [MEMBER]. MEMBER is a path inside a zip at URL; the
+# hash is of the file that is kept (the member, when there is one). The cache is $ZX_FIXTURES, or
+# ~/.cache/zx-spectrum/fixtures. A fixture that cannot be fetched (no network) exits 3, and says so on stderr:
+# a test that needs it reports itself skipped rather than failed.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+LIST="$ROOT/fixtures.txt"
+CACHE="${ZX_FIXTURES:-$HOME/.cache/zx-spectrum/fixtures}"
+mkdir -p "$CACHE"
+
+fetch() { # url member out
+  local url="$1" member="${2:-}" out="$3" tmp
+  tmp="$(mktemp "$CACHE/.fetch.XXXXXX")"
+  if ! curl -fsSL --retry 2 -m 300 -o "$tmp" "$url"; then
+    rm -f "$tmp"
+    echo "fixture: could not fetch $url" >&2
+    return 3
+  fi
+  if [ -n "$member" ]; then
+    python3 - "$tmp" "$member" "$tmp.member" <<'PY'
+import sys, zipfile
+src, member, out = sys.argv[1:4]
+with zipfile.ZipFile(src) as z:
+    names = z.namelist()
+    name = member if member in names else next((n for n in names if n.lower() == member.lower()), None)
+    if name is None:
+        sys.exit(f"fixture: {member} is not in the zip; it has: {', '.join(names)}")
+    with open(out, 'wb') as f:
+        f.write(z.read(name))
+PY
+    mv "$tmp.member" "$tmp.keep"
+    rm -f "$tmp"
+    tmp="$tmp.keep"
+  fi
+  mv "$tmp" "$out"
+}
+
+case "${1:-}" in
+  ''|-h|--help)
+    sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'
+    ;;
+  list)
+    [ -f "$LIST" ] || exit 0
+    while read -r name sha url member; do
+      case "$name" in ''|'#'*) continue ;; esac
+      if [ -f "$CACHE/$sha/$name" ]; then echo "cached   $name"; else echo "missing  $name  ($url)"; fi
+    done < "$LIST"
+    ;;
+  add)
+    name="${2:?name}" url="${3:?url}" member="${4:-}"
+    if [ -f "$LIST" ] && awk -v n="$name" '$1 == n { found = 1 } END { exit !found }' "$LIST"; then
+      echo "fixture: $name is already in fixtures.txt" >&2
+      exit 1
+    fi
+    tmp="$CACHE/.add.$$"
+    fetch "$url" "$member" "$tmp"
+    sha="$(sha256sum "$tmp" | cut -d' ' -f1)"
+    mkdir -p "$CACHE/$sha"
+    mv "$tmp" "$CACHE/$sha/$name"
+    echo "$name $sha $url${member:+ $member}" >> "$LIST"
+    echo "$CACHE/$sha/$name"
+    ;;
+  *)
+    name="$1"
+    line="$( [ -f "$LIST" ] && awk -v n="$name" '$1 == n { print; exit }' "$LIST" || true)"
+    if [ -z "$line" ]; then
+      echo "fixture: $name is not in fixtures.txt (scripts/fixture add $name URL [MEMBER])" >&2
+      exit 2
+    fi
+    read -r _ sha url member <<< "$line"
+    out="$CACHE/$sha/$name"
+    if [ ! -f "$out" ]; then
+      mkdir -p "$CACHE/$sha"
+      fetch "$url" "${member:-}" "$out.part"
+      got="$(sha256sum "$out.part" | cut -d' ' -f1)"
+      if [ "$got" != "$sha" ]; then
+        rm -f "$out.part"
+        echo "fixture: $name from $url has SHA-256 $got, not $sha" >&2
+        exit 4
+      fi
+      mv "$out.part" "$out"
+    fi
+    echo "$out"
+    ;;
+esac

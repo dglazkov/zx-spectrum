@@ -1,0 +1,49 @@
+# The emulator, a crate for each part of the machine, so that each builds and tests on its own:
+# `cargo test -p z80` touches nothing but the CPU. docs/architecture.md says what each is and how they meet.
+[workspace]
+resolver = "3"
+members = [
+  "crates/z80",
+  "crates/audio",
+  "crates/ay",
+  "crates/tape",
+  "crates/snapshot",
+  "crates/unzip",
+  "crates/spectrum",
+  "crates/wasm",
+  "crates/cli",
+]
+
+[workspace.package]
+edition = "2024"
+license = "Apache-2.0"
+publish = false
+
+[workspace.dependencies]
+z80 = { path = "crates/z80" }
+audio = { path = "crates/audio" }
+ay = { path = "crates/ay" }
+tape = { path = "crates/tape" }
+snapshot = { path = "crates/snapshot" }
+unzip = { path = "crates/unzip" }
+spectrum = { path = "crates/spectrum" }
+# Inflate and deflate, in Rust alone (no C), so that it compiles to WebAssembly as it is: zip archives, CSW
+# tapes, SZX snapshots, PNG screenshots.
+miniz_oxide = "0.8"
+# For tests only: the CPU test suites come as JSON.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+
+# An emulator is unusably slow unoptimised, and its test suites run billions of instructions: optimise, and keep
+# the debug assertions and overflow checks, which catch arithmetic that wraps where the hardware would not.
+[profile.dev]
+opt-level = 2
+
+[profile.test]
+opt-level = 2
