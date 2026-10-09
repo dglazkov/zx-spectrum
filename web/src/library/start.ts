@@ -70,6 +70,7 @@ export const SABOTEUR: StartRoute = {
     { text: 'At the £100 REWARD screen press any key, and another at the high scores.', keys: ['any'] },
     { text: 'At the menu press K for the keyboard, or J for the Kempston joystick (the arrow keys and Left Alt, a gamepad, or the touch pad). P PROTEK, the menu’s own choice, is a cursor joystick on 5, 6, 7, 8 and 0.', keys: ['K', 'J'] },
     { text: 'S starts the mission. Hold a skill level, 1–9, down until the mission is announced: the menu reads keys between the notes of its tune, so a quick tap is missed.', keys: ['S', '1–9'] },
+    { text: 'The ninja leaps from the dinghy into the sea. Swim right to the jetty and press up as you pass under one of its posts to climb out: the post takes only an exact line-up, so swim back and try again if you pass it.', keys: ['A'] },
   ],
   keys: [
     { key: 'A', does: 'Up · climb · kick' },

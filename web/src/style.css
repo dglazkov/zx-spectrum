@@ -2009,6 +2009,21 @@ dialog::backdrop {
   text-indent: calc(-1 * var(--hang, 0));
 }
 
+/* On a phone the last column is too narrow to wrap in without breaking its words: the table keeps the manual's own
+   lines and scrolls sideways within its box (the page itself never does). */
+@media (max-width: 480px) {
+  .booklet-table {
+    white-space: pre;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .booklet-row {
+    padding-left: 0;
+    text-indent: 0;
+  }
+}
+
 .slots-head {
   display: flex;
   justify-content: space-between;
