@@ -1,16 +1,9 @@
 // How to start a game, for the games where it is not obvious from the screen: the steps as the person reads them
-// (with the keys to press, shown as keycaps), the game's own keys (from its manual), and a route the page can drive
-// itself (Start the mission), by reading the screen at each step and pressing what that screen wants, as a person
-// would. The screens are told apart by what the machine shows: the ROM-font text the screen reads as
-// (Emulator.screenText) where the game prints in it, and otherwise its attributes (a highlighted menu item flashes).
-//
-// Saboteur's (Durell, 1985), worked out against the game itself on this machine (web/tests/wasm/start.spec.ts holds
-// the route to it): the £100 REWARD screen wants any key; the high scores take a key only from about a second and a
-// half after they show until about five and a half, and then the game goes on to its next screen; the menu reads a
-// key only once it has been held for 8 frames or so (it reads the keys between the notes it plays: a quick tap is
-// lost), and highlights J KEMPSTON, K KEYBOARD or P PROTEK (the default) on rows 1, 3 and 5; S starts the mission with
-// what is highlighted; the skill level is a digit held until the mission is announced. (With no Kempston interface
-// plugged in, J starts at once: port 1F then floats high, which the game reads as fire held.)
+// (with the keys to press, shown as keycaps), and a route the page can drive itself (a game card's Start button), by
+// reading the screen at each step and pressing what that screen wants, as a person would. The screens are told apart by
+// what the machine shows: the ROM-font text the screen reads as (Emulator.screenText) where the game prints in it, and
+// otherwise its attributes (a highlighted menu item flashes: `flashing`, `rowIs`). Each game's route is its card's
+// (card.ts, games/): Saboteur's (games/saboteur.ts) is the worked example.
 
 import { KEY } from '../emulator/keys';
 
@@ -46,17 +39,8 @@ export interface Route {
   next(screen: Screen, choice: StartChoice): Move;
 }
 
-export interface StartRoute extends Route {
-  /** ZXDB's entry. */
-  readonly id: string;
-  /** The game's own keys, as its manual sets them out: each key and what it does. */
-  readonly keys: readonly { readonly key: string; readonly does: string }[];
-  /** What the joystick does in it, said plainly. */
-  readonly joystick: string;
-}
-
 /** The rows with flashing cells in columns `from`–`to`, each followed by how many: [row, count, row, count...]. */
-function flashing(screen: Screen, from = 0, to = 31): number[] {
+export function flashing(screen: Screen, from = 0, to = 31): number[] {
   const rows: number[] = [];
   for (let r = 0; r < 24; r++) {
     let n = 0;
@@ -66,50 +50,8 @@ function flashing(screen: Screen, from = 0, to = 31): number[] {
   return rows;
 }
 
-const rowIs = (screen: Screen, row: number, value: number) => Array.from({ length: 32 }, (_, c) => screen.attr(row, c)).every((a) => a === value);
-
-export const SABOTEUR: StartRoute = {
-  id: '0004293',
-  steps: [
-    { text: 'At the £100 REWARD screen press any key, and another at the high scores.', keys: ['any'] },
-    { text: 'At the menu press K for the keyboard, or J for the Kempston joystick (the arrow keys and Left Alt, a gamepad, or the touch pad). P PROTEK, the menu’s own choice, is a cursor joystick on 5, 6, 7, 8 and 0.', keys: ['K', 'J'] },
-    { text: 'S starts the mission. Hold a skill level, 1–9, down until the mission is announced: the menu reads keys between the notes of its tune, so a quick tap is missed.', keys: ['S', '1–9'] },
-    { text: 'The ninja leaps from the dinghy into the sea. Swim right to the jetty and press up as you pass under one of its posts to climb out: the post takes only an exact line-up, so swim back and try again if you pass it.', keys: ['A'] },
-  ],
-  keys: [
-    { key: 'A', does: 'Up · climb · kick' },
-    { key: 'Z', does: 'Down · duck' },
-    { key: 'N', does: 'Left' },
-    { key: 'M', does: 'Right' },
-    { key: 'SPACE', does: 'Throw · use · punch' },
-  ],
-  joystick: 'Up climbs and kicks, fire throws; up with left or right jumps.',
-  skills: [1, 9],
-  within: 3000,
-  ready(screen) {
-    return 'press' in this.next(screen, { joystick: false, skill: 1 });
-  },
-  next(screen, choice) {
-    if (screen.text.includes('PRESS ANY KEY TO CONTINUE')) return { press: 'SPACE', hold: 6, after: 30 };
-    const flash = flashing(screen);
-    // The menu: one item highlighted, its 13 cells flashing on row 1 (J), 3 (K) or 5 (P).
-    const menuRow = flash.length === 2 && flash[1] === 13 ? flash[0] : -1;
-    if (menuRow >= 0) {
-      const want = choice.joystick ? 1 : 3;
-      return menuRow === want ? { press: 'S', hold: 10, after: 20 } : { press: choice.joystick ? 'J' : 'K', hold: 10, after: 10 };
-    }
-    // The skill level's prompt: a flashing box of three cells on row 7.
-    if (flash.length === 2 && flash[0] === 7 && flash[1] === 3) return { press: String(Math.max(1, Math.min(9, choice.skill))), hold: 40, after: 20 };
-    // The game: the panel, framed in red on black from row 18 to row 23.
-    if (!flash.length && rowIs(screen, 18, 0x02) && rowIs(screen, 23, 0x02)) return { done: true };
-    // The high scores: green below row 16, nothing flashing. A key, and a moment for it to be taken.
-    if (!flash.length && rowIs(screen, 16, 0x20) && rowIs(screen, 23, 0x20)) return { press: 'K', hold: 8, after: 30 };
-    // Something in between (the screen being drawn): look again shortly.
-    return { wait: 10 };
-  },
-};
-
-export const ROUTES: Readonly<Record<string, StartRoute>> = { [SABOTEUR.id]: SABOTEUR };
+/** Whether every cell of a row has the attribute `value`. */
+export const rowIs = (screen: Screen, row: number, value: number): boolean => Array.from({ length: 32 }, (_, c) => screen.attr(row, c)).every((a) => a === value);
 
 /** The Spectrum key a route presses, as a key code. */
 export function keyCode(name: string): number {

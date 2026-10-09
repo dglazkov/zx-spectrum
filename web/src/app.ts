@@ -9,12 +9,15 @@ import { CAPS_SHIFT, ENTER, KEY, SPACE, SYMBOL_SHIFT } from './emulator/keys';
 import { KeyFeeder } from './input/feeder';
 import { readGamepads } from './input/gamepad';
 import { arrowsAreJoystick, type Mapping } from './input/keymap';
+import { PadKeys } from './input/padkeys';
 import { listenToKeyboard } from './input/pc-keyboard';
 import { BOOT_FRAMES_MAX, loadKeys, romReady } from './input/typer';
 import { createKeyboard } from './keyboard/keyboard';
 import { choose, Unloadable } from './library/choose';
 import { fetchManual, type Manual } from './library/manual';
-import { ROUTES, screenOf, StartPilot, type StartChoice, type StartRoute } from './library/start';
+import type { GameCard } from './library/card';
+import { cardFor } from './library/games';
+import { screenOf, StartPilot, type StartChoice } from './library/start';
 import { archiveUrl, fetchArchive, fetchEntry, type ZxEntry } from './library/zxinfo';
 import { LIFT_128, Sound } from './audio/sound';
 import { coloursOf, Rewind, type Moment } from './state/rewind';
@@ -25,10 +28,12 @@ import { createDeck, PLAIN_SHELL, type Shell } from './ui/deck';
 import { byId, download, h, s } from './ui/dom';
 import { createGamePanel, type GameInfo, type StartState } from './ui/game';
 import { createHelp } from './ui/help';
+import { controlsNow, fallbackHowTo, modeOf, type Hands, type HowTo } from './ui/howto';
 import { icon } from './ui/icons';
 import { createInspector } from './ui/inspector';
 import { createLibrary, SHELF } from './ui/library';
 import { createOsd } from './ui/osd';
+import { createOverlay, rememberDismissed, wasDismissed } from './ui/overlay';
 import { createSettings } from './ui/settings';
 import { createTapeBar } from './ui/tapebar';
 import { createTimeline } from './ui/timeline';
@@ -65,6 +70,9 @@ export const MAX_FILE = 16 << 20;
 const SHELLS: Readonly<Record<string, Shell>> = {
   '0004293': { colour: '#1d4d9a', embossed: 'DURELL', rainbow: false },
 };
+
+/** How long the controls stay over the screen when play begins: eight seconds of the game. */
+const CONTROLS_FRAMES = 400;
 
 const hex4 = (v: number) => v.toString(16).toUpperCase().padStart(4, '0');
 const SLOT_NAMES = ['the quick slot', 'slot 1', 'slot 2', 'slot 3'];
@@ -114,6 +122,19 @@ export class App {
   private startWanted: StartChoice | null = null;
   private pilot: StartPilot | null = null;
   private startShown: StartState | null = null;
+  /** How the person means to play the game in the machine: the joystick (the default) or its keys. */
+  private playChoice: StartChoice = { joystick: true, skill: 1 };
+  /** Whether the game's card says play is on the screen, as last looked (null: not looked since the machine jumped). */
+  private inPlay: boolean | null = false;
+  /** The frame the controls over the screen go at, when they showed by themselves (they stay while paused). */
+  private controlsUntil = 0;
+  /** The controls have shown by themselves for the game in the machine: once a game, unless its Start button is pressed. */
+  private controlsShown = false;
+  /** The manual's table of keys, for the controls of a game with no card. */
+  private manualTable: Manual['table'] = null;
+  private gamepad = false;
+  /** The page's joystick onto the game's keys, for a game whose card has a key map. */
+  readonly padKeys: PadKeys;
   /** Something the person would lose has happened (a key typed, a program loaded): closing the tab asks first. */
   private touched = false;
   private newFrame = true;
@@ -140,6 +161,7 @@ export class App {
   private deck!: ReturnType<typeof createDeck>;
   private tapeBar!: ReturnType<typeof createTapeBar>;
   private osd!: ReturnType<typeof createOsd>;
+  private overlay!: ReturnType<typeof createOverlay>;
   private timeline!: ReturnType<typeof createTimeline>;
   private library!: ReturnType<typeof createLibrary>;
   private gamePanel!: ReturnType<typeof createGamePanel>;
@@ -168,6 +190,7 @@ export class App {
     this.settings = loadSettings();
     this.scheduler = new FrameScheduler(this.emulator.frameRate);
     this.feeder = new KeyFeeder((code, down) => this.emulator.key(code, down));
+    this.padKeys = new PadKeys(this.feeder);
     this.loop = new Loop(this.scheduler, {
       runFrame: () => this.runFrame(),
       present: (now) => this.present(now),
@@ -191,10 +214,14 @@ export class App {
     if (this.scheduler.speed === 'pause' || this.broken) return;
     const emu = this.emulator;
     this.drivePilot();
+    // The page's joystick: the arrows and the fire key, the touch pad and a gamepad together. For a game whose card has
+    // a key map (it takes no joystick), they press its keys instead, and the joystick itself is left at rest.
+    const pressed = this.keyBits | this.touchBits | this.padBits;
+    this.padKeys.update(pressed, emu.frameCount);
     this.feeder.tick(emu.frameCount);
     // The joystick, told only of a change (of its bits, or of the interface; a power-on unplugs it, afterReset).
     const kind = this.settings.joystick;
-    const bits = kind === 'none' ? 0 : this.keyBits | this.touchBits | this.padBits;
+    const bits = kind === 'none' || this.padKeys.keymap ? 0 : pressed;
     const joystick = `${kind}:${bits}`;
     if (joystick !== this.lastJoystick) {
       emu.joystick(kind, bits);
@@ -308,18 +335,20 @@ export class App {
 
   // --- Starting a game ---------------------------------------------------------------------------------------------
 
-  private route(): StartRoute | null {
-    const id = this.game?.entry?.id;
-    return id ? (ROUTES[id] ?? null) : null;
+  /** The play card of the game in the machine, where the shelf has one (library/games/). */
+  card(): GameCard | null {
+    return cardFor(this.game?.entry?.id);
   }
 
   /** The game from its first screen to playing, the keys pressed for the person (now, or when that screen shows). */
   startGame(choice: StartChoice): void {
-    const route = this.route();
-    if (!route || this.broken) return;
+    const card = this.card();
+    if (!card || this.broken) return;
     this.startSound();
     this.touched = true;
-    if (choice.joystick && this.settings.joystick !== 'kempston') this.change({ joystick: 'kempston' });
+    this.playChoice = choice;
+    // The game is told to take a Kempston joystick: the page's has to be one.
+    if (choice.joystick && card.joystick && this.settings.joystick !== 'kempston') this.change({ joystick: 'kempston' });
     this.pilot = null;
     this.startWanted = choice;
     if (this.userSpeed === 'pause') this.setSpeed(1);
@@ -329,7 +358,7 @@ export class App {
   /** Before each frame: the start asked for, begun once the game's first screen shows, and its keys pressed. */
   private drivePilot(): void {
     const frame = this.emulator.frameCount;
-    const route = this.route();
+    const route = this.card()?.start;
     if (this.startWanted && route && frame % 5 === 0 && route.ready(screenOf(this.emulator))) {
       this.pilot = new StartPilot(route, this.startWanted, frame);
       this.startWanted = null;
@@ -345,14 +374,65 @@ export class App {
     if (pilot.state !== 'driving') {
       this.pilot = null;
       this.showStart(pilot.state);
-      if (pilot.state === 'done') toast(`${this.game?.title ?? 'The game'}: the mission begins. ${pilot.choice.joystick ? 'The arrow keys and Left Alt are the joystick.' : 'Its keys are in the panel.'}`);
+      if (pilot.state === 'done') this.playBegins(true);
     }
+  }
+
+  /**
+   * Play has begun (`started`: the Start button got there; or the person started it): the controls over the screen for a
+   * few seconds, the first time for this game (or whenever the Start button is pressed), unless they were closed before.
+   */
+  private playBegins(started = false): void {
+    this.inPlay = true;
+    const game = this.game;
+    if (!game || (this.controlsShown && !started)) return;
+    this.controlsShown = true;
+    if (wasDismissed(game.key)) {
+      toast(`${game.title}: you are playing. ${this.touchFirst ? 'The Controls button on the set' : 'F3'} shows the controls.`);
+      return;
+    }
+    this.showControls(true);
+  }
+
+  /** How the joystick reaches the person: the fire key, a touch screen, a gamepad. */
+  private hands(): Hands {
+    return { fireCode: this.settings.fireKey, touch: this.touchFirst, gamepad: this.gamepad };
+  }
+
+  /** What the controls over the screen say now. */
+  private howTo(): HowTo {
+    const card = this.card();
+    return card ? controlsNow(card, { ...this.hands(), joystick: this.playChoice.joystick }) : fallbackHowTo(this.game?.entry?.controls ?? [], this.manualTable, this.hands(), !!this.game?.entry);
+  }
+
+  /** The controls over the screen: by themselves for a few seconds (`auto`), or asked for, until asked away. */
+  showControls(auto = false): void {
+    if (!this.game) {
+      toast('Load a game first: its controls show here.');
+      return;
+    }
+    this.overlay.show(this.howTo(), this.game.title, auto);
+    this.controlsUntil = auto ? this.emulator.frameCount + CONTROLS_FRAMES : Infinity;
+  }
+
+  /** F3, or the button on the set: the controls shown, or hidden again. */
+  toggleControls(): void {
+    if (this.overlay.shown) this.overlay.hide();
+    else this.showControls(false);
+  }
+
+  /** The way in on the picture too, while the game's first screen waits for it, saying how it will be played. */
+  private promptStart(): void {
+    const card = this.card();
+    const way = card && modeOf(card, this.playChoice.joystick);
+    this.overlay.prompt(this.startShown === 'ready' && way ? `The page answers its menus for you${way === 'Keys' ? '' : `, and you play with ${this.touchFirst ? 'the pad and FIRE' : 'the arrow keys'}`}.` : null);
   }
 
   private showStart(state: StartState): void {
     if (state === this.startShown) return;
     this.startShown = state;
     this.gamePanel.startState(state);
+    this.promptStart();
   }
 
   // --- Rewinding ---------------------------------------------------------------------------------------------------
@@ -398,6 +478,10 @@ export class App {
     this.pilot = null;
     this.startWanted = null;
     this.startShown = null;
+    this.overlay?.prompt(null);
+    this.padKeys.forget();
+    // Somewhere else in the game: play is looked for afresh, and its beginning not taken for news.
+    this.inPlay = null;
     // The state has its own joystick interface (or none): the page's is told again.
     this.lastJoystick = '';
     this.sound?.clear();
@@ -412,6 +496,12 @@ export class App {
   private present(_now: number): void {
     const pad = readGamepads();
     this.padBits = pad.bits;
+    if (pad.present !== this.gamepad) {
+      // A gamepad plugged in or out: the controls say so.
+      this.gamepad = pad.present;
+      this.gamePanel.hands(this.hands());
+      this.overlay.update(this.howTo(), this.game?.title ?? '');
+    }
     if (pad.enter !== this.padEnter) {
       this.padEnter = pad.enter;
       if (pad.enter) this.feeder.hold('pad-enter', [ENTER], this.emulator.frameCount, 'free');
@@ -450,10 +540,18 @@ export class App {
       }
     }
     document.body.classList.toggle('loading-tape', tape.playing);
-    // The start button: whether the game's first screen is there, now and then.
-    if (this.route() && !this.pilot && !this.startWanted && this.startShown !== 'done' && this.emulator.frameCount % 25 === 0) {
-      this.showStart(this.route()!.ready(screenOf(this.emulator)) ? 'ready' : this.startShown === 'gave up' ? 'gave up' : 'waiting');
+    // The card's route, now and then: whether the game's first screen is there (for the start button), and whether
+    // play has begun without it (the person started the game themselves), which shows the controls.
+    const card = this.card();
+    if (card && !this.pilot && this.emulator.frameCount % 25 === 0 && this.programLoaded) {
+      const screen = screenOf(this.emulator);
+      if (!this.startWanted && this.startShown !== 'done') this.showStart(card.start.ready(screen) ? 'ready' : this.startShown === 'gave up' ? 'gave up' : 'waiting');
+      const playing = 'done' in card.start.next(screen, this.playChoice);
+      if (playing && this.inPlay === false) this.playBegins();
+      this.inPlay = playing;
     }
+    // The controls that showed by themselves go after their few seconds of the game.
+    if (this.overlay.shown && this.emulator.frameCount >= this.controlsUntil) this.overlay.hide();
   }
 
   /** Whether the loading stripes are drawn calmly now: asked for, or the system asks for less motion. */
@@ -585,6 +683,10 @@ export class App {
     if ('palette' in patch) void this.showSlots();
     if ('calmStripes' in patch) this.newFrame = true;
     if ('joystick' in patch) this.lastJoystick = '';
+    if ('fireKey' in patch) {
+      this.gamePanel.hands(this.hands());
+      this.overlay.update(this.howTo(), this.game?.title ?? '');
+    }
     this.settingsPanel.sync({ ...this.settings, model: this.emulator.model });
     this.deck.setLoading(this.settings.loading);
     this.displayControl.set(this.settings.display);
@@ -616,10 +718,14 @@ export class App {
 
   private afterReset(): void {
     this.feeder.clear();
+    this.padKeys.forget();
     this.autoLoad = null;
     this.pilot = null;
     this.startWanted = null;
     this.startShown = null;
+    this.overlay?.prompt(null);
+    this.inPlay = false;
+    if (this.overlay?.shown) this.overlay.hide();
     this.programLoaded = false;
     this.scheduler.frameRate = this.emulator.frameRate;
     this.sound?.clear();
@@ -815,7 +921,9 @@ export class App {
       const bytes = await fetchArchive(choice.file.path, (p) => this.library.progress(entry.id, p), picking.abort.signal);
       this.library.progress(entry.id, null);
       const name = choice.file.path.split('/').pop() ?? entry.title;
-      const loaded = this.loadFile(bytes, name, { model: choice.kind === 'tape' ? choice.model : undefined, autoload: true, title: entry.title, entry: await full });
+      // On the machine its play card was proved on, where it has one (Bubble Bobble's 128K tune, say).
+      const model = choice.kind === 'tape' ? (cardFor(entry.id)?.model ?? choice.model) : undefined;
+      const loaded = this.loadFile(bytes, name, { model, autoload: true, title: entry.title, entry: await full });
       if (loaded) this.setLink(entry.id);
       this.fetching?.dismiss();
       this.fetching = null;
@@ -892,27 +1000,38 @@ export class App {
   // --- The game in the machine -------------------------------------------------------------------------------------
 
   private setGame(game: Game): void {
+    if (this.game?.key !== game.key) this.controlsShown = false;
     this.game = game;
     this.pilot = null;
     this.startWanted = null;
     this.startShown = null;
+    this.overlay?.prompt(null);
+    this.manualTable = null;
     if (!game.entry) this.setLink(null);
     const e = game.entry;
-    const route = this.route();
+    const card = this.card();
+    this.inPlay = false;
+    // A game that takes no joystick: the page's joystick presses its keys while it runs.
+    this.padKeys.set(card?.keymap ?? null, this.emulator.frameCount);
     const info: GameInfo = {
       key: game.key,
       title: game.title,
       meta: e ? [e.year, e.publisher, e.machine?.replace(/^ZX-Spectrum\s*/, '')].filter(Boolean).join(' · ') : 'Opened from a file',
       inlay: e?.inlay ? archiveUrl(e.inlay) : null,
       share: e ? this.shareLink() : null,
-      route,
+      card,
       controls: e?.controls ?? [],
+      inZxdb: !!e,
       hasManual: !!e?.instructions,
-      joystickFirst: this.touchFirst,
     };
-    this.gamePanel.show(info);
+    this.gamePanel.show(info, this.hands());
+    // The joystick by default wherever the game has one (the panel's choice): the arrows and the fire key, a gamepad,
+    // the phone's pad.
+    this.playChoice = this.gamePanel.choice();
+    this.overlay.available(true);
+    if (this.overlay.shown) this.overlay.update(this.howTo(), game.title);
     this.deck.setInlay(info.inlay);
-    this.markKeys(route, null);
+    this.markKeys();
     void this.showSlots();
     if (e?.instructions) {
       this.gamePanel.manual('loading');
@@ -920,16 +1039,34 @@ export class App {
         ?.then((m) => {
           if (this.game !== game) return;
           this.gamePanel.manual(m);
-          this.markKeys(route, m);
+          this.manualTable = m.table;
+          this.markKeys();
+          if (this.overlay.shown) this.overlay.update(this.howTo(), game.title);
         })
         .catch((err: Error) => this.game === game && this.gamePanel.manual(`The manual could not be fetched: ${err.message}.`));
     }
   }
 
-  /** The game's keys outlined on the drawn keyboard: the route's, or the manual's table's where they are Spectrum keys. */
-  private markKeys(route: StartRoute | null, manual: Manual | null): void {
-    const names = route ? route.keys.map((k) => k.key) : (manual?.table?.rows.map((r) => r[0].trim().toUpperCase()) ?? []);
-    this.keyboardView.mark(names.map((n) => KEY[n]).filter((c): c is number => c !== undefined));
+  /** The way of playing chosen again in the panel: the controls and the keys marked follow it. */
+  private chose(choice: StartChoice): void {
+    this.playChoice = choice;
+    this.markKeys();
+    this.promptStart();
+    this.overlay.update(this.howTo(), this.game?.title ?? '');
+  }
+
+  /**
+   * The keys the person needs outlined on the drawn keyboard: with a card, the game's keys when they are the way chosen,
+   * and its keys around play (pause, quit) whichever way; with none, the manual's table's, where they are Spectrum keys.
+   */
+  private markKeys(): void {
+    const card = this.card();
+    let names: string[];
+    if (card) {
+      const keys = !this.playChoice.joystick || !(card.joystick || card.keymap) ? card.controls.flatMap((c) => c.keys ?? []) : [];
+      names = [...keys, ...card.extras.flatMap((x) => x.key.split('+'))];
+    } else names = this.manualTable?.rows.map((r) => r[0]) ?? [];
+    this.keyboardView.mark([...new Set(names.map((n) => KEY[n.trim().toUpperCase()]).filter((c): c is number => c !== undefined))]);
   }
 
   private slotsKey(): string {
@@ -1241,7 +1378,18 @@ export class App {
     const restart = h('button', { type: 'button', class: 'btn btn-primary' }, icon('power'), h('span', { class: 'btn-label' }, 'Start it again'));
     restart.addEventListener('click', () => void this.restart());
     this.stoppedCard = h('div', { class: 'screen-card stopped', role: 'alert', hidden: true }, h('strong', {}, 'The machine stopped'), h('p', { class: 'stopped-why' }), h('p', {}, 'Started again, it goes back to the last moment kept, with its tape.'), restart);
-    const frame = h('div', { class: 'tv-frame' }, canvas, this.osd.el);
+    this.overlay = createOverlay(
+      {
+        dismissed: () => {
+          this.overlay.hide();
+          if (this.game) rememberDismissed(this.game.key);
+        },
+        toggle: () => this.toggleControls(),
+        start: () => this.startGame(this.gamePanel.choice()),
+      },
+      this.touchFirst,
+    );
+    const frame = h('div', { class: 'tv-frame' }, canvas, this.osd.el, this.overlay.el);
     this.screenWrap = h('div', { class: 'screen-wrap' }, frame, this.stoppedCard, this.veil);
     this.tapeBar = createTapeBar(
       () => this.emulator.tape,
@@ -1291,7 +1439,14 @@ export class App {
       () => fileInput.click(),
     );
     this.library = createLibrary((entry) => void this.loadEntry(entry));
-    this.gamePanel = createGamePanel({ save: (i) => void this.saveSlot(i), load: (i) => void this.loadSlot(i), share: () => void this.share(), start: (c) => this.startGame(c) });
+    this.gamePanel = createGamePanel({
+      save: (i) => void this.saveSlot(i),
+      load: (i) => void this.loadSlot(i),
+      share: () => void this.share(),
+      start: (c) => this.startGame(c),
+      chose: (c) => this.chose(c),
+      showControls: () => this.showControls(false),
+    });
     this.inspector = createInspector({
       emulator: () => this.emulator,
       paused: () => this.userSpeed === 'pause',
@@ -1342,8 +1497,8 @@ export class App {
   }
 
   private listen(): void {
-    // The page's own keys: F1 the keys, F2 and F4 the quick slot, F8 the screen read aloud, F9 pause (not while
-    // typing into the page's own fields).
+    // The page's own keys: F1 the keys, F2 and F4 the quick slot, F3 the game's controls over the screen, F8 the screen
+    // read aloud, F9 pause (not while typing into the page's own fields).
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
       if (e.target instanceof Element && e.target.matches('input, textarea, select')) return;
@@ -1353,11 +1508,12 @@ export class App {
         this.focusControls();
         return;
       }
-      if (!['F1', 'F2', 'F4', 'F8', 'F9'].includes(e.code)) return;
+      if (!['F1', 'F2', 'F3', 'F4', 'F8', 'F9'].includes(e.code)) return;
       if (e.target instanceof Element && e.target.closest('dialog[open]') && e.code !== 'F1') return;
       e.preventDefault();
       if (e.code === 'F1') this.help.open();
       else if (e.code === 'F2') void this.saveSlot(0);
+      else if (e.code === 'F3') this.toggleControls();
       else if (e.code === 'F4') void this.loadSlot(0);
       else if (e.code === 'F8') this.readScreen();
       else this.togglePause();
@@ -1366,7 +1522,8 @@ export class App {
       feeder: this.feeder,
       frame: () => this.emulator.frameCount,
       mapping: () => this.mapping(),
-      joystick: () => ({ on: arrowsAreJoystick({ ...this.settings, programLoaded: this.programLoaded }), fire: this.settings.fireKey }),
+      // A game with a key map has the arrows whatever joystick is chosen: they press its keys.
+      joystick: () => ({ on: arrowsAreJoystick({ ...this.settings, joystick: this.padKeys.keymap ? 'kempston' : this.settings.joystick, programLoaded: this.programLoaded }), fire: this.settings.fireKey }),
       joystickBits: (bits) => (this.keyBits = bits),
       gesture: () => this.startSound(),
       typed: () => (this.touched = true),

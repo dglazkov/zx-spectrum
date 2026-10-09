@@ -105,6 +105,13 @@ function fixtureFile(name) {
 }
 
 const recording = (name) => readFileSync(new URL(`./fixtures/zxinfo/${name}.json`, import.meta.url));
+/** An entry's recorded answer, by its id in the address; Saboteur's for one with none recorded. */
+const entryRecording = (url) => {
+  const id = (/\/games\/(\d+)/.exec(url)?.[1] ?? '4293').padStart(7, '0');
+  return existsSync(new URL(`./fixtures/zxinfo/game-${id}.json`, import.meta.url)) ? recording(`game-${id}`) : recording('game-0004293');
+};
+/** A manual for a game with no card, set out as manuals are: a heading, then keys and what they do. */
+const OTHER_MANUAL = Buffer.from('A GAME\r\n\r\nCONTROLS\r\n\r\nQ        Up\r\nA        Down\r\nO        Left\r\nP        Right\r\nSPACE    Kick\r\n\r\nGood luck.\r\n');
 // A picture for every card and inlay that is not Saboteur's: one grey pixel.
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8+/btfwAJYAPhYrRk8QAAAABJRU5ErkJggg==', 'base64');
 const SABOTEUR_ZIP = fixtureFile('saboteur.tzx.zip');
@@ -152,11 +159,11 @@ async function open(options = {}) {
     if (m.type() === 'error') page.problems.push(`console: ${m.text()}`);
   });
   await page.route('**/zxinfo/v3/search?**', (r) => r.fulfill({ contentType: 'application/json', body: recording('search-saboteur') }));
-  await page.route('**/zxinfo/v3/games/**', (r) => r.fulfill({ contentType: 'application/json', body: recording('game-0004293') }));
+  await page.route('**/zxinfo/v3/games/**', (r) => r.fulfill({ contentType: 'application/json', body: entryRecording(r.request().url()) }));
   await page.route('**/archive/**', (r) => {
     const path = decodeURIComponent(new URL(r.request().url()).pathname);
     page.archive.push(path);
-    if (path.endsWith('.txt')) return r.fulfill({ contentType: 'text/plain', body: SABOTEUR_MANUAL });
+    if (path.endsWith('.txt')) return r.fulfill({ contentType: 'text/plain', body: path.endsWith('/Saboteur.txt') ? SABOTEUR_MANUAL : OTHER_MANUAL });
     if (/\.(jpe?g|png|gif)$/i.test(path)) return SABOTEUR_INLAY && path.endsWith('/Saboteur.jpg') ? r.fulfill({ contentType: 'image/jpeg', body: SABOTEUR_INLAY }) : r.fulfill({ contentType: 'image/png', body: PNG });
     if (path.endsWith('/Saboteur.tzx.zip') && options.realSaboteur) return r.fulfill({ contentType: 'application/zip', body: SABOTEUR_ZIP });
     return r.fulfill({ contentType: 'application/zip', body: zipOf('SABOTEUR.TAP', programTape('SABOTEUR')) });
@@ -656,7 +663,7 @@ try {
     return `ENTER ${after} frames after switching on`;
   });
 
-  test('Saboteur from the library: searched, fetched, loaded flat out to its £100 REWARD screen, with its inlay and manual', ['web/src/library/', 'web/src/ui/library.ts', 'web/src/ui/game.ts', 'web/tests/fixtures/'], async () => {
+  test('Saboteur from the library: searched, fetched, loaded flat out to its £100 REWARD screen, with its inlay, manual and card; its Start button to play, and the controls over the screen', ['web/src/library/', 'web/src/ui/library.ts', 'web/src/ui/game.ts', 'web/src/ui/overlay.ts', 'web/src/ui/howto.ts', 'web/tests/fixtures/'], async () => {
     if (!SABOTEUR_ZIP) throw new Skip('no saboteur.tzx.zip in the fixture cache');
     const page = await open({ storage: { ...SHARP, loading: 'accelerated' }, realSaboteur: true });
     await wait(page, 500);
@@ -675,7 +682,7 @@ try {
     const stripes = await borderColours(page);
     assert(stripes.length === 2 && stripes.includes('0,0,0') && stripes.includes('216,0,0'), `the border while the game loads: ${stripes.join(' ')}`);
     const reached = await until(page, () => window.zx.emulator.screenText().includes('REWARD'), null, { step: 250, max: 20_000 });
-    const after = await page.evaluate(() => ({ frames: window.zx.emulator.frameCount, text: window.zx.emulator.screenText().split('\n'), speed: window.zx.app.scheduler.speed, label: document.querySelector('.cs-title')?.textContent, inlay: document.querySelector('.deck')?.classList.contains('has-inlay'), keys: [...document.querySelectorAll('.key-tile kbd, .keys-table th')].map((t) => t.textContent), model: window.zx.emulator.model, url: location.search }));
+    const after = await page.evaluate(() => ({ frames: window.zx.emulator.frameCount, text: window.zx.emulator.screenText().split('\n'), speed: window.zx.app.scheduler.speed, label: document.querySelector('.cs-title')?.textContent, inlay: document.querySelector('.deck')?.classList.contains('has-inlay'), keys: [...document.querySelectorAll('.controls-table td:last-child kbd')].map((t) => t.textContent), goal: document.querySelector('.game-goal')?.textContent ?? '', fallback: !document.querySelector('.game-fallback').hidden, model: window.zx.emulator.model, url: location.search }));
     assert(reached, `no REWARD screen: ${JSON.stringify(after.text.slice(0, 3))}`);
     const frames = after.frames - f0;
     // The tape plays 9,039 frames (180.5 s); the 48K boots, LOAD "" is typed, the game prints its screen.
@@ -684,25 +691,61 @@ try {
     assert(after.speed === 1, `the page at ${after.speed} once the tape stopped`);
     assert(after.label === 'Saboteur!' && after.model === '48k', `the cassette says ${after.label}, on a ${after.model}`);
     assert(after.inlay, 'no inlay on the cassette');
-    assert(after.keys.includes('SPACE') && after.keys.includes('A'), `keys on the panel: ${after.keys}`);
+    assert(after.keys.includes('Space') && after.keys.includes('A') && after.keys.includes('N'), `keys on the card: ${after.keys}`);
+    assert(/helicopter/.test(after.goal) && !after.fallback, `the card's goal: ${after.goal}; the fallback shown: ${after.fallback}`);
     assert(new URLSearchParams(after.url).get('game') === '4293', `the address: ${after.url}`);
-    // Its keys marked on the drawn keyboard; then Start the mission takes it from the REWARD screen to the game, by the
-    // keyboard, the menu's keys pressed for the person (library/start.ts).
-    const marked = await page.evaluate(() => [...document.querySelectorAll('.kb-key.marked')].map((k) => k.dataset.key).sort().join(' '));
-    assert(marked === 'A M N SPACE Z', `keys marked on the keyboard: ${marked}`);
+    // The joystick is the card's choice to begin with, and no key is marked on the drawn keyboard for it; the game's own
+    // keys are once Keys is chosen. Then the Start button takes it from the REWARD screen to the game by the keyboard,
+    // the menu's keys pressed for the person (the card's route).
+    const marks = () => page.evaluate(() => [...document.querySelectorAll('.kb-key.marked')].map((k) => k.dataset.key).sort().join(' '));
+    const chosen = await page.evaluate(() => document.querySelector('.start-how .seg.on')?.textContent);
+    const unmarked = await marks();
+    assert(chosen === 'Joystick' && unmarked === '', `chosen at first: ${chosen}; keys marked: ${unmarked}`);
     const s0 = await page.evaluate(() => window.zx.emulator.frameCount);
     await page.locator('.start-how .seg', { hasText: 'Keys' }).click();
-    await page.locator('.start-go').click();
-    assert(await until(page, () => document.querySelector('.panel.game').dataset.start === 'done', null, { step: 250, max: 120_000 }), `the mission did not begin: ${await page.evaluate(() => document.querySelector('.panel.game').dataset.start)}`);
+    const marked = await marks();
+    assert(marked === 'A M N SPACE Z', `keys marked on the keyboard with Keys chosen: ${marked}`);
+    // The way in is on the picture too while the REWARD screen waits: pressed, it starts the game as the panel's would.
+    assert(await until(page, () => !document.querySelector('.start-prompt').hidden && document.querySelector('.panel.game').dataset.start === 'ready', null, { step: 100, max: 5_000 }), 'no start button on the picture at the REWARD screen');
+    await page.locator('.start-prompt').click();
+    assert(await until(page, () => document.querySelector('.panel.game').dataset.start === 'done', null, { step: 250, max: 120_000 }), `the game did not begin: ${await page.evaluate(() => document.querySelector('.panel.game').dataset.start)}`);
     const started = await page.evaluate(() => {
       const e = window.zx.emulator;
       const row = (r) => Array.from({ length: 32 }, (_, c) => e.peek(0x5800 + r * 32 + c));
       return { frames: e.frameCount, panel: row(18).every((a) => a === 2) && row(23).every((a) => a === 2) };
     });
-    assert(started.panel, 'no game panel on the screen after Start the mission');
+    assert(started.panel, 'no game panel on the screen after the Start button');
+    assert(await page.evaluate(() => document.querySelector('.start-prompt').hidden), 'the start button stayed on the picture once the game began');
+    // Play has begun: the controls over the screen, as the keys chosen press them, for a few seconds of the game.
+    const overlay = () =>
+      page.evaluate(() => {
+        const o = document.querySelector('.controls-overlay');
+        return { shown: !o.hidden, mode: o.querySelector('.ov-mode')?.textContent, caps: [...o.querySelectorAll('.ov-row kbd')].map((k) => k.textContent), button: document.querySelector('.controls-button').getAttribute('aria-expanded') };
+      });
+    const first = await overlay();
+    assert(first.shown && first.mode === 'Keys' && ['N', 'M', 'A', 'Z', 'Space'].every((k) => first.caps.includes(k)), `the controls when play began: ${JSON.stringify(first)}`);
+    await wait(page, 9000);
+    const gone = await overlay();
+    assert(!gone.shown, 'the controls stayed over the screen past their few seconds');
+    // F3 brings them back, as they are pressed now (the joystick chosen: the arrows and Left Alt); F3 again hides them.
+    await page.locator('.start-how .seg', { hasText: 'Joystick' }).click();
+    await page.mouse.click(5, 400);
+    await page.keyboard.press('F3');
+    const asked = await overlay();
+    assert(asked.shown && asked.mode === 'Joystick' && asked.caps.includes('Left Alt') && asked.caps.includes('←') && asked.button === 'true', `F3: ${JSON.stringify(asked)}`);
+    await wait(page, 9000);
+    assert((await overlay()).shown, 'the controls asked for went by themselves');
+    await page.keyboard.press('F3');
+    assert(!(await overlay()).shown, 'F3 did not hide the controls');
+    // The button on the set shows them; their × closes them, and that is remembered for the game.
+    await page.locator('.controls-button').click();
+    assert((await overlay()).shown, 'the button did not show the controls');
+    await page.locator('.ov-close').click();
+    const closed = await page.evaluate(() => ({ shown: !document.querySelector('.controls-overlay').hidden, kept: localStorage.getItem('zx-spectrum.controls-closed') }));
+    assert(!closed.shown && JSON.parse(closed.kept ?? '[]').includes('zxdb:0004293'), `after the ×: ${JSON.stringify(closed)}`);
     clean(page);
     await page.context().close();
-    return `REWARD ${frames} frames after the tape went in; keys ${after.keys.join(' ')}; the mission ${started.frames - s0} frames after Start`;
+    return `REWARD ${frames} frames after the tape went in; keys ${after.keys.join(' ')}; the game ${started.frames - s0} frames after Start; the controls over it`;
   });
 
   test('a link to a game loads it straight away (?game=4293), and the share button gives that link', ['web/src/ui/game.ts', 'web/src/library/'], async () => {
@@ -734,6 +777,70 @@ try {
     clean(page);
     await page.context().close();
     return `${shared}; ${file.suggestedFilename()} opened as Saboteur!`;
+  });
+
+  test('a game with no card (found by searching) shows what is known: ZXDB’s controls, the manual’s keys, the honest line; F3 puts them over the screen', ['web/src/ui/game.ts', 'web/src/ui/overlay.ts', 'web/src/ui/howto.ts', 'web/src/library/'], async () => {
+    // International Match Day: on no shelf, so with no card; its manual (the test's) has a table of keys.
+    const page = await open({ query: '?game=2514', storage: { loading: 'accelerated' } });
+    assert(await until(page, () => document.querySelector('.game-title')?.textContent === 'International Match Day' && document.querySelector('.game-fallback .keys-table'), null, { step: 200, max: 10_000 }), `no panel for the game: ${await page.evaluate(() => document.querySelector('.panel.game')?.textContent?.slice(0, 200))}`);
+    const panel = await page.evaluate(() => ({
+      start: !document.querySelector('.game-start').hidden,
+      card: !document.querySelector('.game-howto').hidden,
+      said: document.querySelector('.fallback-said').textContent,
+      honest: document.querySelector('.fallback-honest').textContent,
+      keys: [...document.querySelectorAll('.game-fallback .keys-table th')].map((t) => t.textContent),
+      model: window.zx.emulator.model,
+    }));
+    assert(!panel.start && !panel.card, `a card's parts shown for a game with none: ${JSON.stringify(panel)}`);
+    assert(panel.said === 'The ZXDB says it takes a cursor joystick (5, 6, 7, 8 and 0), a Sinclair joystick or a Kempston joystick.', panel.said);
+    assert(panel.honest.startsWith('Most games of the time take a Kempston joystick from their menu: choose it there, then play with the arrow keys and Left Alt.'), panel.honest);
+    assert(panel.keys.join(' ') === 'Q A O P SPACE' && panel.model === '128k', `the manual's keys ${panel.keys}, on a ${panel.model}`);
+    await page.mouse.click(5, 400);
+    await page.keyboard.press('F3');
+    const over = await page.evaluate(() => {
+      const o = document.querySelector('.controls-overlay');
+      return { shown: !o.hidden, mode: o.querySelector('.ov-mode').textContent, caps: [...o.querySelectorAll('.ov-row kbd')].map((k) => k.textContent), note: o.querySelector('.ov-note').textContent };
+    });
+    assert(over.shown && over.mode === 'Controls' && over.caps.join(' ') === 'Q A O P SPACE' && /Kempston joystick from their menu/.test(over.note), JSON.stringify(over));
+    // Its keys outlined on the drawn keyboard, from the manual.
+    const marked = await page.evaluate(() => [...document.querySelectorAll('.kb-key.marked')].map((k) => k.dataset.key).sort().join(' '));
+    assert(marked === 'A O P Q SPACE', `keys marked: ${marked}`);
+    clean(page);
+    await page.context().close();
+    return panel.said;
+  });
+
+  test('a card’s key map: for a game with no joystick, the arrows and the fire key press its keys, and let them go', ['web/src/input/', 'web/src/ui/touch.ts'], async () => {
+    const page = await open({ storage: { joystick: 'kempston', arrowsJoystick: true, mapping: 'auto' } });
+    await wait(page, 1000);
+    // As a card's key map would put them (Manic Miner's, say): left on O, fire on SPACE.
+    await page.evaluate(() => {
+      const app = window.zx.app;
+      app.programLoaded = true;
+      app.padKeys.set({ LEFT: 'O', FIRE: 'SPACE' }, window.zx.emulator.frameCount);
+    });
+    await page.mouse.click(5, 300);
+    const at = () => page.evaluate(() => ({ bits: window.zx.emulator.joystickState.bits, down: window.zx.emulator.keyLog.filter((k) => k.down).map((k) => k.code), up: window.zx.emulator.keyLog.filter((k) => !k.down).map((k) => k.code) }));
+    await page.keyboard.down('ArrowLeft');
+    await page.keyboard.down('AltLeft');
+    await wait(page, 200);
+    const held = await at();
+    await page.keyboard.up('ArrowLeft');
+    await page.keyboard.up('AltLeft');
+    await wait(page, 200);
+    const after = await at();
+    // O is key 26 (half-row DFFE, bit 1), SPACE 35; the joystick itself left at rest.
+    assert(held.bits === 0 && held.down.includes(26) && held.down.includes(35), `held: ${JSON.stringify(held)}`);
+    assert(after.up.includes(26) && after.up.includes(35) && !(await page.evaluate(() => window.zx.app.feeder.isDown(26) || window.zx.app.feeder.isDown(35))), `let go: ${JSON.stringify(after)}`);
+    // No key map: the arrows are the joystick again.
+    await page.evaluate(() => window.zx.app.padKeys.set(null, window.zx.emulator.frameCount));
+    await page.keyboard.down('ArrowLeft');
+    await wait(page, 200);
+    const joystick = await page.evaluate(() => window.zx.emulator.joystickState.bits);
+    await page.keyboard.up('ArrowLeft');
+    assert(joystick === 2, `without a key map, left is joystick bit ${joystick}`);
+    clean(page);
+    await page.context().close();
   });
 
   test('save slots: F2 keeps the machine, F4 puts it back, after a reload too, with the game’s tape in the deck', ['web/src/state/saves.ts', 'web/src/ui/game.ts'], async () => {

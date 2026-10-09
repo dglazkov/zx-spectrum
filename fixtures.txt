@@ -197,3 +197,5 @@ snap-slt-heavymetal.slt fb4a993996177f9975d82ee20cdf7fb573e8d5ad487fe12e149249b7
 snap-slt-killeduntildead.slt f29d6d67442773addf7fb30983c75b2a202b4b7ece3a3b3c26137e20e5e6716c https://spectrumcomputing.co.uk/pub/sinclair/games/k/KilledUntilDead.slt.zip KILLDEAD.SLT
 saboteur-manual.txt 2f15de06c2d13e097375dab309815ec5146af0aacc684942899248019e48bef5 https://spectrumcomputing.co.uk/pub/sinclair/games-info/s/Saboteur.txt
 saboteur-inlay.jpg 65d0425cd7494c690295cab3c2b71c0f93c164357e990332e3e8448a4f45a5f2 https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0004293/Saboteur.jpg
+game-bubble-bobble.tzx 79c8ebf2b40af41423e0d3303e416eb232f911d790a15b4a1c65c0d754a39c1c https://spectrumcomputing.co.uk/pub/sinclair/games/b/BubbleBobble.tzx.zip Bubble Bobble.tzx
+game-target-renegade.tap 073f021238c0588bcce715e569db35675e49e4e7ba289b844196e9ff6767d0ca https://spectrumcomputing.co.uk/pub/sinclair/games/t/Target-Renegade128.tap.zip RENGADE2.TAP

@@ -14,9 +14,11 @@ room's size. The screen is the hero, a CRT drawn in WebGL 2 (or crisp pixels), i
 behind it as the stripes flicker while a tape loads, with a slim bar under it saying which part of the tape is loading
 and how long is left, and a button to load the rest fast. Beside it, a cassette whose reels turn as the tape moves,
 the game's own (Saboteur's genuine copies were blue, DURELL pressed into them) with its inlay printed on the label;
-the game's panel (its inlay, a button that takes it from its first screen to playing, the steps with their keys as
-keycaps, its keys, save slots, the manual set as a booklet); and a shelf of loved games, Saboteur first, each with its
-loading screen. Choosing one (or opening `?game=4293`) fetches it, switches on the right machine, types `LOAD ""` once
+the game's panel, with its play card where the shelf has one (what the game is and what you are trying to do, a button
+that takes it from its first screen to playing with the joystick chosen for you, its controls as a table by the joystick
+and by the keys, a few tips, the steps by hand), save slots and the manual set as a booklet; and a shelf of loved
+games, Saboteur first, each with its loading screen. When play begins the controls show over the foot of the screen for
+a few seconds, as the person presses them (F3 brings them back). Choosing one (or opening `?game=4293`) fetches it, switches on the right machine, types `LOAD ""` once
 the ROM is ready and plays the tape. On a phone held sideways it is a console: the screen the display's height, the
 pad and fire either side.
 
@@ -43,20 +45,24 @@ web/
   src/input/keymap.ts          the PC keyboard: natural (typing) and positional (games) mappings, joystick keys
   src/input/feeder.ts          key presses put to the machine at frame boundaries, paced as the ROM needs
   src/input/pc-keyboard.ts     the listeners;  gamepad.ts the Gamepad API
+  src/input/padkeys.ts         a card's key map: the page's joystick pressing a game's own keys
   src/input/typer.ts           what LOAD "" is, and when the ROM is ready for it (read from the screen)
   src/keyboard/legends.ts      what is printed on and around each key, from the ROM's tables
   src/keyboard/keyboard.ts     the keyboard drawn in SVG, pressable, lit when the machine has a key down
   src/library/zxinfo.ts        the ZXDB through ZXInfo; pictures; an entry's inlay and manual; fetching archive files
   src/library/choose.ts        which file of an entry to load, on which machine
   src/library/manual.ts        a game's manual: fetched, its keys read out as a table
-  src/library/start.ts         how to start a game where it is not obvious, and the route the page drives (Saboteur's)
+  src/library/card.ts          a game's play card: blurb, goal, tips, controls by joystick and keys, extras, key map, route
+  src/library/games/           the cards, a module a game (saboteur.ts, ...), found by games/index.ts (cardFor)
+  src/library/start.ts         a start route's shape, the screen helpers routes read with, and the pilot that drives one
   src/library/featured.json    the shelf, recorded and checked by tools/featured.mjs
   src/state/settings.ts        what is remembered (localStorage, every access wrapped)
   src/state/rewind.ts          moments kept for going back
   src/state/saves.ts           save slots per game (IndexedDB, every access wrapped; memory without it)
   src/ui/*.ts                  the building blocks (dom, controls, icons) and the panels: deck, tapebar (the tape
                                under the screen), game, library, timeline (rewind), osd (words on the screen),
-                               settings, help (the keys, F1), inspector, touch pad, toasts
+                               settings, help (the keys, F1), inspector, touch pad, toasts; howto (what to press,
+                               worked out) and overlay (the controls over the screen)
   server.mjs                   the production server and the pass-through (below); server.d.mts its types
   vite.config.ts               the dev server, with the same pass-through
   vitest.wasm.config.ts        the WebAssembly build's own tests (tests/wasm/)
@@ -66,7 +72,8 @@ web/
   tests/page.mjs               the page test in Chrome;  shot.mjs a picture;  smoke.mjs a running server
   tests/build.mjs              the production build, served by server.mjs, with the smoke test's checks
   tests/wasm/wasm.spec.ts      the module in Node, held to the native build;  nerd-reporter.mjs its parts to nerd
-  tests/wasm/start.spec.ts     Saboteur's start route driven on the module, by the keys and by the joystick
+  tests/wasm/games/            each card held to its game on the module (helpers.ts; saboteur.spec.ts, ...): its route
+                               to play, by the keys and by the joystick, and every control it names moving the player
   tests/server.test.mjs        the pass-through;  tests/fixtures/zxinfo/ recorded API answers
 ```
 
@@ -388,8 +395,9 @@ bands 0.145 of a pitch across falling 22° from upright, from the right side jus
 and SPACE to the front. The keys are the photograph's grey-blue; the red legends on them are lightened (#ff8a7a, with
 a hairline of dark under them): the case's red on its grey measures 1.72:1, authentic and unreadable on a screen. At
 phone width the keyboard is drawn again compact: keys 0.88 of a pitch wide and 1.3 tall (40 px tall on a 390 px
-phone, to press with a thumb), their main legends only, the logos smaller. The keys the game in the machine uses are
-outlined in yellow, as the overlay cards some games came with marked them (Saboteur's A Z N M SPACE).
+phone, to press with a thumb), their main legends only, the logos smaller. The keys the game in the machine needs are
+outlined in yellow, as the overlay cards some games came with marked them: Saboteur's A Z N M SPACE when it is played
+by its keys, its keys around play (pause, quit) whichever way.
 
 - The Complete Spectrum ROM Disassembly (Ian Logan, Frank O'Hara), as SkoolKit presents it:
   https://skoolkid.github.io/rom/ (KEY-TABLE https://skoolkid.github.io/rom/asm/0205.html, KEYBOARD
@@ -430,6 +438,12 @@ snapshot loads), positional after, back to natural on a reset.
   arrows are the editor's cursor keys (`arrowsAreJoystick`). A gamepad (the standard mapping of the Gamepad API: left stick or the cross, any face button or trigger
   to fire, Start is ENTER, Select is SPACE) and the phone's touch pad (eight ways, and FIRE, SPACE, ENTER) are it
   too; their bits are ORed. The core turns the bits into the kind's port or keys.
+- **A card's key map** (`input/padkeys.ts`): for a game that takes no joystick, its play card can put the joystick's
+  directions and fire onto its own keys (`keymap`, Manic Miner's O, P and SPACE, say). While that game is in the
+  machine the same bits (the arrows and the fire key, whichever joystick is chosen in Settings; the gamepad; the touch
+  pad) press those keys through the feeder instead, each direction a hold of its own (`keymap-LEFT`), so that two
+  that share a key keep it down until both are let go and a key the keyboard also holds is not let go under it, and
+  the joystick itself is left at rest. A change of game, a power-on or a jump in time lets go of what it held.
 
 **The page's own controls.** A key goes to the page, not the machine, when it is typed into a field or an open
 dialog, or when it works a control the keyboard has moved to (Tab, Enter, Space, the arrows, Escape on a focused
@@ -438,7 +452,9 @@ machine. Shift+Tab is always the page's: from the machine (where Tab is extended
 bar's controls. A chip in the bar says where the keys go ("Keys: Spectrum", "Keys: page"). A control clicked or tapped
 keeps no focus (app.ts lets it go on the click), so a game's Space never presses the button last clicked, and no
 focus ring shows while playing. The page's own keys: F1 the keys' sheet (every key the page knows), F2 and F4 the
-quick slot, F8 the screen read aloud (`screenText()` into a live region, for a screen reader), F9 pause.
+quick slot, F3 the game's controls over the screen (shown, or hidden again), F8 the screen read aloud (`screenText()`
+into a live region, for a screen reader), F9 pause. (F3 is the browser's find-again, which a page may take; F5, F6,
+F7, F10, F11 and F12 are kept by Chrome or are no use to take.)
 
 **Pacing** (`input/feeder.ts`). Presses go to the machine at frame boundaries, each lasting a frame at least, so
 none is missed between two frames. For games that is all. For typing, the ROM's KEYBOARD routine (02BF, at every
@@ -577,26 +593,56 @@ Ghosts 'n Goblins.
   not (`inlay === undefined`), the entry is fetched while the tape comes.
 - **Facts**: title, year, publisher, machine, and ZXDB's controls ("Cursor · Kempston Joystick · Redefineable keys").
 - **Share**: the link that loads the game straight away (`?game=<ZXDB id>`), copied (or shared, on a phone).
-- **To start** (`library/start.ts`): for games where it is not obvious from the screen, worked out against the game
-  itself. The steps, numbered, each key in them a keycap; and **Start the mission**, with a skill level and Keys or
-  Joystick (the joystick first on a touch screen, where the pad is it), which drives the game from its first screen
-  to playing by reading each screen and pressing what it wants (`StartPilot`): pressed before the first screen shows
-  (the tape still loading), it waits for it. Saboteur's: the £100 REWARD screen wants any key; the high scores take a
-  key only from about 1.5 s after they show to 5.5 s, then the game moves on; the menu (its item highlighted by a
-  flashing row: J KEMPSTON on row 1, K KEYBOARD 3, P PROTEK 5, Protek its own choice) takes a key only held 8 frames
-  or so (it reads the keys between the notes of its tune: the player's 60 ms taps were lost four times in five, and
-  the corpus's route had in fact been starting the game with Protek, its K taken as the high scores' key); S starts;
-  the skill level is a digit held 40 frames. With no Kempston interface J starts at once (port 1F floats high, read
-  as fire). `tests/wasm/start.spec.ts` holds the route to the game from the REWARD screen pressed at once and after
-  37, 150, 400 and 2,500 frames, and that the game then answers to M and not the joystick (keys), or the other way
-  round (joystick).
-- **Keys**: the route's, as keycap tiles (Saboteur's A up, climb, kick; Z down, duck; N left; M right; SPACE throw,
-  use, punch; and what the joystick does), and outlined on the drawn keyboard. For other games, from the manual: the
-  instructions as text ("Instructions", TXT, English or no language given, the plain file before a variant) fetched
-  through `/archive`, decoded as Windows-1252, its sections found (a heading underlined, or a short line in
-  capitals), and of those about keys, controls or joysticks the best table read out: rows of a key and what it does,
-  set apart by spaces, a dash, = or :, those naming a Spectrum key (A, SPACE, CAPS SHIFT) counting more than those
-  naming a direction (UP, FIRE). Saboteur's: "Standard Controls", A, Z, M, N, SPACE.
+- **The play card** (`library/card.ts`, a module a game in `library/games/`, found by `cardFor(id)`): what the
+  cassette's inlay and manual told a player, in our own words, for each shelf game that has one (Saboteur, Bubble
+  Bobble and Target: Renegade so far). A game with a card is loaded on the model its card was proved on (`model`:
+  Bubble Bobble's and Target: Renegade's 128K, with their AY music). The panel shows, in order: the **blurb** (the back
+  of the cassette); **your goal**, set apart in yellow; **Start the game**, with a skill level where the game asks for
+  one and **Play with** Joystick or Keys (Arrows or Keys for a game with a key map; no choice for a game with neither),
+  the joystick chosen by default everywhere, as the page's joystick is the same in every game: the arrows and Left Alt,
+  a gamepad, the phone's pad. The button drives the card's route from the game's first screen to playing by reading
+  each screen and pressing what it wants (`StartPilot`): pressed before the first screen shows (the tape still
+  loading), it waits for it; it says what is happening as it goes ("Pressing the keys for you…", "The game has
+  begun."). While the game's first screen waits for a key, the same button is on the picture too, along its foot,
+  where the eye is ("Start the game: the page answers its menus for you, and you play with the arrow keys"); and where the game does not answer as the route expects it gives up and opens the **steps by hand**,
+  folded under it otherwise, numbered, each key in them a keycap. Then **Controls**, a table of what to do, how the
+  joystick does it (the arrows drawn on keycaps, the fire key red, as the joystick's button) and how the game's keys
+  do (as the PC presses them in their Spectrum places: Space, Enter, Shift for CAPS SHIFT, Ctrl or Alt for SYMBOL
+  SHIFT, whichever is not the fire key), the keys around play (pause, quit) under it, and a line saying how the
+  joystick reaches the game; **Tips**, a friend's three or four; and, small, where it all came from (the sources, as
+  links). The keys the person needs are outlined on the drawn keyboard: the game's own when Keys is chosen, and its
+  keys around play whichever way. Saboteur's route (`games/saboteur.ts`): the £100 REWARD screen wants any key; the
+  high scores take a key only from about 1.5 s after they show to 5.5 s, then the game moves on; the menu (its item
+  highlighted by a flashing row: J KEMPSTON on row 1, K KEYBOARD 3, P PROTEK 5, Protek its own choice) takes a key
+  only held 8 frames or so (it reads the keys between the notes of its tune: the player's 60 ms taps were lost four
+  times in five, and the corpus's route had in fact been starting the game with Protek, its K taken as the high
+  scores' key); S starts; the skill level is a digit held 40 frames. With no Kempston interface J starts at once
+  (port 1F floats high, read as fire). `tests/wasm/games/saboteur.spec.ts` holds the route to the game from the
+  REWARD screen pressed at once and after 37, 150, 400 and 2,500 frames, that the game then answers to M and not the
+  joystick (keys) or the other way round (joystick), and that every control the card names moves the ninja, both ways.
+- **The controls over the screen** (`ui/overlay.ts`, what they say worked out by `ui/howto.ts`): a card of dark glass
+  along the foot of the picture, the game showing through, with the game's name, the way chosen (JOYSTICK, ARROWS,
+  KEYS), how that way reaches the person ("The arrow keys and Left Alt, or a gamepad"; "The pad and FIRE beside the
+  screen" on a touch screen), and each control as its keycaps beside what it does, in as many columns as the picture
+  is wide; for a key map, which key each arrow presses ("← is O · → is P"). It shows by itself for eight seconds of
+  the game (400 frames: it stays while the machine is paused) when play begins, by the Start button or by the person
+  starting the game themselves (the card's route says play is on the screen: `next` gives `done`; looked at every 25
+  frames, so a route's `next` must read the screen and nothing else), once for each game loaded and whenever the
+  Start button gets there. F3, or the small Controls button in the picture's corner, shows it until asked away. Its
+  × closes it and is remembered for the game (`zx-spectrum.controls-closed` in localStorage, every access wrapped):
+  it does not show by itself for that game again, and a toast says F3 shows it. It is sized by the picture
+  (container units): on a phone, upright or sideways, the rows only, two columns, close together, the keys around
+  play left to the panel; a long list scrolls inside it rather than cover more than the picture's lower 62%.
+- **A game with no card** (one found by searching): **How to play**, with ZXDB's controls read out ("The ZXDB says it
+  takes a cursor joystick (5, 6, 7, 8 and 0), a Sinclair joystick or a Kempston joystick"), one honest line ("Most
+  games of the time take a Kempston joystick from their menu: choose it there, then play with the arrow keys and Left
+  Alt", with their keycaps; or, where ZXDB lists other ways and no Kempston, that its own keys are the way, or the
+  joystick it takes chosen in Settings), and the manual's keys where it has a table of them: the instructions as text
+  ("Instructions", TXT, English or no language given, the plain file before a variant) fetched through `/archive`,
+  decoded as Windows-1252, its sections found (a heading underlined, or a short line in capitals), and of those about
+  keys, controls or joysticks the best table read out: rows of a key and what it does, set apart by spaces, a dash, =
+  or :, those naming a Spectrum key (A, SPACE, CAPS SHIFT) counting more than those naming a direction (UP, FIRE).
+  Those keys are outlined on the drawn keyboard, and F3 puts the same over the screen.
 - **Saves**: four slots (the quick slot and 1–3), each with its picture and when it was saved, and explicit Load and
   Save buttons (an empty slot "+ Save here"); Save over a filled slot asks "Replace?" and saves on a second press. F2
   saves to the quick slot, F4 loads it (not while typing in a field or a dialog). A slot is kept in IndexedDB
@@ -727,10 +773,10 @@ code) is already the bar and the set with its tube dark, which the page then swi
 
 | Layer (nerd.toml) | What | How long |
 |---|---|---|
-| `wasm` | crates/wasm's 13 tests of its C interface, natively; then the module in Node (`tests/wasm/`, 18 parts) | 20 s |
+| `wasm` | crates/wasm's 13 tests of its C interface, natively; then the module in Node (`tests/wasm/`: the module's parts, and each card's, `tests/wasm/games/`) | 30 s |
 | `web-types` | `tsc --noEmit` (TypeScript 7), strict, over src, vite.config.ts, server.d.mts | 1 s |
-| `web-unit` | Vitest, 112 tests in 16 files (below) | 5 s |
-| `web-page` | Chrome (playwright-core, `CHROME` with `CHROME_ARGS`, WebGL on the GPU) on the real machine, 32 parts, 4 at a time | 25 s |
+| `web-unit` | Vitest, 148 tests in 20 files (below) | 6 s |
+| `web-page` | Chrome (playwright-core, `CHROME` with `CHROME_ARGS`, WebGL on the GPU) on the real machine, 34 parts, 4 at a time | 30 s |
 | `web-build` | the production build (vite build, the module as tested), served by `server.mjs` on a port of its own, with the smoke test's checks but those needing the network (`tests/build.mjs`) | 8 s |
 
 **wasm**. Natively (`crates/wasm/src/tests.rs`): a model out of range is a null handle and a null handle is harmless;
@@ -751,11 +797,22 @@ trap (under 10); a state to the bit across models, its picture read back, damage
 format; SAVE as a TAP; 600 damaged files refused with a LoadError and no trap; files that would only fill its memory
 refused (zeros as a TAP, a CSW whose 12 KB of Z-RLE inflate to 12 million pulses, a file over 16 MB), the memory grown
 by under 80 MB and the machine running on; its speed in Node (said, not judged: 5,580 frames a second flat out);
-Saboteur at once to its REWARD screen (under 7,500 frames); and Saboteur's start route (`tests/wasm/start.spec.ts`),
-from the REWARD screen at once and after 37, 150, 400 and 2,500 frames, by the keys and by the joystick, to the
-game, which then answers to what was chosen.
+Saboteur at once to its REWARD screen (under 7,500 frames); and each play card held to its game
+(`tests/wasm/games/`, on `helpers.ts`: the game loaded from its own tape as the page loads it, its route driven as the
+page drives it, `responds` asking whether holding a control changes the screen against the same frames with nothing
+held): Saboteur's route from the REWARD screen at once and after 37, 150, 400 and 2,500 frames, by the keys and by the
+joystick, to the game, which then answers to what was chosen and not to the other, and every control it names moving
+the ninja, both ways.
 
-Unit (`web/src/**/*.test.ts`, `web/tests/server.test.mjs`): the key mappings (every typable character, both
+Unit (`web/src/**/*.test.ts`, `web/tests/server.test.mjs`): the play cards (`library/cards.test.ts`: the registry finds
+Saboteur's by its id, padded or not, and none for a game without one; every card in it is for a shelf game, its keys
+Spectrum keys, its joystick's directions and fire, a key map only where it takes no joystick, a route that does not
+throw on a blank screen, its sources addresses); what to press (`ui/howto.test.ts`: a card's controls by the joystick,
+by the keys, on a touch screen, with a gamepad and another fire key, through a key map and its line, with neither;
+SYMBOL SHIFT as Ctrl or Alt; ZXDB's controls read out; the honest line; the manual's table over the screen); the
+controls closed remembered per game, with refusing storage (`ui/overlay.test.ts`); a key map pressing and letting go
+of a game's keys through the feeder (`input/padkeys.test.ts`: two directions on one key, a tap between frames, a key
+the keyboard holds left alone, a map changed or gone); the key mappings (every typable character, both
 mappings, the joystick keys, the arrows as cursor keys at BASIC); the feeder against a model of the ROM's KEYBOARD
 routine (above, with keys whose presses and releases all come in one frame); the scheduler on simulated clocks
 (above, with the sound card stopped and the tab hidden); the file chosen from recorded ZXInfo answers (Saboteur's
@@ -804,8 +861,18 @@ one-pixel PNG), any console error failing the part, the slowest first by nerd's 
 - **Saboteur from the library**: searched, its card, `/archive/pub/sinclair/games/s/Saboteur.tzx.zip` fetched, the
   border only black and red while the game's 38,500 bytes come in, then **the £100 REWARD screen, row 0 and row 23
   exactly, under 9,400 frames after the tape went in (about 9,160), flat out**, the page back at 1×, the cassette labelled
-  Saboteur! with its inlay, on a 48K, its keys (A, Z, N, M, SPACE) on the panel and outlined on the keyboard, the
-  address `?game=4293`; then **Start the mission** (Keys) to the game, its panel on the screen (about 300 frames);
+  Saboteur! with its inlay, on a 48K, its card on the panel (its goal, its keys N, M, A, Z, SPACE in the table), the
+  address `?game=4293`; the joystick chosen at first and no key outlined on the keyboard, A, M, N, SPACE, Z once Keys
+  is chosen; then the start button on the picture (shown while the REWARD screen waits) to the game, by the keys, its
+  panel on the screen (about 300 frames), the button gone; **the controls
+  over the screen** at once, as the keys press them, gone after 9 s of the game; F3 shows them again as the joystick
+  presses them (the arrows, Left Alt), and they stay; F3 hides them; the Controls button shows them; their × closes
+  them and the page remembers it for Saboteur;
+- **a game with no card** (`?game=2514`, International Match Day, on no shelf): no start and no card, ZXDB's controls
+  read out, the honest line, the manual's keys (the test's manual: Q, A, O, P, SPACE) in the panel and outlined on
+  the keyboard, on a 128K; F3 puts them over the screen with the honest line;
+- **a card's key map**: with one in force (left on O, fire on SPACE), the arrow key and Left Alt press O and SPACE, the
+  joystick left at rest, and let them go; with none, left is the joystick's bit 2 again;
 - **a link**: `?game=4293` puts Saboteur in the deck and plays it, its tape, manual and inlay fetched, the game's
   panel with how to start, and Share giving `…/?game=4293`; a .szx saved of it, opened again after a reset, is
   Saboteur! again;
@@ -852,14 +919,14 @@ runs the same against the production build served here, before a deploy.
 ## Pictures
 
 `node tools/pictures.mjs` writes them to `out/` (git-ignored), on the television, Saboteur from its link
-(`?game=4293`), loaded flat out from the fixture cache and started by its panel's Start the mission:
+(`?game=4293`), loaded flat out from the fixture cache and started by its panel's Start the game:
 `out/desktop.png` (1440 × 900, the 48K switched on, the set and the keyboard on the desk), `out/desktop-saboteur-loading.png`
 (the last second of the loading screen at the tape's own speed, its attributes coming in under the black and red
 stripes, the tape bar under the screen, the blue Durell cassette), `out/desktop-saboteur-reward.png` (the £100
 REWARD screen), `out/desktop-saboteur-game.png` (the game: the ninja in the dinghy), `out/desktop-rewind-preview.png`
 (a moment chosen on the strip, PREVIEW on the screen), `out/desktop-paused.png`, `out/desktop-settings.png` (the sheet
-beside the live screen), `out/desktop-saboteur-panel.png` (the game's panel: the inlay, Start the mission, the steps,
-the keys, a save kept, the manual open as a booklet), and on a phone (390 × 844 at 3×): `out/phone.png`,
+beside the live screen), `out/desktop-saboteur-panel.png` (the game's panel: the inlay, the play card, a save kept,
+the manual open as a booklet), and on a phone (390 × 844 at 3×): `out/phone.png`,
 `out/phone-saboteur-loading.png`, `out/phone-saboteur-reward.png`, `out/phone-saboteur-game.png`,
 `out/phone-saboteur-panel.png`, and held sideways, `out/phone-landscape.png`. `node tests/shot.mjs` takes one
 picture as asked.
@@ -868,9 +935,11 @@ picture as asked.
 
 - **Colours are not measured.** No measurement of a real machine's colours could be found; the levels are the
   circuit's (85%). A capture of a real 48K's composite output, decoded, would settle it; the palette is one table.
-- **How to start** (and Start the mission) is worked out for Saboteur alone; other games have their manual's keys and
-  text, but nothing worked out against the game. The manual's table of keys is read by a heuristic: a manual set out
-  unusually shows its text without a table.
+- **Play cards** are written for three shelf games so far (Saboteur, Bubble Bobble, Target: Renegade); the others, and
+  every game found by searching, have ZXDB's controls, their manual's keys and the honest line, but nothing worked
+  out against the game. The manual's table of keys is read by a heuristic: a manual set out unusually (International
+  Match Day's, in prose) shows its text without a table. The page cannot tell which joystick a game was set to at its
+  menu when the person started it themselves: the controls over the screen then follow the panel's choice.
 - **Going back to a moment once a tape has played** costs a replay of the deck's log (33 ms with Saboteur's): the
   state keeps what was done to the tape, not the player's position. The preview no longer pays it (the picture is read
   from the state alone); keeping the player's position in the state would be a change of the state's format.

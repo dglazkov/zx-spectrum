@@ -31,6 +31,10 @@ const PATHS: Readonly<Record<string, string>> = {
   help: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.5a2.6 2.6 0 1 1 3.6 2.4c-.7.3-1.1.9-1.1 1.6v.5M12 17h.01',
   shelf: 'M4 4.5h6v6H4zM14 4.5h6v6h-6zM4 13.5h6v6H4zM14 13.5h6v6h-6z',
   reader: 'M4 6h16M4 10h16M4 14h10M4 18h7',
+  up: 'M12 19V5.5M5.5 12 12 5.5l6.5 6.5',
+  down: 'M12 5v13.5M5.5 12l6.5 6.5 6.5-6.5',
+  left: 'M19 12H5.5M12 5.5 5.5 12l6.5 6.5',
+  right: 'M5 12h13.5M12 5.5l6.5 6.5-6.5 6.5',
 };
 
 /** An icon, sized by CSS (1em by default). */

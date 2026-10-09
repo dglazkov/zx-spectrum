@@ -1800,19 +1800,215 @@ dialog::backdrop {
   color: var(--faint);
 }
 
-/* To start: the steps with their keys as keycaps, and the button that takes the game from its first screen. */
-.game-start {
+/* The play card: what the game is, the goal, the start, the controls, tips, and where it came from. */
+.game-blurb {
   margin: 14px 0 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+  text-wrap: pretty;
 }
 
-.game-start h4,
-.game-keys h4 {
+.game-goal {
+  margin: 12px 0 0;
+  padding: 10px 12px 11px;
+  border-radius: 12px;
+  border: 1px solid rgb(246 197 30 / 0.22);
+  background: rgb(246 197 30 / 0.06);
+}
+
+.game-goal p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.game h4 {
   margin: 0 0 8px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--faint);
+}
+
+.game-goal h4 {
+  margin-bottom: 4px;
+  color: var(--yellow);
+}
+
+.game-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.game-head h4 {
+  margin: 0;
+}
+
+.btn-small {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  gap: 6px;
+}
+
+/* To start: the button that takes the game from its first screen, the way of playing, and the steps by hand. */
+.game-start {
+  margin: 16px 0 0;
+}
+
+.play-with {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.play-with-label {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.start-by-hand {
+  margin-top: 12px;
+}
+
+.start-by-hand summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--muted);
+}
+
+.start-by-hand summary:hover {
+  color: var(--text);
+}
+
+.steps-count {
+  font-weight: 450;
+  color: var(--faint);
+}
+
+.start-go {
+  height: 40px;
+  padding: 0 18px;
+  font-size: 14.5px;
+}
+
+/* The controls: by the joystick and by the game's keys, a row a thing to do. */
+.game-howto,
+.game-tips-block,
+.game-fallback {
+  margin-top: 18px;
+}
+
+.controls-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.controls-table th,
+.controls-table td {
+  padding: 6px 4px;
+  border-top: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.controls-table thead th {
+  border-top: 0;
+  padding-top: 0;
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--faint);
+}
+
+.controls-table tbody th {
+  font-weight: 520;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.controls-table td {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.controls-table tr.extra th {
+  color: var(--muted);
+}
+
+.controls-table .keycap {
+  min-width: 24px;
+  height: 24px;
+}
+
+.controls-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.game-tips {
+  margin: 0;
+  padding: 0 0 0 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.game-tips li::marker {
+  color: var(--yellow);
+}
+
+.game-sources {
+  margin: 16px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--faint);
+}
+
+.game-sources a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.game-sources a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+/* A game with no card: what the ZXDB and its manual say, and the joystick's honest line. */
+.game-fallback p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.fallback-said {
+  color: var(--muted);
+}
+
+.fallback-honest .caps {
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
+.game-keys h5 {
+  margin: 4px 0 6px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--muted);
 }
 
 .start-row {
@@ -1901,34 +2097,6 @@ dialog::backdrop {
   letter-spacing: 0.02em;
   vertical-align: 1px;
   white-space: nowrap;
-}
-
-.key-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-  gap: 6px;
-}
-
-.key-tile {
-  display: grid;
-  justify-items: center;
-  gap: 5px;
-  padding: 8px 6px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: rgb(255 255 255 / 0.025);
-  font-size: 11.5px;
-  color: var(--muted);
-  text-align: center;
-}
-
-.key-joystick {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 2px 0 0;
-  font-size: 12.5px;
-  color: var(--muted);
 }
 
 .game-keys {
@@ -2281,6 +2449,382 @@ dialog::backdrop {
 
 .osd[data-kind='paused'] {
   top: 44%;
+}
+
+/* --- The game's controls over the screen (ui/overlay.ts) -------------------------------------------------------- */
+
+/* A layer the picture's size, sized by it: what is in it is sized by the picture too (container units). */
+.controls-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  container-type: size;
+  pointer-events: none;
+  line-height: 1.35;
+}
+
+body[data-display='tv'] .controls-layer {
+  inset: 14px;
+}
+
+/* Along the foot of the picture: dark glass the game shows through, never over the top two thirds. */
+.controls-overlay {
+  position: absolute;
+  left: 2.5cqw;
+  right: 2.5cqw;
+  bottom: 2.5cqw;
+  max-height: 62cqh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.2) transparent;
+  display: grid;
+  gap: 0.7em;
+  padding: 0.85em 1em 0.8em;
+  border-radius: 1em;
+  border: 1px solid rgb(255 255 255 / 0.13);
+  background: rgb(9 9 12 / 0.86);
+  backdrop-filter: blur(8px) saturate(0.7);
+  box-shadow: 0 18px 40px -16px rgb(0 0 0 / 0.9);
+  color: var(--text);
+  font-size: clamp(10.5px, 1.55cqw, 15px);
+  pointer-events: auto;
+  user-select: none;
+}
+
+.controls-overlay.entering {
+  animation: ov-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Never from nothing: where a page's frames stall, the card is there all the same. */
+@keyframes ov-in {
+  from {
+    opacity: 0.35;
+    translate: 0 0.8em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .controls-overlay.entering {
+    animation: none;
+  }
+}
+
+.ov-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em 0.9em;
+  flex-wrap: wrap;
+  padding-right: 2em;
+}
+
+.ov-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+}
+
+.ov-label .icon {
+  align-self: center;
+  color: var(--yellow);
+}
+
+.ov-title {
+  font-weight: 760;
+  font-stretch: 92%;
+  font-size: 1.08em;
+}
+
+.ov-mode {
+  padding: 0.1em 0.55em;
+  border-radius: 999px;
+  background: rgb(246 197 30 / 0.16);
+  color: var(--yellow);
+  font-size: 0.82em;
+  font-weight: 720;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ov-how {
+  color: var(--muted);
+  font-size: 0.92em;
+}
+
+.ov-close {
+  position: absolute;
+  top: 0.55em;
+  right: 0.55em;
+  display: grid;
+  place-items: center;
+  width: 2em;
+  height: 2em;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.08);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.ov-close:hover {
+  background: rgb(255 255 255 / 0.16);
+  color: var(--text);
+}
+
+.ov-close .icon {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.ov-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16.5em), 1fr));
+  gap: 0.45em 1.2em;
+}
+
+.ov-row {
+  display: grid;
+  grid-template-columns: minmax(8.2em, max-content) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6em;
+  min-width: 0;
+}
+
+.ov-row .caps {
+  justify-content: flex-end;
+}
+
+.ov-does {
+  font-size: 0.95em;
+  line-height: 1.2;
+}
+
+.ov-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.3em 1em;
+  font-size: 0.85em;
+  color: var(--faint);
+}
+
+.ov-note {
+  margin: 0;
+  color: var(--muted);
+}
+
+.controls-overlay .keycap {
+  min-width: 1.85em;
+  height: 1.85em;
+  padding: 0 0.45em;
+  border-radius: 0.38em;
+  font-size: 0.9em;
+}
+
+/* The picture small (a phone, upright or sideways): the rows only, close together, the words around them left to the
+   panel, so that as much of the play shows as can. */
+@container (max-width: 600px) {
+  .controls-overlay {
+    left: 1.5cqw;
+    right: 1.5cqw;
+    bottom: 1.5cqw;
+    gap: 0.4em;
+    padding: 0.5em 0.6em 0.55em;
+    border-radius: 0.8em;
+    font-size: 10px;
+  }
+
+  .ov-head {
+    padding-right: 1.8em;
+  }
+
+  .ov-how,
+  .ov-hint {
+    display: none;
+  }
+
+  .ov-close {
+    top: 0.35em;
+    right: 0.35em;
+  }
+
+  .ov-rows {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.25em 0.6em;
+  }
+
+  .ov-row {
+    grid-template-columns: minmax(6.6em, max-content) minmax(0, 1fr);
+    gap: 0.4em;
+  }
+
+  /* The keys around play (pause, quit) are the panel's here: the room is for play. */
+  .ov-row.extra {
+    display: none;
+  }
+
+  .ov-does {
+    line-height: 1.12;
+  }
+
+  .controls-overlay .keycap {
+    min-width: 1.7em;
+    height: 1.7em;
+  }
+}
+
+/* The way in, on the picture, while the game's first screen waits: the panel's Start button, where the eye is. */
+.start-prompt {
+  position: absolute;
+  left: 50%;
+  bottom: 5cqh;
+  translate: -50% 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+  max-width: 92cqw;
+  padding: 0.7em 1.2em 0.7em 1em;
+  border: 0;
+  border-radius: 999px;
+  background: var(--text);
+  color: #111014;
+  box-shadow: 0 0 0 0.35em rgb(237 233 225 / 0.18), 0 16px 36px -12px rgb(0 0 0 / 0.9);
+  font-size: clamp(12px, 1.6cqw, 16px);
+  text-align: left;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: ov-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.start-prompt:hover {
+  background: #fff;
+}
+
+.start-prompt .icon {
+  width: 1.3em;
+  height: 1.3em;
+}
+
+.sp-text {
+  display: grid;
+  line-height: 1.2;
+}
+
+.sp-text strong {
+  font-size: 1.1em;
+  font-weight: 760;
+}
+
+.sp-hint {
+  font-size: 0.82em;
+  color: #4a4650;
+}
+
+@container (max-width: 600px) {
+  .sp-hint {
+    display: none;
+  }
+
+  .start-prompt {
+    padding: 0.6em 1em 0.6em 0.85em;
+  }
+}
+
+/* The small button that shows them, in the picture's corner: quiet until the screen is pointed at. */
+.controls-button {
+  position: absolute;
+  top: 2cqw;
+  right: 2cqw;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  height: 2.2em;
+  padding: 0 0.8em 0 0.65em;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  background: rgb(9 9 12 / 0.62);
+  backdrop-filter: blur(6px);
+  color: var(--text);
+  font-size: clamp(11px, 1.3cqw, 13px);
+  font-weight: 650;
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 0.5;
+  transition: opacity 0.2s, background 0.2s;
+}
+
+.screen-wrap:hover .controls-button,
+.controls-button:focus-visible,
+.controls-button.on {
+  opacity: 1;
+}
+
+.controls-button:hover {
+  background: rgb(30 30 36 / 0.85);
+}
+
+.controls-button.on {
+  border-color: rgb(246 197 30 / 0.5);
+  color: var(--yellow);
+}
+
+@media (pointer: coarse) {
+  .controls-button {
+    opacity: 0.85;
+  }
+}
+
+@container (max-width: 600px) {
+  .cb-label {
+    display: none;
+  }
+
+  .controls-button {
+    width: 2.5em;
+    height: 2.5em;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+/* Keycaps held together: an arrow, the fire key (red, as the joystick's button), a key. */
+.caps {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.2em;
+}
+
+.caps-plus {
+  color: var(--faint);
+  font-size: 0.85em;
+  font-weight: 700;
+}
+
+.caps.none {
+  color: var(--faint);
+}
+
+.keycap.arrow .icon {
+  width: 1.05em;
+  height: 1.05em;
+}
+
+.keycap.arrow .icon path {
+  stroke-width: 2.6;
+}
+
+.controls-table .caps,
+.ov-row .caps {
+  flex-wrap: nowrap;
+}
+
+.keycap.fire {
+  background: linear-gradient(180deg, #d9473c, #a8261d);
+  box-shadow: 0 2px 0 #4f120d, inset 0 1px 0 rgb(255 255 255 / 0.2);
 }
 
 /* A moment chosen on the strip: its picture a little drained, so that it is not taken for the live one. */
@@ -2650,6 +3194,10 @@ body.fullscreen .stage {
     border-radius: 11px;
   }
 
+  body[data-display='tv'] .controls-layer {
+    inset: 6px;
+  }
+
   .veil {
     padding: 6px 11px;
     font-size: 12px;
@@ -2732,6 +3280,10 @@ body.fullscreen .stage {
 
   body[data-display='tv'] .screen {
     border-radius: 11px;
+  }
+
+  body[data-display='tv'] .controls-layer {
+    inset: 6px;
   }
 
   .main-col {
