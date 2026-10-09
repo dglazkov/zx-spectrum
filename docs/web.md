@@ -730,7 +730,7 @@ code) is already the bar and the set with its tube dark, which the page then swi
 | `wasm` | crates/wasm's 13 tests of its C interface, natively; then the module in Node (`tests/wasm/`, 18 parts) | 20 s |
 | `web-types` | `tsc --noEmit` (TypeScript 7), strict, over src, vite.config.ts, server.d.mts | 1 s |
 | `web-unit` | Vitest, 112 tests in 16 files (below) | 5 s |
-| `web-page` | Chrome (playwright-core, `/usr/bin/google-chrome`, SwiftShader WebGL) on the real machine, 32 parts, 4 at a time | 70 s |
+| `web-page` | Chrome (playwright-core, `CHROME` with `CHROME_ARGS`, WebGL on the GPU) on the real machine, 32 parts, 4 at a time | 25 s |
 | `web-build` | the production build (vite build, the module as tested), served by `server.mjs` on a port of its own, with the smoke test's checks but those needing the network (`tests/build.mjs`) | 8 s |
 
 **wasm**. Natively (`crates/wasm/src/tests.rs`): a model out of range is a null handle and a null handle is harmless;
@@ -890,7 +890,7 @@ picture as asked.
 - The television has no phosphor persistence (afterglow) and no interlace jitter (the Spectrum is not interlaced).
 - The search shows only Available entries (the API's filter); a person cannot browse what is listed but not
   loadable. Disk images (+3 DSK) and microdrive cartridges are not loaded, as the machine has no drive.
-- The page test draws WebGL in software (SwiftShader); the television shader's look is checked by eye (the
+- The page test draws WebGL on the GPU (nerd's `CHROME_ARGS`); the television shader's look is checked by eye (the
   pictures), not by test, beyond rendering without errors and being bright at the centre. Flat out under the test's
   clock runs 160 frames a refresh (the page's own cap, the clock not moving within a refresh), so Saboteur's 9,200
   frames take some 10 s of the wall's time there, most of it Playwright moving the clock.

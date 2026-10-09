@@ -79,7 +79,7 @@ export async function smoke(url, { network = true, log = console.log } = {}) {
   });
 
   await check('the page starts the real machine in Chrome, with no errors, and it is the machine the tests passed', async () => {
-    const browser = await chromium.launch({ executablePath: process.env.CHROME ?? '/usr/bin/google-chrome', args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+    const browser = await chromium.launch({ executablePath: process.env.CHROME ?? '/usr/bin/google-chrome', args: [...(process.env.CHROME_ARGS ?? '').split(' ').filter(Boolean)] });
     try {
       const page = await browser.newPage();
       const problems = [];

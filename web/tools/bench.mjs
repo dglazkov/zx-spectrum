@@ -3,7 +3,7 @@
 // tape flat out from the fixture cache (as the accelerated style does). A measurement, judged by no test: the machine
 // is shared, and what else runs on it shows in the numbers.
 //
-//   node tools/bench.mjs [--frames 3000] [--json]       CHROME says which Chrome (/usr/bin/google-chrome)
+//   node tools/bench.mjs [--frames 3000] [--json]       CHROME and CHROME_ARGS say which Chrome and its flags
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -32,7 +32,7 @@ try {
 
 const server = await createServer({ root, server: { port: 0 }, logLevel: 'error' });
 await server.listen();
-const browser = await chromium.launch({ executablePath: process.env.CHROME ?? '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+const browser = await chromium.launch({ executablePath: process.env.CHROME ?? '/usr/bin/google-chrome', args: [...(process.env.CHROME_ARGS ?? '').split(' ').filter(Boolean)] });
 try {
   const page = await browser.newPage();
   await page.goto(`${server.resolvedUrls.local[0]}favicon.svg`);

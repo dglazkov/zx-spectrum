@@ -8,7 +8,7 @@
 // moved on by the test: frames are counted, not waited for. Any console error fails a part. Each part is reported to
 // nerd ($NERD_REPORT); one whose fixture cannot be had says it was skipped.
 //
-//   node tests/page.mjs [words in a part's name...]      CHROME says which Chrome (/usr/bin/google-chrome)
+//   node tests/page.mjs [words in a part's name...]      CHROME and CHROME_ARGS say which Chrome and its flags
 
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
@@ -120,7 +120,7 @@ await server.listen();
 const base = server.resolvedUrls.local[0];
 const browser = await chromium.launch({
   executablePath: process.env.CHROME ?? '/usr/bin/google-chrome',
-  args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=user-gesture-required'],
+  args: [...(process.env.CHROME_ARGS ?? '').split(' ').filter(Boolean), '--autoplay-policy=user-gesture-required'],
 });
 
 let failed = 0;

@@ -91,8 +91,8 @@ limit = "1m"
 # snapshots, rewind and its preview, a SAVE as a TAP named for itself, a breakpoint, the Kempston across a power-on, a
 # frame that throws and the machine started again, files refused, the machine that will not start, the warm-up,
 # settings, sound, a phone upright and sideways; any console error fails a part. Four parts at a time, the slowest
-# first, each reported; those a change cannot touch are skipped. About 80 s; WebGL is drawn in software (SwiftShader),
-# and Saboteur's 9,200 frames are the longest part.
+# first, each reported; those a change cannot touch are skipped. About 25 s; Chrome is launched from nerd's CHROME and
+# CHROME_ARGS, so WebGL is drawn on the GPU, and Saboteur's 9,200 frames are the longest part.
 [[test]]
 name = "web-page"
 run = "cd web && node tests/page.mjs"

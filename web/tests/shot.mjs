@@ -26,7 +26,7 @@ const server = await createServer({ root, server: { port: 0 }, logLevel: 'error'
 await server.listen();
 const browser = await chromium.launch({
   executablePath: process.env.CHROME ?? '/usr/bin/google-chrome',
-  args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+  args: [...(process.env.CHROME_ARGS ?? '').split(' ').filter(Boolean)],
 });
 try {
   const context = await browser.newContext(
