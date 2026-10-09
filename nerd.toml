@@ -67,6 +67,14 @@ covers = ["crates/wasm/**", "crates/spectrum/src/**", "crates/z80/src/**", "crat
 limit = "3m"
 
 # The page (web/, docs/web.md): its TypeScript checked whole, in a second or two.
+# The play cards (web/src/library/games/): each shelf game loaded from its own tape on the WebAssembly machine,
+# started as its card says, and its controls tried (web/tests/wasm/games/). A few seconds a game.
+[[test]]
+name = "cards"
+run = "bash scripts/build-wasm.sh && cd web && npx vitest run -c vitest.cards.config.ts"
+covers = ["web/src/library/**", "web/src/emulator/wasm.ts", "web/src/emulator/emulator.ts", "web/src/emulator/keys.ts", "web/tests/wasm/games/**", "web/vitest.cards.config.ts", "crates/spectrum/src/**", "crates/z80/src/**", "crates/tape/src/**", "crates/wasm/src/**", "fixtures.txt"]
+limit = "4m"
+
 [[test]]
 name = "web-types"
 run = "cd web && npm run --silent typecheck"
