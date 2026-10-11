@@ -70,6 +70,8 @@ web/
   tools/bench.mjs              frames a second of the wasm build in Chrome, by model and loading a tape flat out
   tools/pictures.mjs           the pictures (below)
   tests/page.mjs               the page test in Chrome;  shot.mjs a picture;  smoke.mjs a running server
+  tests/page/                  its harness (harness.mjs) and its parts, a file an area: machine, keys, tapes, library,
+                               state, phone; a change to one file runs its parts alone
   tests/build.mjs              the production build, served by server.mjs, with the smoke test's checks
   tests/wasm/wasm.spec.ts      the module in Node, held to the native build;  nerd-reporter.mjs its parts to nerd
   tests/wasm/games/            each card held to its game on the module (helpers.ts; saboteur.spec.ts, ...): its route
@@ -838,11 +840,12 @@ it, no listener left behind), and a client asking too often (refused past its bu
 goes on). The
 fixtures (`web/tests/fixtures/zxinfo/`) are the API's own answers, which ZXInfo's metadata licence lets us keep.
 
-Page (`web/tests/page.mjs`), the machine built first, each part on fresh pages with `?sound=off` (but the two about
-sound), time moved by the test through Playwright's `page.clock` (paused once the page is ready), the network
-answered from recordings (searches and entries; the archive with Saboteur's real tape, manual and inlay from the
-fixture cache, or a tape the test makes: a BASIC loader, `10 LOAD ""SCREEN$`, and a screen; pictures with a
-one-pixel PNG), any console error failing the part, the slowest first by nerd's record of them:
+Page (`web/tests/page.mjs`, running the harness and the parts in `web/tests/page/`), the machine built first, each
+part on fresh pages with `?sound=off` (but the two about sound), time moved by the test through Playwright's
+`page.clock` (paused once the page is ready), the network answered from recordings (searches and entries; the archive
+with Saboteur's real tape, manual and inlay from the fixture cache, or a tape the test makes: a BASIC loader,
+`10 LOAD ""SCREEN$`, and a screen; pictures with a one-pixel PNG), any console error failing the part, the slowest
+first by nerd's record of them:
 
 - ready on the real machine in WebGL 2 with 40 keys and 27 shelf cards; the stand-in still running for `?emulator=stub`;
   the module refused (its fetch failing): the page says it would not start, with Try again, and runs no stand-in;
