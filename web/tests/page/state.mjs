@@ -124,6 +124,31 @@ test('a breakpoint stops the machine, and the inspector shows where, disassemble
   return stopped.code.split('\n')[0].trim();
 });
 
+test('the keyboard button is lit while the keyboard shows, puts it away and brings it back, and is remembered', ['web/src/keyboard/keyboard.ts'], async () => {
+  const page = await open();
+  const state = () =>
+    page.evaluate(() => ({
+      pressed: document.querySelector('.tools button:has(.icon-keyboard)').getAttribute('aria-pressed'),
+      lit: getComputedStyle(document.querySelector('.tools button:has(.icon-keyboard)')).color,
+      shown: getComputedStyle(document.querySelector('.keyboard-wrap')).display !== 'none',
+    }));
+  const on = await state();
+  assert(on.pressed === 'true' && on.shown, `at first: ${JSON.stringify(on)}`);
+  await page.click('.tools button:has(.icon-keyboard)');
+  const off = await state();
+  assert(off.pressed === 'false' && !off.shown && off.lit !== on.lit, `put away: ${JSON.stringify(off)}, lit ${on.lit} before`);
+  await page.reload();
+  await page.waitForSelector('body[data-ready]', { state: 'attached' });
+  const remembered = await state();
+  assert(remembered.pressed === 'false' && !remembered.shown, `after a reload: ${JSON.stringify(remembered)}`);
+  await page.click('.tools button:has(.icon-keyboard)');
+  const back = await state();
+  assert(back.pressed === 'true' && back.shown && back.lit === on.lit, `brought back: ${JSON.stringify(back)}`);
+  clean(page);
+  await page.context().close();
+  return `lit ${on.lit}, put away ${off.lit}`;
+});
+
 test('remembers its settings across a reload', ['web/src/state/settings.ts', 'web/src/ui/settings.ts'], async () => {
   const page = await open();
   await page.locator('.display .seg', { hasText: 'Sharp' }).click();

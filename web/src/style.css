@@ -219,6 +219,17 @@ select {
   padding: 0;
 }
 
+/* A button that is on (the keyboard shown), lit as a chosen segment is. */
+.btn[aria-pressed='true'] {
+  background: var(--text);
+  color: #111014;
+  border-color: transparent;
+}
+
+.btn[aria-pressed='true']:hover {
+  background: #fff;
+}
+
 .segmented {
   display: inline-flex;
   padding: 3px;

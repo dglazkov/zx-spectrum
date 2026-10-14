@@ -181,6 +181,7 @@ export class App {
   private langMenu!: HTMLElement;
   private keysChip!: HTMLElement;
   private soundButton!: HTMLButtonElement;
+  private keyboardButton!: HTMLButtonElement;
   private pauseButton!: HTMLButtonElement;
   private fileInput!: HTMLInputElement;
   private screenWrap!: HTMLElement;
@@ -677,6 +678,8 @@ export class App {
     document.body.dataset.display = this.settings.display;
     if (!this.settings.ambient) document.documentElement.style.removeProperty('--ambient');
     document.body.classList.toggle('no-keyboard', !this.settings.keyboard);
+    // Its button lit while it shows, so that a keyboard put away is seen to be, and where to get it back.
+    this.keyboardButton.setAttribute('aria-pressed', String(this.settings.keyboard));
     this.resize();
   }
 
@@ -1411,7 +1414,7 @@ export class App {
       this.pauseButton,
       this.displayControl.el,
       this.soundButton,
-      button({ icon: 'keyboard', title: m('Show or hide the keyboard'), className: 'hide-narrow', onClick: () => this.change({ keyboard: !this.settings.keyboard }) }),
+      (this.keyboardButton = button({ icon: 'keyboard', title: m('Show or hide the keyboard'), className: 'hide-narrow', onClick: () => this.change({ keyboard: !this.settings.keyboard }) })),
       button({ icon: 'open', label: m('Open'), title: m('Open a tape, a snapshot or a screen'), onClick: () => fileInput.click() }),
       h('div', { class: 'menu-host' }, snapButton, snapMenu),
       button({ icon: 'fullscreen', title: m('The screen as large as the display'), onClick: () => void this.toggleFullscreen() }),
