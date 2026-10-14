@@ -17,7 +17,7 @@
 // it remembers that it has, for the drive it is in, by the choice the drive was given (a fresh one for each Start), from
 // the moment it presses at PLAYER 1 OPTIONS.
 
-import type { GameCard } from '../card';
+import type { CardWords, GameCard } from '../card';
 import type { Route, Screen, StartChoice } from '../start';
 
 /** The screen's ink, row by row: a cell with anything in it is '#', an empty one ' ' (trailing spaces dropped). */
@@ -144,4 +144,45 @@ export const card: GameCard = {
     { title: 'Crash 52, May 1988: the review (Internet Archive)', url: 'https://archive.org/stream/crash-magazine-52/Crash_52_May_1988_djvu.txt' },
     { title: 'The map of all five scenes, by Pavero (Spectrum Computing)', url: 'https://spectrumcomputing.co.uk/pub/sinclair/games-maps/t/TargetRenegade_2.png' },
   ],
+};
+
+/** The card's words in Russian, by their English (i18n.ts). */
+export const ru: CardWords = {
+  'The sequel to Renegade. Mr Big’s gang has murdered your brother Matt, and you go after Mr Big through the worst of Scumville, on foot and with your fists. It is a side-on street brawl through five scenes, each with its own gang: a multi-storey car park, a street at night, a park, a shopping mall, and Mr Big’s bar. One player, or two fighting side by side.':
+    'Продолжение игры Renegade. Банда мистера Бига убила вашего брата Мэтта, и вы идёте за мистером Бигом через самые опасные кварталы Скамвилла — пешком и с голыми кулаками. Уличная драка с видом сбоку проходит в пять этапов, и на каждом — своя банда: многоэтажная автостоянка, ночная улица, парк, торговый центр и бар мистера Бига. Играть можно одному или вдвоём, плечом к плечу.',
+  'Fight your way through all five scenes to Mr Big and beat him. You have three lives, and an energy bar that every blow you take shortens.':
+    'Пробейтесь через все пять этапов к мистеру Бигу и одолейте его. У вас три жизни и полоска энергии, которая укорачивается с каждым пропущенным ударом.',
+  'The bikers in the car park ride straight at you, and a punch will not stop them: meet each one with a jump kick (fire and up) as he reaches you. It knocks him off his bike for 500 points; a few seconds later he gets up to fight on foot.':
+    'Мотоциклисты на автостоянке едут прямо на вас, и удар кулаком их не остановит: встречайте каждого ударом ногой в прыжке («огонь» и «вверх»), когда он поравняется с вами. Так вы собьёте его с мотоцикла и получите 500 очков; через несколько секунд он поднимется и полезет в драку пешком.',
+  'The clock under the scores starts at 6:00 and keeps running when you lose a life, so keep moving.':
+    'Часы под очками начинают с 6:00 и идут дальше, даже когда вы теряете жизнь, так что не стойте на месте.',
+  'Up close, fire and the way you are facing grabs an enemy, and fire then knees him. When one is down, stand over him and press fire and down.':
+    'Вплотную «огонь» вместе с направлением, куда вы смотрите, хватает противника, а следующий «огонь» бьёт его коленом. Когда противник упал, встаньте над ним и нажмите «огонь» и «вниз».',
+  'Knock down an enemy who carries a club and pick up what he drops with fire: hitting with a weapon scores more than your fists.':
+    'Собейте с ног противника с дубинкой и подберите то, что он выронит, нажав «огонь»: удар оружием приносит больше очков, чем кулаком.',
+  'Walk left': 'Идти влево',
+  'Walk right': 'Идти вправо',
+  'Walk up the street': 'Идти вверх по улице',
+  'Walk down the street': 'Идти вниз по улице',
+  'Punch; knee a held enemy; pick up or use a weapon': 'Удар кулаком; схваченного — коленом; взять или применить оружие',
+  'Punch or grab (fire and the way you face)': 'Удар кулаком или захват («огонь» и туда, куда смотрите)',
+  'Back kick (fire and away from the way you face)': 'Удар ногой назад («огонь» и в обратную сторону)',
+  'Jump kick': 'Удар ногой в прыжке',
+  'Jump kick forward': 'Удар ногой в прыжке вперёд',
+  'Hit an enemy on the floor': 'Удар по лежачему противнику',
+  'Pause; any other key carries on': 'Пауза; любая другая клавиша — продолжить',
+  'At the menu: music on or off': 'В меню: включить или выключить музыку',
+  'If the high scores are showing, press any key for the menu. The menu takes a key when you let it go, so hold each one a moment.':
+    'Если на экране таблица рекордов, нажмите любую клавишу, чтобы перейти в меню. Меню принимает клавишу, когда её отпускают, поэтому придерживайте каждую на мгновение.',
+  'Press 3 for CONTROL OPTIONS. For player 1 press 3 KEMPSTON to play with the joystick (the arrow keys and Left Alt, a gamepad, or the touch pad), or 1 KEYBOARD to play with the keys. Then press 1 for player 2.':
+    'Нажмите 3 — CONTROL OPTIONS. Для первого игрока нажмите 3 KEMPSTON, чтобы играть джойстиком (стрелки и левый Alt, геймпад или экранная крестовина), или 1 KEYBOARD, чтобы играть на клавиатуре. Затем нажмите 1 для второго игрока.',
+  'Back at the menu, press 1 for a one-player game. You start on floor 2 of the car park, and the clock starts at 6:00.':
+    'Вернувшись в меню, нажмите 1 — игра для одного. Вы начинаете на втором этаже автостоянки, а часы начинают отсчёт с 6:00.',
+  'A few seconds in, the first biker rides at you from the right: jump-kick him (fire and up) as he reaches you, or he knocks you flat.':
+    'Через несколько секунд справа на вас помчится первый мотоциклист: ударьте его ногой в прыжке («огонь» и «вверх»), когда он поравняется с вами, иначе он собьёт вас с ног.',
+  'The instructions from the cassette inlay, as text (Spectrum Computing)': 'Инструкция с вкладыша кассеты, текстом (Spectrum Computing)',
+  'The cassette inlay, back (Spectrum Computing)': 'Вкладыш кассеты, обратная сторона (Spectrum Computing)',
+  'Target: Renegade in the ZXDB (Spectrum Computing)': 'Target: Renegade в ZXDB (Spectrum Computing)',
+  'Crash 52, May 1988: the review (Internet Archive)': 'Журнал Crash, № 52, май 1988 года: рецензия (Internet Archive)',
+  'The map of all five scenes, by Pavero (Spectrum Computing)': 'Карта всех пяти этапов, автор — Pavero (Spectrum Computing)',
 };

@@ -12,6 +12,7 @@
 // every call refuses, and `revive()` makes a new instance of the same module (the page puts back where it was).
 
 import wasmUrl from './zx.wasm?url';
+import { t, t as translate } from '../i18n/i18n';
 import {
   FRAME_HEIGHT,
   FRAME_WIDTH,
@@ -116,7 +117,7 @@ let compiled: Promise<WebAssembly.Module> | null = null;
 function compile(): Promise<WebAssembly.Module> {
   compiled ??= (async () => {
     const response = await fetch(wasmUrl);
-    if (!response.ok) throw new Error(`could not fetch the emulator (${response.status})`);
+    if (!response.ok) throw new Error(t('could not fetch the emulator ({status})', { status: response.status }));
     // A server that does not say application/wasm cannot be streamed from: compiled from its bytes instead.
     if (typeof WebAssembly.compileStreaming === 'function' && (response.headers.get('content-type') ?? '').startsWith('application/wasm')) {
       return WebAssembly.compileStreaming(response);
@@ -170,7 +171,7 @@ export class WasmEmulator implements Emulator {
     this.fresh = fresh;
     this.x = exports;
     this.h = exports.zx_new(MODEL_IDS.indexOf(model));
-    if (!this.h) throw new Error('the emulator would not start');
+    if (!this.h) throw new Error(t('the emulator would not start'));
     this.bytes8 = new Uint8Array(exports.memory.buffer);
     this.applyOptions();
     const self = this;
@@ -212,7 +213,7 @@ export class WasmEmulator implements Emulator {
 
   /** A call into the module: refused while it is dead, and a trap in it kills it. */
   private call<T>(f: (x: ZxExports) => T): T {
-    if (this.deadBecause) throw new EmulatorStopped(`The machine stopped: ${this.deadBecause}`);
+    if (this.deadBecause) throw new EmulatorStopped(t('The machine stopped: {why}', { why: this.deadBecause }));
     try {
       return f(this.x);
     } catch (e) {
@@ -229,11 +230,11 @@ export class WasmEmulator implements Emulator {
    * it had. The tape and the moment are the page's to put back (it keeps both). The old instance's memory is let go.
    */
   async revive(): Promise<void> {
-    if (!this.fresh) throw new Error('this emulator cannot be started again');
+    if (!this.fresh) throw new Error(t('this emulator cannot be started again'));
     const model = this.deadBecause ? '48k' : this.model;
     const x = await this.fresh();
     const h = x.zx_new(MODEL_IDS.indexOf(model));
-    if (!h) throw new Error('the emulator would not start');
+    if (!h) throw new Error(t('the emulator would not start'));
     this.x = x;
     this.h = h;
     this.bytes8 = new Uint8Array(x.memory.buffer);
@@ -355,7 +356,7 @@ export class WasmEmulator implements Emulator {
 
   load(bytes: Uint8Array, name: string): LoadResult {
     // Refused before it is copied in: the module's memory, once grown, is never given back.
-    if (bytes.length > MAX_FILE) throw new LoadError(`${name} is ${Math.round(bytes.length / 1048576)} MB, larger than any Spectrum file (16 MB at most).`);
+    if (bytes.length > MAX_FILE) throw new LoadError(t('{name} is {size} MB, larger than any Spectrum file (16 MB at most).', { name, size: Math.round(bytes.length / 1048576) }));
     const nameBytes = this.encoder.encode(name);
     const code = this.withBytes(bytes, (ptr, len) => this.withBytes(nameBytes, (np, nl) => this.call((x) => x.zx_load(this.h, ptr, len, np, nl))));
     // Whatever was refused, the deck may have changed (a tape taken out for the new one): its list is asked again.
@@ -476,6 +477,6 @@ export class WasmEmulator implements Emulator {
 /** A message as the page shows it: a capital, a full stop. */
 function sentence(s: string): string {
   const t = s.trim();
-  if (!t) return 'The emulator could not do that.';
+  if (!t) return translate('The emulator could not do that.');
   return `${t[0].toUpperCase()}${t.slice(1)}${/[.!?]$/.test(t) ? '' : '.'}`;
 }

@@ -2,6 +2,7 @@
 // through the emulator and kept up to date while it is open; breakpoints, a step and a POKE, as the magazines printed
 // them for infinite lives.
 
+import { m, onLanguage, t } from '../i18n/i18n';
 import type { Emulator } from '../emulator/emulator';
 import { h } from './dom';
 
@@ -32,24 +33,26 @@ export function parseNumber(s: string, hexByDefault = false): number {
 }
 
 export function createInspector(hooks: InspectorHooks): Inspector {
-  const regs = h('dl', { class: 'regs' });
-  const code = h('pre', { class: 'dump code', 'aria-label': 'The code at PC' });
-  const dump = h('pre', { class: 'dump', 'aria-label': 'Memory' });
-  const at = h('input', { class: 'hex-input', value: '5C00', maxlength: 4, spellcheck: 'false', 'aria-label': 'Address, in hex' });
+  // The machine's own words: its registers, its code and its memory, as the Z80 names them.
+  const regs = h('dl', { class: 'regs', translate: 'no' });
+  const code = h('pre', { class: 'dump code', 'aria-label': m('The code at PC'), translate: 'no' });
+  const dump = h('pre', { class: 'dump', 'aria-label': m('Memory'), translate: 'no' });
+  const at = h('input', { class: 'hex-input', value: '5C00', maxlength: 4, spellcheck: 'false', 'aria-label': m('Address, in hex') });
 
   // Running and stopping.
-  const pauseButton = h('button', { type: 'button', class: 'btn' }, 'Pause');
-  const stepButton = h('button', { type: 'button', class: 'btn', title: 'Run one instruction' }, 'Step');
+  const pauseButton = h('button', { type: 'button', class: 'btn' }, t('Pause'));
+  const stepButton = h('button', { type: 'button', class: 'btn', title: m('Run one instruction') }, m('Step'));
   pauseButton.addEventListener('click', () => (hooks.paused() ? hooks.resume() : hooks.pause()));
+  onLanguage(() => (pauseButton.textContent = hooks.paused() ? t('Run') : t('Pause')));
   stepButton.addEventListener('click', () => hooks.step());
-  const bpAt = h('input', { class: 'hex-input', placeholder: '8000', maxlength: 5, spellcheck: 'false', 'aria-label': 'Breakpoint address, in hex' });
-  const bpAdd = h('button', { type: 'button', class: 'btn' }, 'Break at');
+  const bpAt = h('input', { class: 'hex-input', placeholder: '8000', maxlength: 5, spellcheck: 'false', 'aria-label': m('Breakpoint address, in hex') });
+  const bpAdd = h('button', { type: 'button', class: 'btn' }, m('Break at'));
   const bpList = h('div', { class: 'bp-list' });
   const drawBreakpoints = () => {
     const e = hooks.emulator();
     bpList.replaceChildren(
       ...e.breakpoints().map((a) => {
-        const b = h('button', { type: 'button', class: 'chip bp', title: 'Remove this breakpoint' }, `${hex(a, 4)} ×`);
+        const b = h('button', { type: 'button', class: 'chip bp', title: m('Remove this breakpoint') }, `${hex(a, 4)} ×`);
         b.addEventListener('click', () => {
           e.setBreakpoints(e.breakpoints().filter((x) => x !== a));
           drawBreakpoints();
@@ -67,15 +70,15 @@ export function createInspector(hooks: InspectorHooks): Inspector {
     drawBreakpoints();
   });
 
-  const pokeAt = h('input', { class: 'hex-input', placeholder: '23560', 'aria-label': 'POKE address' });
-  const pokeValue = h('input', { class: 'hex-input', placeholder: '0', 'aria-label': 'POKE value' });
-  const poke = h('button', { type: 'button', class: 'btn' }, 'POKE');
+  const pokeAt = h('input', { class: 'hex-input', placeholder: '23560', 'aria-label': m('POKE address') });
+  const pokeValue = h('input', { class: 'hex-input', placeholder: '0', 'aria-label': m('POKE value') });
+  const poke = h('button', { type: 'button', class: 'btn', translate: 'no' }, 'POKE');
   const said = h('span', { class: 'poke-said' });
   poke.addEventListener('click', () => {
     const a = parseNumber(pokeAt.value);
     const v = parseNumber(pokeValue.value);
     if (!Number.isInteger(a) || a < 0 || a > 0xffff || !Number.isInteger(v) || v < 0 || v > 255) {
-      said.textContent = 'An address 0–65535 and a value 0–255';
+      said.textContent = t('An address 0–65535 and a value 0–255');
       return;
     }
     hooks.emulator().poke(a, v);
@@ -88,7 +91,7 @@ export function createInspector(hooks: InspectorHooks): Inspector {
     h('div', { class: 'poke run' }, pauseButton, stepButton, bpAt, bpAdd, bpList),
     regs,
     code,
-    h('div', { class: 'dump-head' }, h('label', {}, 'Memory at ', at)),
+    h('div', { class: 'dump-head' }, h('label', {}, m('Memory at'), ' ', at)),
     dump,
     h('div', { class: 'poke' }, pokeAt, pokeValue, poke, said),
   );
@@ -99,7 +102,7 @@ export function createInspector(hooks: InspectorHooks): Inspector {
     update() {
       const e = hooks.emulator();
       const r = e.registers();
-      pauseButton.textContent = hooks.paused() ? 'Run' : 'Pause';
+      pauseButton.textContent = hooks.paused() ? t('Run') : t('Pause');
       const bps = e.breakpoints().join();
       if (bps !== shownBreakpoints) {
         shownBreakpoints = bps;

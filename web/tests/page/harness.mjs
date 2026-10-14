@@ -140,6 +140,8 @@ async function open(options = {}) {
   const context = await browser.newContext({
     ...(options.phone ? { viewport: options.viewport ?? { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true } : { viewport: { width: 1440, height: 900 }, acceptDownloads: true }),
     ...(options.reducedMotion ? { reducedMotion: 'reduce' } : {}),
+    // The browser's language (navigator.languages), which the page opens in when nothing else says (i18n.ts).
+    ...(options.locale ? { locale: options.locale } : {}),
     permissions: ['clipboard-read', 'clipboard-write'],
   });
   const page = await context.newPage();

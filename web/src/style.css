@@ -17,6 +17,16 @@
   font-style: italic;
   font-display: swap;
 }
+/* Russian's letters: Archivo has none, so they are Golos Text's (its Cyrillic alone, fetched only for a page that has
+   Russian on it: docs/russian.md). */
+@font-face {
+  font-family: 'Golos Text';
+  src: url('./fonts/golos-text-cyrillic.woff2') format('woff2');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
 
 :root {
   color-scheme: dark;
@@ -35,7 +45,7 @@
   --focus: #5cc8f0;
   --ambient: 40 38 48;
   --radius: 16px;
-  --font: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  --font: 'Archivo', 'Golos Text', ui-sans-serif, system-ui, sans-serif;
   --gutter: 28px;
   --bar-h: 64px;
   /* The warm white of progress: one fill, not the rainbow (that is the case's, and the mark's). */
@@ -113,7 +123,9 @@ select {
 .bar {
   position: sticky;
   top: 0;
-  z-index: 20;
+  /* Over Settings' sheet (40), which opens under it, so that the bar's menus (the snapshot's, the language's) drop
+     over the sheet; under a file dropped (50) and the news (60). */
+  z-index: 45;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -281,6 +293,54 @@ select {
 
 .menu-item:hover {
   background: rgb(255 255 255 / 0.07);
+}
+
+/* The language: a globe and the two letters of the one spoken, as a Mac's menu bar shows its input; its menu has each
+   language in its own words, a tick by the one spoken. */
+.lang-button {
+  gap: 6px;
+  padding: 0 8px 0 9px;
+}
+
+.lang-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--text);
+  color: #111014;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.lang-menu {
+  min-width: 190px;
+  padding: 5px;
+}
+
+.lang-menu .menu-item {
+  gap: 8px;
+  padding: 8px 10px 8px 6px;
+}
+
+.lang-menu .icon-check {
+  width: 14px;
+  height: 14px;
+  visibility: hidden;
+}
+
+.lang-menu .menu-item[aria-checked='true'] {
+  background: rgb(255 255 255 / 0.08);
+  font-weight: 600;
+}
+
+.lang-menu .menu-item[aria-checked='true'] .icon-check {
+  visibility: visible;
 }
 
 /* --- The stage: the screen and the keyboard, and beside them the deck and the library -------------------------- */

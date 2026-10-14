@@ -31,6 +31,8 @@ export interface Settings {
   calmStripes: 'auto' | 'on' | 'off';
   /** The drawn keyboard is shown. */
   keyboard: boolean;
+  /** The language chosen ('en', 'ru'), or '' for none yet: the browser's, then (i18n.ts's pickLanguage). */
+  language: string;
 }
 
 export const DEFAULTS: Readonly<Settings> = {
@@ -52,6 +54,7 @@ export const DEFAULTS: Readonly<Settings> = {
   levelSound: true,
   calmStripes: 'auto',
   keyboard: true,
+  language: '',
 };
 
 const KEY = 'zx-spectrum.settings';

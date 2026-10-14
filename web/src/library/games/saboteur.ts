@@ -10,7 +10,7 @@
 // J starts at once: port 1F then floats high, which the game reads as fire held.) The screens are told apart by their
 // attributes: a highlighted menu item flashes.
 
-import type { GameCard } from '../card';
+import type { CardWords, GameCard } from '../card';
 import { flashing, rowIs, type Route } from '../start';
 
 const start: Route = {
@@ -75,4 +75,38 @@ export const card: GameCard = {
     { title: 'The cassette inlay (Spectrum Computing)', url: 'https://spectrumcomputing.co.uk/zxdb/sinclair/entries/0004293/Saboteur.jpg' },
     { title: 'Saboteur! in the ZXDB (Spectrum Computing)', url: 'https://spectrumcomputing.co.uk/entry/4293' },
   ],
+};
+
+/** The card's words in Russian, by their English (i18n.ts). */
+export const ru: CardWords = {
+  'You are a ninja for hire, put ashore at night by rubber dinghy below a warehouse that hides a security centre. Somewhere underneath it is a disk naming the rebel leaders. Guards, dogs and wall-mounted guns stand between you and it, and the only way out is the helicopter on the roof.':
+    'Вы — наёмный ниндзя. Ночью резиновая лодка высаживает вас у склада, под которым скрыт центр охраны. Где-то внизу хранится диск с именами лидеров повстанцев. Между вами и диском — охранники, собаки и пушки на стенах, а выбраться можно только на вертолёте с крыши.',
+  'Reach the disk before the clock runs out, then get to the helicopter on the roof and fly away. For the biggest pay, find the time-bomb, leave it where the disk lay, and escape before it goes off.':
+    'Доберитесь до диска, пока не вышло время, затем поднимитесь к вертолёту на крыше и улетайте. Чтобы заработать больше всего, найдите бомбу с часовым механизмом, оставьте её на месте диска и скройтесь до взрыва.',
+  'You begin in the sea: swim right to the jetty and press up just as you pass under one of its posts to climb out.':
+    'Вы начинаете в море: плывите вправо к пристани и нажмите «вверх» точно под одной из её свай, чтобы выбраться.',
+  'Standing still slowly refills your energy, the red bar under your pay: rest after a fight, and duck to let a knife or a bullet fly over you.':
+    'Пока вы стоите на месте, медленно восполняется энергия — красная полоса под суммой денег: отдыхайте после драки и пригибайтесь, чтобы нож или пуля пролетели над вами.',
+  'A punch or a kick kills a guard outright and pays five times what a thrown weapon does. Dogs pay nothing: jump over them.':
+    'Удар рукой или ногой убивает охранника сразу и приносит впятеро больше, чем брошенное оружие. За собак не платят: перепрыгивайте их.',
+  'Some doors open only from a computer terminal: stand by one (it shows in the NEAR box) and press fire.':
+    'Некоторые двери открываются только с компьютерного терминала: встаньте рядом с ним (он появится в окошке NEAR) и нажмите «огонь».',
+  'Walk or swim left': 'Идти или плыть влево',
+  'Walk or swim right': 'Идти или плыть вправо',
+  'Climb up; kick when standing': 'Лезть вверх; стоя — удар ногой',
+  'Climb down; duck when standing': 'Лезть вниз; стоя — пригнуться',
+  'Jump: up with left or right': 'Прыжок: вверх вместе с «влево» или «вправо»',
+  'Punch; pick up, use or throw': 'Удар рукой; взять, применить или бросить',
+  'Throw high (with down: low)': 'Бросок вверх (с «вниз» — низом)',
+  'At the £100 REWARD screen press any key, and another at the high scores.':
+    'На экране £100 REWARD нажмите любую клавишу, и ещё одну — на таблице рекордов.',
+  'At the menu press K for the keyboard, or J for the Kempston joystick (the arrow keys and Left Alt, a gamepad, or the touch pad). P PROTEK, the menu’s own choice, is a cursor joystick on 5, 6, 7, 8 and 0.':
+    'В меню нажмите K, чтобы играть на клавиатуре, или J — для джойстика Kempston (стрелки и левый Alt, геймпад или экранная крестовина). P PROTEK, выбранный в меню изначально, — курсорный джойстик на клавишах 5, 6, 7, 8 и 0.',
+  'S starts the mission. Hold a skill level, 1–9, down until the mission is announced: the menu reads keys between the notes of its tune, so a quick tap is missed.':
+    'S начинает задание. Удерживайте уровень сложности, 1–9, пока задание не объявят: меню читает клавиши между нотами своей мелодии, и короткое нажатие пропадает.',
+  'The ninja leaps from the dinghy into the sea. Swim right to the jetty and press up as you pass under one of its posts to climb out: the post takes only an exact line-up, so swim back and try again if you pass it.':
+    'Ниндзя прыгает из лодки в море. Плывите вправо к пристани и нажмите «вверх» под одной из её свай, чтобы выбраться: нужно оказаться точно под сваей, так что если проплыли мимо, вернитесь и попробуйте снова.',
+  'The instructions from the cassette inlay, as text (Spectrum Computing)': 'Инструкция с вкладыша кассеты, текстом (Spectrum Computing)',
+  'The cassette inlay (Spectrum Computing)': 'Вкладыш кассеты (Spectrum Computing)',
+  'Saboteur! in the ZXDB (Spectrum Computing)': 'Saboteur! в ZXDB (Spectrum Computing)',
 };

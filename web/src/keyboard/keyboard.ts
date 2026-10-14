@@ -10,6 +10,7 @@
 // they are wide, to press with a thumb, their main legends only. The keys a game uses can be marked (outlined), as
 // the overlays some games came with marked them.
 
+import { m } from '../i18n/i18n';
 import { KEY } from '../emulator/keys';
 import { capture, s } from '../ui/dom';
 import { ARROWS, COLOUR_NAMES, GEOMETRY, LEGENDS, type KeyLegend } from './legends';
@@ -174,7 +175,8 @@ export interface KeyboardView {
  * held across the next key.
  */
 export function createKeyboard(press: (code: number, down: boolean) => void): KeyboardView {
-  const svg = s('svg', { class: 'zx-keyboard', role: 'group', 'aria-label': 'The ZX Spectrum keyboard' });
+  // The machine's own keyboard: its legends are Sinclair's, in no language but BASIC's.
+  const svg = s('svg', { class: 'zx-keyboard', role: 'group', 'aria-label': m('The ZX Spectrum keyboard'), translate: 'no' });
   const keys = new Map<number, SVGGElement>();
   const latched = new Set<number>();
   const lit = new Set<number>();

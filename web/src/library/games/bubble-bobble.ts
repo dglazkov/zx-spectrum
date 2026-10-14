@@ -20,7 +20,7 @@
 // (an option the other player took is rubbed out), and by their attributes. The title's prompt flashes; the game's
 // top line (1UP HIGH SCORE 2UP), ROUND, READY ! and GAME OVER are in the ROM's font.
 
-import type { GameCard } from '../card';
+import type { CardWords, GameCard } from '../card';
 import type { Route, Screen } from '../start';
 
 /** The rows of the control menu's options: 1 KEYBOARD, 2 SINCLAIR, 3 KEMPSTON, 4 CURSOR TYPE. */
@@ -133,4 +133,44 @@ export const card: GameCard = {
     { title: 'The reviews of the time: Crash 45, Sinclair User 68, The Games Machine 3 (ZX Spectrum Reviews)', url: 'http://www.zxspectrumreviews.co.uk/api/title/722' },
     { title: 'Bubble Bobble, the arcade game (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Bubble_Bobble' },
   ],
+};
+
+/** The card's words in Russian, by their English (i18n.ts). */
+export const ru: CardWords = {
+  'Taito’s arcade favourite, brought to the Spectrum by Software Creations for Firebird. You are Bub, a little dinosaur who fights by blowing bubbles: catch a monster in one, burst it, and the monster turns into fruit or other food worth points. A hundred single-screen caves to clear, and a friend can play alongside as Bob.':
+    'Знаменитая игра Taito с игровых автоматов, перенесённая на Спектрум студией Software Creations для фирмы Firebird. Вы — Баб, маленький динозаврик, который сражается мыльными пузырями: поймайте чудище в пузырь, лопните его — и чудище превратится во фрукт или другое угощение, за которое дают очки. Впереди сто пещер, каждая на одном экране, а друг может играть рядом с вами за Боба.',
+  'Clear each cave by trapping every monster in a bubble and bursting it, then on to the next. There are a hundred, with the biggest monster of all in the last, and beyond it the girlfriends Bub and Bob set out to find.':
+    'Очистите каждую пещеру: поймайте всех чудищ в пузыри и лопните их, а затем переходите к следующей. Всего пещер сто, в последней ждёт самое большое чудище, а за ней — подружки, на поиски которых отправились Баб и Боб.',
+  'Bubbles fly only a short way before they float up, so get close to a monster before you blow.':
+    'Пузыри летят совсем недалеко, а потом всплывают вверх, так что подойдите к чудищу поближе, прежде чем выдуть пузырь.',
+  'Burst a trapped monster quickly, by walking into its bubble or jumping against it: left too long, it breaks free, angrier than before.':
+    'Лопайте пойманное чудище поскорее — войдите в его пузырь или прыгните на него: если промедлить, оно вырвется на свободу и станет злее прежнего.',
+  'Burst several monsters at once: it pays far more, and brings out bubbles with the letters of EXTEND. All six give you an extra life.':
+    'Лопайте несколько чудищ сразу: за это дают намного больше очков, и появляются пузыри с буквами слова EXTEND. Соберите все шесть букв — получите дополнительную жизнь.',
+  'Do not dawdle: take too long over a cave and Baron von Blubba comes for you, and nothing kills him. Hold jump to bounce along on top of bubbles.':
+    'Не мешкайте: если задержитесь в пещере, за вами придёт барон фон Блабба, а его ничем не убить. Удерживайте прыжок, чтобы скакать по пузырям сверху.',
+  'Walk left': 'Идти влево',
+  'Walk right': 'Идти вправо',
+  'Jump (up through a ledge; held, bounce on bubbles)': 'Прыжок (вверх сквозь уступ; если держать — скакать по пузырям)',
+  'Blow a bubble': 'Выдуть пузырь',
+  'Pause, once the round’s monsters are in (the border turns green)': 'Пауза, когда все чудища уже в пещере (бордюр станет зелёным)',
+  'Carry on after a pause': 'Продолжить после паузы',
+  'Give up the game (BREAK), once the monsters are in: back to the title': 'Прервать игру (BREAK), когда чудища уже в пещере: возврат на заставку',
+  'At the title: a game for two, Bob walking on 6 and 7, jumping on 9 and blowing on 0':
+    'На заставке: игра вдвоём; Боб ходит клавишами 6 и 7, прыгает на 9 и выдувает пузыри на 0',
+  'When the game has loaded it asks how player 1 will play: 3 for the Kempston joystick (the arrow keys and Left Alt, a gamepad, or the touch pad), or 1 for the keyboard.':
+    'Когда игра загрузится, она спросит, как будет играть первый игрок: нажмите 3 для джойстика Kempston (стрелки и левый Alt, геймпад или экранная крестовина) или 1 — для клавиатуры.',
+  'The keyboard has no keys of its own: the game asks for one for each move in turn, LEFT, RIGHT, FIRE and JUMP (O, P, SPACE and Q, say). Y at ALL OK ? keeps them, and N asks again.':
+    'Готовых клавиш для клавиатуры в игре нет: она по очереди спросит клавишу для каждого движения — LEFT, RIGHT, FIRE и JUMP (например, O, P, SPACE и Q). На вопрос ALL OK ? нажмите Y, чтобы их оставить, или N, чтобы выбрать заново.',
+  'It asks the same for player 2, without player 1’s choice. 2, the Sinclair joystick, puts player 2 on the keys 6 and 7 to walk, 9 to jump and 0 to blow.':
+    'Затем то же самое спросят для второго игрока — уже без того, что выбрал первый. Если нажать 2 (джойстик Sinclair), второй игрок будет ходить клавишами 6 и 7, прыгать на 9 и выдувать пузыри на 0.',
+  'At the title, 1 OR 2 TO PLAY, press 1 for one player or 2 for two. The controls stay as they were chosen until the game is loaded again.':
+    'На заставке с надписью 1 OR 2 TO PLAY нажмите 1, чтобы играть одному, или 2 — чтобы играть вдвоём. Выбранное управление останется, пока игру не загрузят заново.',
+  'The instructions from the box, scanned (Spectrum Computing)': 'Инструкция из коробки, отсканированная (Spectrum Computing)',
+  'Notes on the game, as text (Spectrum Computing)': 'Заметки об игре, текстом (Spectrum Computing)',
+  'The cassette inlay (Spectrum Computing)': 'Вкладыш кассеты (Spectrum Computing)',
+  'Bubble Bobble in the ZXDB (Spectrum Computing)': 'Bubble Bobble в ZXDB (Spectrum Computing)',
+  'The reviews of the time: Crash 45, Sinclair User 68, The Games Machine 3 (ZX Spectrum Reviews)':
+    'Рецензии в журналах тех лет: Crash 45, Sinclair User 68, The Games Machine 3 (ZX Spectrum Reviews)',
+  'Bubble Bobble, the arcade game (Wikipedia)': 'Bubble Bobble, игровой автомат («Википедия»)',
 };

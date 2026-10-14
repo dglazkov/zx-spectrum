@@ -1,6 +1,7 @@
 // Touch controls for phones: a pad (eight ways, by where the thumb is from its centre) and a fire button, which are
 // the joystick, and SPACE and ENTER, which games ask for between lives.
 
+import { m } from '../i18n/i18n';
 import { JOY } from '../emulator/emulator';
 import { ENTER, SPACE } from '../emulator/keys';
 import { capture, h } from './dom';
@@ -15,7 +16,7 @@ export function createTouchPad(onBits: (bits: number) => void, onKey: (code: num
   const send = () => onBits(pad | fire);
 
   const thumb = h('div', { class: 'pad-thumb' });
-  const ring = h('div', { class: 'pad', role: 'group', 'aria-label': 'Joystick' }, h('span', { class: 'pad-arrow up' }), h('span', { class: 'pad-arrow down' }), h('span', { class: 'pad-arrow left' }), h('span', { class: 'pad-arrow right' }), thumb);
+  const ring = h('div', { class: 'pad', role: 'group', 'aria-label': m('Joystick') }, h('span', { class: 'pad-arrow up' }), h('span', { class: 'pad-arrow down' }), h('span', { class: 'pad-arrow left' }), h('span', { class: 'pad-arrow right' }), thumb);
   const aim = (e: PointerEvent) => {
     const r = ring.getBoundingClientRect();
     const dx = e.clientX - (r.left + r.width / 2);
@@ -66,10 +67,11 @@ export function createTouchPad(onBits: (bits: number) => void, onKey: (code: num
     el.addEventListener('pointerup', end);
     el.addEventListener('pointercancel', end);
   };
-  const fireButton = h('button', { type: 'button', class: 'pad-fire', 'aria-label': 'Fire' }, 'FIRE');
+  const fireButton = h('button', { type: 'button', class: 'pad-fire', 'aria-label': m('Fire') }, m('FIRE'));
   hold(fireButton, () => ((fire = JOY.fire), send()), () => ((fire = 0), send()));
+  // SPACE and ENTER are the Spectrum's keys, named as it names them.
   const key = (label: string, code: number) => {
-    const b = h('button', { type: 'button', class: 'pad-key' }, label);
+    const b = h('button', { type: 'button', class: 'pad-key', translate: 'no' }, label);
     hold(b, () => onKey(code, true), () => onKey(code, false));
     return b;
   };

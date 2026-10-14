@@ -22,6 +22,7 @@ try {
   await import('./page/library.mjs');
   await import('./page/state.mjs');
   await import('./page/phone.mjs');
+  await import('./page/language.mjs');
   await runAll(4);
 } finally {
   await browser.close();

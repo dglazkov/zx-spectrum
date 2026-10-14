@@ -3,6 +3,7 @@
 // set), and gone at a press of its ×. The picture shows through it, and it never stays long over play unless asked.
 // While a game with a card shows its first screen, the way in is on the picture too: a button that starts it.
 
+import { m, say, textOf, type Words } from '../i18n/i18n';
 import type { Cap, HowTo, Press } from './howto';
 import { h } from './dom';
 import { icon } from './icons';
@@ -23,7 +24,7 @@ export interface ControlsOverlay {
   /** Whether there is a game to show the controls of: the button shows only then. */
   available(on: boolean): void;
   /** The button on the picture that starts the game, with what it says under it; null: none. */
-  prompt(hint: string | null): void;
+  prompt(hint: Words | null): void;
 }
 
 export interface OverlayHooks {
@@ -36,6 +37,9 @@ export interface OverlayHooks {
 }
 
 const ARROW_ICONS: Readonly<Record<string, string>> = { '↑': 'up', '↓': 'down', '←': 'left', '→': 'right' };
+
+/** The ways of playing (howto.ts's HowTo.mode), as the card's head says them. */
+const MODES: Readonly<Record<string, Words>> = { Joystick: m('Joystick'), Arrows: m('Arrows'), Keys: m('Keys'), Controls: m('Controls') };
 
 /** Keycaps held together, joined by a plus; or (`together` false) keycaps side by side, any of them. */
 export function caps(press: Press, together = true): HTMLElement {
@@ -54,7 +58,7 @@ export function createOverlay(hooks: OverlayHooks, touch = false): ControlsOverl
   const mode = h('span', { class: 'ov-mode' });
   const title = h('strong', { class: 'ov-title' });
   const how = h('span', { class: 'ov-how' });
-  const close = h('button', { type: 'button', class: 'ov-close', 'aria-label': 'Close, and do not show by itself for this game again', title: 'Close (it will not show by itself for this game again; F3 shows it)' }, icon('close'));
+  const close = h('button', { type: 'button', class: 'ov-close', 'aria-label': m('Close, and do not show by itself for this game again'), title: m('Close (it will not show by itself for this game again; F3 shows it)') }, icon('close'));
   close.addEventListener('click', () => hooks.dismissed());
   const stepList = h('ol', { class: 'ov-steps', hidden: true });
   const list = h('ul', { class: 'ov-rows' });
@@ -62,7 +66,7 @@ export function createOverlay(hooks: OverlayHooks, touch = false): ControlsOverl
   const hint = h('span', { class: 'ov-hint' });
   const card = h(
     'section',
-    { class: 'controls-overlay', 'aria-label': 'The game’s controls', role: 'region', hidden: true },
+    { class: 'controls-overlay', 'aria-label': m('The game’s controls'), role: 'region', hidden: true },
     h('header', { class: 'ov-head' }, h('span', { class: 'ov-label' }, icon('joystick'), title, mode), how, close),
     stepList,
     list,
@@ -70,10 +74,10 @@ export function createOverlay(hooks: OverlayHooks, touch = false): ControlsOverl
   );
   card.addEventListener('contextmenu', (e) => e.preventDefault());
 
-  const button = h('button', { type: 'button', class: 'controls-button', title: touch ? 'The game’s controls' : 'The game’s controls (F3)', 'aria-label': 'The game’s controls', 'aria-expanded': 'false', hidden: true }, icon('joystick'), h('span', { class: 'cb-label' }, 'Controls'));
+  const button = h('button', { type: 'button', class: 'controls-button', title: touch ? m('The game’s controls') : m('The game’s controls (F3)'), 'aria-label': m('The game’s controls'), 'aria-expanded': 'false', hidden: true }, icon('joystick'), h('span', { class: 'cb-label' }, m('Controls')));
   button.addEventListener('click', () => hooks.toggle());
   const promptHint = h('span', { class: 'sp-hint' });
-  const startPrompt = h('button', { type: 'button', class: 'start-prompt', hidden: true }, icon('play'), h('span', { class: 'sp-text' }, h('strong', {}, 'Start the game'), promptHint));
+  const startPrompt = h('button', { type: 'button', class: 'start-prompt', hidden: true }, icon('play'), h('span', { class: 'sp-text' }, h('strong', {}, m('Start the game')), promptHint));
   startPrompt.addEventListener('click', () => hooks.start());
   const el = h('div', { class: 'controls-layer' }, card, startPrompt, button);
 
@@ -81,7 +85,8 @@ export function createOverlay(hooks: OverlayHooks, touch = false): ControlsOverl
 
   const fill = (howto: HowTo, name: string) => {
     title.textContent = name;
-    mode.textContent = howto.mode;
+    title.translate = false;
+    mode.textContent = say(MODES[howto.mode] ?? howto.mode);
     how.textContent = howto.how;
     // A start by hand: its steps first, the keys they name as keycaps.
     const steps = howto.steps ?? [];
@@ -108,8 +113,8 @@ export function createOverlay(hooks: OverlayHooks, touch = false): ControlsOverl
       shown = true;
       card.hidden = false;
       card.classList.toggle('auto', auto);
-      const again = touch ? 'the Controls button' : 'F3';
-      hint.textContent = auto ? `It goes in a moment: ${again} brings it back.` : `${touch ? 'The Controls button' : 'F3'} hides it.`;
+      const words = auto ? (touch ? m('It goes in a moment: the Controls button brings it back.') : m('It goes in a moment: F3 brings it back.')) : touch ? m('The Controls button hides it.') : m('F3 hides it.');
+      hint.replaceChildren(textOf(words));
       button.classList.add('on');
       button.setAttribute('aria-expanded', 'true');
       // Shown afresh: the entrance plays again.
@@ -132,7 +137,7 @@ export function createOverlay(hooks: OverlayHooks, touch = false): ControlsOverl
     },
     prompt(hint) {
       startPrompt.hidden = hint === null;
-      promptHint.textContent = hint ?? '';
+      promptHint.replaceChildren(hint === null ? '' : textOf(hint));
     },
   };
 }

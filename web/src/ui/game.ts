@@ -6,6 +6,7 @@
 // keys where one is found, and one honest line about the joystick. Then save slots of its own, and the whole manual,
 // set as a booklet, folded.
 
+import { language, m, Msg, onLanguage, say, t, textOf, type Words } from '../i18n/i18n';
 import { isByHand, type GameCard } from '../library/card';
 import type { Manual } from '../library/manual';
 import type { StartChoice } from '../library/start';
@@ -14,7 +15,7 @@ import { SLOTS, THUMB_HEIGHT, THUMB_WIDTH } from '../state/saves';
 import { FRAME_HEIGHT, FRAME_WIDTH } from '../emulator/emulator';
 import { segmented } from './controls';
 import { h } from './dom';
-import { controlsTable, fireName, hasJoystick, joystickLine, keyCaps, padCaps, zxdbLine, type Hands } from './howto';
+import { controlsTable, fireName, hasJoystick, joystickLine, keyCaps, padCaps, zxdbLine, zxdbName, type Hands } from './howto';
 import { icon } from './icons';
 import { caps } from './overlay';
 
@@ -22,8 +23,8 @@ export interface GameInfo {
   /** The saves' key: `zxdb:<id>`, `file:<name>`, ... */
   readonly key: string;
   readonly title: string;
-  /** "1985 · Durell Software Ltd · 48K" */
-  readonly meta: string;
+  /** "1985 · Durell Software Ltd · 48K", or the page's words for a file opened. */
+  readonly meta: Words;
   /** The inlay's picture, as an address to show. */
   readonly inlay: string | null;
   /** The address that loads it straight away (a ZXDB entry's), to share. */
@@ -48,7 +49,7 @@ export interface GamePanel {
   /** How the joystick reaches the person changed (the fire key, a gamepad plugged in): the controls said again. */
   hands(hands: Hands): void;
   /** The manual: coming, here, or not to be had (a message). */
-  manual(manual: 'loading' | Manual | string): void;
+  manual(manual: 'loading' | Manual | Words): void;
   /** The game's save slots (null: empty), and the palette to draw their pictures in. */
   slots(slots: readonly (Slot | null)[], palette: Uint8Array): void;
   /** Where starting the game stands, for its button. */
@@ -69,7 +70,8 @@ export interface GameHooks {
   showControls(): void;
 }
 
-const SLOT_NAMES = ['Quick', 'Slot 1', 'Slot 2', 'Slot 3'];
+/** A slot's name on its picture: the quick slot's, or a numbered one's. */
+const slotName = (i: number) => (i ? t('Slot {n}', { n: i }) : t('Quick'));
 
 /** A slot's picture: the paper and a little border, small, through the palette (a whole frame from an older page, sampled). */
 function thumbnail(picture: Uint8Array, palette: Uint8Array): HTMLCanvasElement {
@@ -94,16 +96,18 @@ function thumbnail(picture: Uint8Array, palette: Uint8Array): HTMLCanvasElement 
   return canvas;
 }
 
-function when(t: number): string {
-  const d = new Date(t);
+function when(time: number): string {
+  const d = new Date(time);
   const today = new Date();
-  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  return d.toDateString() === today.toDateString() ? time : `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })} ${time}`;
+  // In the page's language: the browser's own way for English, Russian's for Russian.
+  const locale = language() === 'en' ? [] : language();
+  const clock = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  return d.toDateString() === today.toDateString() ? clock : `${d.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} ${clock}`;
 }
 
 /** A key as a keycap: 'any' reads "any key". */
 function keycap(name: string): HTMLElement {
-  return h('kbd', { class: `keycap${name.length > 2 ? ' wide' : ''}` }, name === 'any' ? 'any key' : name);
+  return h('kbd', { class: `keycap${name.length > 2 ? ' wide' : ''}` }, name === 'any' ? m('any key') : name);
 }
 
 /** Text with each named key in it (as the route's steps name them) set as a keycap. */
@@ -191,72 +195,73 @@ export function booklet(text: string): HTMLElement[] {
 
 
 /** A section's heading, small capitals as the panel's others. */
-const heading = (text: string, ...more: (Node | string)[]) => h('div', { class: 'game-head' }, h('h4', {}, text), ...more);
+const heading = (text: Words, ...more: (Node | string)[]) => h('div', { class: 'game-head' }, h('h4', {}, text), ...more);
 
 export function createGamePanel(hooks: GameHooks): GamePanel {
   const inlay = h('img', { class: 'game-inlay', alt: '', decoding: 'async', hidden: true });
   inlay.addEventListener('error', () => (inlay.hidden = true));
-  const title = h('h3', { class: 'game-title' });
+  const title = h('h3', { class: 'game-title', translate: 'no' });
   const meta = h('p', { class: 'game-meta' });
   const controls = h('p', { class: 'game-controls' });
-  const share = h('button', { type: 'button', class: 'btn', title: 'A link that loads this game straight away' }, icon('share'), h('span', { class: 'btn-label' }, 'Share'));
+  const share = h('button', { type: 'button', class: 'btn', title: m('A link that loads this game straight away') }, icon('share'), h('span', { class: 'btn-label' }, m('Share')));
   share.addEventListener('click', () => hooks.share());
 
   // What the game is, and what you are trying to do in it.
   const blurb = h('p', { class: 'game-blurb' });
   const goalText = h('p', {});
-  const goal = h('div', { class: 'game-goal' }, h('h4', {}, 'Your goal'), goalText);
+  const goal = h('div', { class: 'game-goal' }, h('h4', {}, m('Your goal')), goalText);
 
   // Starting it.
   const steps = h('ol', { class: 'start-steps' });
   let skill = 1;
-  const skillSelect = h('select', { class: 'select skill', 'aria-label': 'Skill level' });
+  const skillSelect = h('select', { class: 'select skill', 'aria-label': m('Skill level') });
   skillSelect.addEventListener('change', () => (skill = Number(skillSelect.value)));
   let joystick = true;
-  const joystickChoice = { value: 'joystick' as const, label: 'Joystick', title: 'The arrow keys and the fire key (Left Alt), a gamepad, or the touch pad' };
-  const keysChoice = { value: 'keys' as const, label: 'Keys', title: 'The game’s own keys' };
+  const joystickChoice = { value: 'joystick' as const, label: m('Joystick'), title: m('The arrow keys and the fire key (Left Alt), a gamepad, or the touch pad') };
+  const keysChoice = { value: 'keys' as const, label: m('Keys'), title: m('The game’s own keys') };
   const choose = (v: 'keys' | 'joystick') => {
     joystick = v === 'joystick';
     hooks.chose({ joystick, skill });
   };
-  let how = segmented<'keys' | 'joystick'>('Play with', [joystickChoice, keysChoice], 'joystick', choose, 'start-how');
-  const startLabel = h('span', { class: 'btn-label' }, 'Start the game');
+  let how = segmented<'keys' | 'joystick'>(m('Play with'), [joystickChoice, keysChoice], 'joystick', choose, 'start-how');
+  const startLabel = h('span', { class: 'btn-label' }, m('Start the game'));
   const startButton = h('button', { type: 'button', class: 'btn btn-primary start-go' }, icon('play'), startLabel);
   startButton.addEventListener('click', () => hooks.start({ joystick, skill }));
   const startStatus = h('p', { class: 'start-status', role: 'status' });
-  const skillLabel = h('label', { class: 'skill-label' }, 'Skill ', skillSelect);
-  const playWith = h('div', { class: 'play-with' }, h('span', { class: 'play-with-label' }, 'Play with'), how.el);
+  const skillLabel = h('label', { class: 'skill-label' }, m('Skill'), ' ', skillSelect);
+  const playWith = h('div', { class: 'play-with' }, h('span', { class: 'play-with-label' }, m('Play with')), how.el);
   const starter = h('div', { class: 'start-row' }, startButton, skillLabel);
   // The steps by hand, folded: the button does them; they open by themselves when it could not.
   const stepsCount = h('span', { class: 'steps-count' });
-  const byHand = h('details', { class: 'start-by-hand' }, h('summary', {}, 'Step by step, by hand', stepsCount), steps);
+  const byHand = h('details', { class: 'start-by-hand' }, h('summary', {}, m('Step by step, by hand'), stepsCount), steps);
   const start = h('div', { class: 'game-start' }, starter, playWith, startStatus, byHand);
 
   // The controls: a table by the joystick and by the keys, the keys around play, and the key map's line.
-  const onScreen = h('button', { type: 'button', class: 'btn btn-small', title: 'Show them over the screen (F3)' }, icon('screen'), h('span', { class: 'btn-label' }, 'On the screen'));
+  const onScreen = h('button', { type: 'button', class: 'btn btn-small', title: m('Show them over the screen (F3)') }, icon('screen'), h('span', { class: 'btn-label' }, m('On the screen')));
   onScreen.addEventListener('click', () => hooks.showControls());
   const table = h('table', { class: 'controls-table' });
   const mapNote = h('p', { class: 'controls-note' });
-  const howto = h('div', { class: 'game-howto' }, heading('Controls', onScreen), table, mapNote);
+  const howto = h('div', { class: 'game-howto' }, heading(m('Controls'), onScreen), table, mapNote);
   const tips = h('ul', { class: 'game-tips' });
-  const tipsBlock = h('div', { class: 'game-tips-block' }, h('h4', {}, 'Tips'), tips);
+  const tipsBlock = h('div', { class: 'game-tips-block' }, h('h4', {}, m('Tips')), tips);
   const sources = h('p', { class: 'game-sources' });
 
   // A game with no card: what is known.
   const said = h('p', { class: 'fallback-said' });
   const honest = h('p', { class: 'fallback-honest' });
   const keys = h('div', { class: 'game-keys' });
-  const fallback = h('div', { class: 'game-fallback' }, h('h4', {}, 'How to play'), said, honest, keys);
+  const fallback = h('div', { class: 'game-fallback' }, h('h4', {}, m('How to play')), said, honest, keys);
 
-  const text = h('div', { class: 'manual-text booklet' });
+  // The manual is the archive's, in the language it was written in.
+  const text = h('div', { class: 'manual-text booklet', translate: 'no' });
   const manualStatus = h('p', { class: 'manual-status' });
-  const manual = h('details', { class: 'manual' }, h('summary', {}, 'The manual'), manualStatus, text);
-  const slotRow = h('div', { class: 'slots', role: 'group', 'aria-label': 'Save slots' });
+  const manual = h('details', { class: 'manual' }, h('summary', {}, m('The manual')), manualStatus, text);
+  const slotRow = h('div', { class: 'slots', role: 'group', 'aria-label': m('Save slots') });
 
   const el = h(
     'section',
-    { class: 'panel game', 'aria-label': 'The game', hidden: true },
-    h('header', { class: 'panel-head' }, h('h2', {}, 'Now playing'), share),
+    { class: 'panel game', 'aria-label': m('The game'), hidden: true },
+    h('header', { class: 'panel-head' }, h('h2', {}, m('Now playing')), share),
     h('div', { class: 'game-top' }, inlay, h('div', { class: 'game-facts' }, title, meta, controls)),
     blurb,
     goal,
@@ -264,7 +269,7 @@ export function createGamePanel(hooks: GameHooks): GamePanel {
     howto,
     tipsBlock,
     fallback,
-    h('div', { class: 'slots-head' }, h('span', {}, 'Saves'), h('span', { class: 'slots-hint' }, 'F2 saves the quick slot, F4 loads it')),
+    h('div', { class: 'slots-head' }, h('span', {}, m('Saves')), h('span', { class: 'slots-hint' }, m('F2 saves the quick slot, F4 loads it'))),
     slotRow,
     sources,
     manual,
@@ -276,6 +281,9 @@ export function createGamePanel(hooks: GameHooks): GamePanel {
   /** A slot whose Save was pressed once, waiting for a second press to replace what is in it. */
   let armed = -1;
   let armedTimer = 0;
+  /** What was last shown that is worked out in words, to be worked out again in another language. */
+  let shownSlots: { slots: readonly (Slot | null)[]; palette: Uint8Array } | null = null;
+  let shownState: StartState | null = null;
 
   /** The card's controls, by the joystick and by the keys; or, with no card, what is known. */
   const showHowTo = () => {
@@ -284,21 +292,21 @@ export function createGamePanel(hooks: GameHooks): GamePanel {
     fallback.hidden = !!card || !game;
     if (card) {
       const rows = controlsTable(card, hands);
-      const joystickHead = card.joystick ? 'Joystick' : 'Arrows';
-      const head = h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, h('span', { class: 'visually-hidden' }, 'To')), hasJoystick(card) ? h('th', { scope: 'col' }, joystickHead) : null, h('th', { scope: 'col' }, 'Keys')));
-      const cell = (press: ReturnType<typeof padCaps> | null) => h('td', {}, press ? caps(press) : h('span', { class: 'caps none', title: 'Not this way' }, '—'));
+      const joystickHead = card.joystick ? t('Joystick') : t('Arrows');
+      const head = h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, h('span', { class: 'visually-hidden' }, t('To'))), hasJoystick(card) ? h('th', { scope: 'col' }, joystickHead) : null, h('th', { scope: 'col' }, t('Keys'))));
+      const cell = (press: ReturnType<typeof padCaps> | null) => h('td', {}, press ? caps(press) : h('span', { class: 'caps none', title: t('Not this way') }, '—'));
       const body = h(
         'tbody',
         {},
         ...rows.map((r) => h('tr', {}, h('th', { scope: 'row' }, r.does), hasJoystick(card) ? cell(r.joystick) : null, cell(r.keys))),
-        ...card.extras.map((x) => h('tr', { class: 'extra' }, h('th', { scope: 'row' }, x.does), h('td', { colspan: hasJoystick(card) ? 2 : 1 }, caps(keyCaps([x.key], { ...hands, touch: false }))))),
+        ...card.extras.map((x) => h('tr', { class: 'extra' }, h('th', { scope: 'row' }, t(x.does)), h('td', { colspan: hasJoystick(card) ? 2 : 1 }, caps(keyCaps([x.key], { ...hands, touch: false }))))),
       );
       table.replaceChildren(head, body);
       const fire = fireName(hands.fireCode);
-      const way = hands.touch ? 'the pad and FIRE' : `the arrow keys and ${fire}${hands.gamepad ? ' (or the gamepad)' : ''}`;
-      if (card.joystick) mapNote.textContent = `The joystick is ${way}: the Start button chooses it in the game for you.`;
-      else if (hasJoystick(card)) mapNote.textContent = `The game takes no joystick, so ${way} press its own keys for you while it runs.`;
-      else mapNote.textContent = 'The game is played with its own keys.';
+      const gamepad = hands.gamepad ? t(' (or the gamepad)') : '';
+      if (card.joystick) mapNote.textContent = hands.touch ? t('The joystick is the pad and FIRE: the Start button chooses it in the game for you.') : t('The joystick is the arrow keys and {fire}{gamepad}: the Start button chooses it in the game for you.', { fire, gamepad });
+      else if (hasJoystick(card)) mapNote.textContent = hands.touch ? t('The game takes no joystick, so the pad and FIRE press its own keys for you while it runs.') : t('The game takes no joystick, so the arrow keys and {fire}{gamepad} press its own keys for you while it runs.', { fire, gamepad });
+      else mapNote.textContent = t('The game is played with its own keys.');
       return;
     }
     if (!game) return;
@@ -309,16 +317,41 @@ export function createGamePanel(hooks: GameHooks): GamePanel {
 
   /** The manual's table of keys, for a game with no card. */
   const showKeys = () => {
-    const t = table_;
+    const table = table_;
     keys.replaceChildren(
-      ...(t
+      ...(table
         ? [
-            h('h5', {}, `Its keys, from the manual’s “${t.heading.replace(/\b([A-Z])([A-Z]+)\b/g, (_, a: string, b: string) => a + b.toLowerCase())}”`),
-            h('table', { class: 'keys-table' }, h('tbody', {}, ...t.rows.map((r) => h('tr', {}, h('th', {}, r[0]), h('td', {}, r.slice(1).join(' · ')))))),
+            h('h5', {}, t('Its keys, from the manual’s “{heading}”', { heading: table.heading.replace(/\b([A-Z])([A-Z]+)\b/g, (_, a: string, b: string) => a + b.toLowerCase()) })),
+            h('table', { class: 'keys-table', translate: 'no' }, h('tbody', {}, ...table.rows.map((r) => h('tr', {}, h('th', {}, r[0]), h('td', {}, r.slice(1).join(' · ')))))),
           ]
         : []),
     );
   };
+
+  /** The card's own words (library/games/: each module's `ru`), in the language of the moment. */
+  const showCard = (card: GameCard) => {
+    blurb.textContent = t(card.blurb);
+    goalText.textContent = t(card.goal);
+    tips.replaceChildren(...card.tips.map((tip) => h('li', {}, t(tip))));
+    sources.replaceChildren(h('span', { class: 'sources-label' }, t('From'), ' '), ...card.sources.flatMap((src, i) => [i ? ' · ' : '', h('a', { href: src.url, target: '_blank', rel: 'noopener' }, t(src.title))]));
+    const route = card.start;
+    steps.replaceChildren(...route.steps.map((st) => h('li', {}, ...withKeycaps(t(st.text), st.keys))));
+    const n = route.steps.length;
+    stepsCount.textContent = ` · ${n === 1 ? t('{n} step', { n }) : t('{n} steps', { n })}`;
+  };
+
+  // In another language: the card, the controls, the slots and where the start stands, said again; the game, its
+  // manual and its slots stay as they are.
+  onLanguage(() => {
+    if (!game) return;
+    meta.textContent = say(game.meta);
+    controls.textContent = game.controls.map(zxdbName).join(' · ');
+    if (game.card) showCard(game.card);
+    showHowTo();
+    showKeys();
+    if (shownSlots) panel.slots(shownSlots.slots, shownSlots.palette);
+    if (shownState) panel.startState(shownState);
+  });
 
   const panel: GamePanel = {
     el,
@@ -329,8 +362,10 @@ export function createGamePanel(hooks: GameHooks): GamePanel {
       el.hidden = !g;
       if (!g) return;
       title.textContent = g.title;
-      meta.textContent = g.meta;
-      controls.textContent = g.controls.length ? g.controls.join(' · ') : '';
+      meta.textContent = say(g.meta);
+      // The ZXDB's year, publisher and machine are its own; the page's words for a file opened are the page's.
+      meta.translate = typeof g.meta !== 'string';
+      controls.textContent = g.controls.map(zxdbName).join(' · ');
       controls.hidden = !g.controls.length;
       share.hidden = !g.share;
       inlay.hidden = !g.inlay;
@@ -340,13 +375,8 @@ export function createGamePanel(hooks: GameHooks): GamePanel {
       el.classList.toggle('has-card', !!card);
       blurb.hidden = goal.hidden = start.hidden = tipsBlock.hidden = sources.hidden = !card;
       if (card) {
-        blurb.textContent = card.blurb;
-        goalText.textContent = card.goal;
-        tips.replaceChildren(...card.tips.map((t) => h('li', {}, t)));
-        sources.replaceChildren(h('span', { class: 'sources-label' }, 'From '), ...card.sources.flatMap((src, i) => [i ? ' · ' : '', h('a', { href: src.url, target: '_blank', rel: 'noopener' }, src.title)]));
+        showCard(card);
         const route = card.start;
-        steps.replaceChildren(...route.steps.map((st) => h('li', {}, ...withKeycaps(st.text, st.keys))));
-        stepsCount.textContent = ` · ${route.steps.length} ${route.steps.length === 1 ? 'step' : 'steps'}`;
         // A start the person makes by hand: no button, no choice of how to play (the steps say which key picks the
         // joystick at the game's menu), and the steps open.
         const manual_ = isByHand(route);
@@ -361,7 +391,7 @@ export function createGamePanel(hooks: GameHooks): GamePanel {
         // the same on every game, the keyboard's arrows, a gamepad and the phone's pad alike.
         joystick = hasJoystick(card);
         playWith.hidden = manual_ || !hasJoystick(card);
-        const next = segmented<'keys' | 'joystick'>('Play with', [card.joystick ? joystickChoice : { ...joystickChoice, label: 'Arrows', title: 'The arrow keys and the fire key (a gamepad, the touch pad) pressing the game’s own keys' }, keysChoice], joystick ? 'joystick' : 'keys', choose, 'start-how');
+        const next = segmented<'keys' | 'joystick'>(m('Play with'), [card.joystick ? joystickChoice : { ...joystickChoice, label: m('Arrows'), title: m('The arrow keys and the fire key (a gamepad, the touch pad) pressing the game’s own keys') }, keysChoice], joystick ? 'joystick' : 'keys', choose, 'start-how');
         how.el.replaceWith(next.el);
         how = next;
         panel.startState('waiting');
@@ -376,33 +406,37 @@ export function createGamePanel(hooks: GameHooks): GamePanel {
       hands = hs;
       showHowTo();
     },
-    manual(m) {
-      if (m === 'loading') {
-        manualStatus.textContent = 'Fetching the manual from the archive…';
+    manual(manual_) {
+      if (manual_ === 'loading') {
+        manualStatus.replaceChildren(textOf(m('Fetching the manual from the archive…')));
         return;
       }
-      if (typeof m === 'string') {
-        manualStatus.textContent = m;
+      if (typeof manual_ === 'string' || manual_ instanceof Msg) {
+        manualStatus.replaceChildren(textOf(manual_));
         return;
       }
       manualStatus.textContent = '';
-      text.replaceChildren(...booklet(m.text));
+      text.replaceChildren(...booklet(manual_.text));
       // The keys as the manual sets them out, for a game with no card; the rest is in the booklet.
-      table_ = m.table;
+      table_ = manual_.table;
       showKeys();
     },
     slots(slots, palette) {
+      shownSlots = { slots, palette };
       slotRow.replaceChildren(
         ...Array.from({ length: SLOTS }, (_, i) => {
           const s = slots[i] ?? null;
-          const name = i ? `slot ${i}` : 'the quick slot';
+          const name = slotName(i);
+          const saved = s ? when(s.savedAt) : '';
           const picture = s
-            ? h('div', { class: 'slot-shot' }, thumbnail(s.picture, palette), h('span', { class: 'slot-badge' }, `${SLOT_NAMES[i]} · ${when(s.savedAt)}`))
-            : h('div', { class: 'slot-shot slot-empty' }, h('span', {}, SLOT_NAMES[i]));
-          const load = h('button', { type: 'button', class: 'btn slot-load', disabled: !s, title: s ? `Load ${name}, saved ${when(s.savedAt)}${i ? '' : ' (F4)'}` : `Nothing in ${name} yet`, 'aria-label': s ? `Load ${SLOT_NAMES[i]}, saved ${when(s.savedAt)}` : `${SLOT_NAMES[i]}: empty` }, 'Load');
+            ? h('div', { class: 'slot-shot' }, thumbnail(s.picture, palette), h('span', { class: 'slot-badge' }, `${name} · ${saved}`))
+            : h('div', { class: 'slot-shot slot-empty' }, h('span', {}, name));
+          const loadTitle = s ? (i ? t('Load slot {n}, saved {when}', { n: i, when: saved }) : t('Load the quick slot, saved {when} (F4)', { when: saved })) : i ? t('Nothing in slot {n} yet', { n: i }) : t('Nothing in the quick slot yet');
+          const load = h('button', { type: 'button', class: 'btn slot-load', disabled: !s, title: loadTitle, 'aria-label': s ? t('Load {slot}, saved {when}', { slot: name, when: saved }) : t('{slot}: empty', { slot: name }) }, t('Load'));
           load.addEventListener('click', () => s && hooks.load(i));
-          const saveLabel = s ? (armed === i ? 'Replace?' : 'Save') : '+ Save here';
-          const save = h('button', { type: 'button', class: `btn slot-save${armed === i ? ' armed' : ''}`, title: s ? `Save over ${name} (press twice)` : `Save in ${name}${i ? '' : ' (F2)'}`, 'aria-label': s ? `Save over ${SLOT_NAMES[i]}` : `Save in ${SLOT_NAMES[i]}` }, saveLabel);
+          const saveLabel = s ? (armed === i ? t('Replace?') : t('Save')) : t('+ Save here');
+          const saveTitle = s ? (i ? t('Save over slot {n} (press twice)', { n: i }) : t('Save over the quick slot (press twice)')) : i ? t('Save in slot {n}', { n: i }) : t('Save in the quick slot (F2)');
+          const save = h('button', { type: 'button', class: `btn slot-save${armed === i ? ' armed' : ''}`, title: saveTitle, 'aria-label': s ? t('Save over {slot}', { slot: name }) : t('Save in {slot}', { slot: name }) }, saveLabel);
           save.addEventListener('click', () => {
             // What is in a slot is replaced only on a second press, within a few seconds.
             if (s && armed !== i) {
@@ -424,17 +458,18 @@ export function createGamePanel(hooks: GameHooks): GamePanel {
       );
     },
     startState(state) {
+      shownState = state;
       el.dataset.start = state;
       if (state === 'gave up') byHand.open = true;
       startButton.disabled = state === 'driving' || state === 'done' || state === 'armed';
       startStatus.textContent = {
-        waiting: 'It starts from the game’s first screen: pressed before that shows, it waits for it.',
-        ready: 'Ready: the page presses the keys for you, as the steps below say.',
-        armed: 'It starts as soon as the game’s first screen shows.',
-        driving: 'Pressing the keys for you…',
-        done: `The game has begun. ${hands.touch ? 'The Controls button on the screen' : 'F3'} shows the controls over it.`,
-        'gave up': 'The game did not answer as expected: the steps below are the way by hand.',
-      }[state];
+        waiting: () => t('It starts from the game’s first screen: pressed before that shows, it waits for it.'),
+        ready: () => t('Ready: the page presses the keys for you, as the steps below say.'),
+        armed: () => t('It starts as soon as the game’s first screen shows.'),
+        driving: () => t('Pressing the keys for you…'),
+        done: () => (hands.touch ? t('The game has begun. The Controls button on the screen shows the controls over it.') : t('The game has begun. F3 shows the controls over it.')),
+        'gave up': () => t('The game did not answer as expected: the steps below are the way by hand.'),
+      }[state]();
     },
     choice() {
       return { joystick, skill };

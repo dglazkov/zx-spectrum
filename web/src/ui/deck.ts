@@ -5,6 +5,7 @@
 // on Sinclair's own tapes only. With no tape in it the deck is an empty well, saying how to put one in.
 
 import type { Tape, TapeBlock } from '../emulator/emulator';
+import { m, onLanguage, t, textOf, type Msg } from '../i18n/i18n';
 import type { LoadingStyle } from '../state/settings';
 import { segmented } from './controls';
 import { h, s } from './dom';
@@ -37,11 +38,37 @@ const PACK_MAX = 36;
 /** Drawing units of tape a second of tape plays (1⅞ inches a second, against the reels' size). */
 const TAPE_SPEED = 66;
 
-const LOADING_HINTS: Readonly<Record<LoadingStyle, string>> = {
-  authentic: 'In real time, with the sound and the stripes, as it was.',
-  accelerated: 'The real signal, played flat out: every loader works, in seconds.',
-  instant: 'Standard blocks go straight in; anything else plays flat out.',
+const LOADING_HINTS: Readonly<Record<LoadingStyle, Msg>> = {
+  authentic: m('In real time, with the sound and the stripes, as it was.'),
+  accelerated: m('The real signal, played flat out: every loader works, in seconds.'),
+  instant: m('Standard blocks go straight in; anything else plays flat out.'),
 };
+
+/**
+ * A block as the core names it (crates/tape's describe: "Data: 313 bytes", "Turbo: Data: 6912 bytes", "Pause: 1 s"),
+ * its own words in the page's language: the commonest of them, a rule a kind. What the tape itself says (a header's
+ * name, a text block's text) and the ROM's own words for a header ("Program: SABOTEUR", as it prints them while it
+ * loads) stay as they are; a block the rules do not know is named as the core names it.
+ */
+export function blockLabel(label: string): string {
+  const said = (rest: string): string => {
+    let found: RegExpExecArray | null;
+    if ((found = /^Turbo: (.*)$/.exec(rest))) return t('Turbo: {what}', { what: said(found[1]) });
+    if ((found = /^Data: (\d+) bytes$/.exec(rest))) return t('Data: {n} bytes', { n: found[1] });
+    if ((found = /^Data: (\d+) bits$/.exec(rest))) return t('Data: {n} bits', { n: found[1] });
+    if ((found = /^Pause: ([\d.]+) s$/.exec(rest))) return t('Pause: {n} s', { n: found[1] });
+    if ((found = /^Pure tone: (\d+) pulses of (\d+) T$/.exec(rest))) return t('Pure tone: {count} pulses of {pulse} T', { count: found[1], pulse: found[2] });
+    if (rest === 'Stop the tape') return t('Stop the tape');
+    if (rest === 'Stop the tape if 48K') return t('Stop the tape if 48K');
+    if ((found = /^Text: (.*)$/.exec(rest))) return t('Text: {text}', { text: found[1] });
+    if ((found = /^Message: (.*)$/.exec(rest))) return t('Message: {text}', { text: found[1] });
+    if ((found = /^Group: (.*)$/.exec(rest))) return t('Group: {name}', { name: found[1] });
+    if (rest === 'Group end') return t('Group end');
+    if ((found = /^Archive info: (.*)$/.exec(rest))) return t('Archive info: {text}', { text: found[1] });
+    return rest;
+  };
+  return said(label);
+}
 
 function kindIcon(b: TapeBlock): string {
   return { header: '▤', data: '▦', turbo: '▧', tone: '∿', pause: '·', stop: '■', group: '›', info: 'i' }[b.kind];
@@ -49,13 +76,13 @@ function kindIcon(b: TapeBlock): string {
 
 function duration(seconds: number): string {
   if (!seconds) return '';
-  if (seconds < 60) return `${seconds.toFixed(seconds < 10 ? 1 : 0)} s`;
+  if (seconds < 60) return t('{n} s', { n: seconds.toFixed(seconds < 10 ? 1 : 0) });
   return `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, '0')}`;
 }
 
 export function createDeck(tape: () => Tape, onLoading: (style: LoadingStyle) => void, loading: LoadingStyle, onDownloadSaved: () => void, onOpen: () => void): Deck {
   // The cassette.
-  const svg = s('svg', { class: 'cassette', viewBox: '0 0 300 190', role: 'img', 'aria-label': 'The cassette' });
+  const svg = s('svg', { class: 'cassette', viewBox: '0 0 300 190', role: 'img', 'aria-label': m('The cassette') });
   const bodyTop = s('stop', { offset: 0, 'stop-color': '#2c2b31' });
   const bodyBottom = s('stop', { offset: 1, 'stop-color': '#18171b' });
   svg.append(
@@ -77,7 +104,9 @@ export function createDeck(tape: () => Tape, onLoading: (style: LoadingStyle) =>
   const artClip = s('g', { 'clip-path': 'url(#cs-label)' }, artView);
   const band = s('rect', { x: 18, y: 14, width: 264, height: 32, class: 'cs-band', 'clip-path': 'url(#cs-label)', visibility: 'hidden' });
   let inlayAsked = '';
-  const label = s('text', { x: 30, y: 36, class: 'cs-title' }, 'No tape');
+  const label = s('text', { x: 30, y: 36, class: 'cs-title' }, t('No tape'));
+  /** The name on the label: the tape's (a game's title, a file's name), or none. */
+  let labelName: string | null = null;
   const side = s('text', { x: 270, y: 36, class: 'cs-side', 'text-anchor': 'end' }, 'A');
   svg.append(artClip, band, label, side);
   svg.append(s('rect', { x: 66, y: 48, width: 168, height: 44, rx: 22, fill: '#121115', stroke: '#2a292e', 'stroke-width': 1.5 }));
@@ -112,63 +141,66 @@ export function createDeck(tape: () => Tape, onLoading: (style: LoadingStyle) =>
   );
 
   // The counter and the keys.
-  const counter = h('div', { class: 'counter', 'aria-label': 'Tape counter' }, ...[0, 1, 2].map(() => h('span', { class: 'digit' }, '0')));
-  const key = (name: string, title: string, act: () => void) => {
+  const counter = h('div', { class: 'counter', 'aria-label': m('Tape counter') }, ...[0, 1, 2].map(() => h('span', { class: 'digit' }, '0')));
+  const key = (name: string, title: Msg, act: () => void) => {
     const b = h('button', { type: 'button', class: `deck-key deck-${name}`, title, 'aria-label': title }, icon(name));
     b.addEventListener('click', act);
     return b;
   };
-  const playKey = key('play', 'Play', () => tape().play());
+  const playKey = key('play', m('Play'), () => tape().play());
   const keys = h(
     'div',
     { class: 'deck-keys' },
-    key('rewind', 'Rewind to the start', () => tape().rewind()),
+    key('rewind', m('Rewind to the start'), () => tape().rewind()),
     playKey,
-    key('stop', 'Stop', () => tape().stop()),
-    key('forward', 'Wind on to the next block', () => {
+    key('stop', m('Stop'), () => tape().stop()),
+    key('forward', m('Wind on to the next block'), () => {
       const st = tape().state();
       if (st.loaded) tape().seek(Math.min(tape().blocks().length, st.block + 1));
     }),
-    key('eject', 'Eject', () => {
+    key('eject', m('Eject'), () => {
       tape().eject();
       deck.inserted(null);
     }),
   );
 
-  const list = h('ol', { class: 'blocks', 'aria-label': 'The blocks on the tape' });
-  const openButton = h('button', { type: 'button', class: 'btn' }, icon('open'), h('span', { class: 'btn-label' }, 'Open a file…'));
+  // The tape's blocks, named as the tape and the machine name them ("Program: SABOTEUR", as the ROM prints it).
+  const list = h('ol', { class: 'blocks', 'aria-label': m('The blocks on the tape'), translate: 'no' });
+  const openButton = h('button', { type: 'button', class: 'btn' }, icon('open'), h('span', { class: 'btn-label' }, m('Open a file…')));
   openButton.addEventListener('click', onOpen);
   const empty = h(
     'div',
     { class: 'deck-empty' },
-    h('div', { class: 'deck-well' }, h('span', {}, 'Drop a tape here,'), h('span', {}, 'or choose one from the shelf')),
-    h('div', { class: 'deck-empty-text' }, h('strong', {}, 'The deck is empty'), h('p', {}, 'Choose a game from the shelf and it goes in, rewound, with LOAD "" typed for you. Or open a tape of your own: TAP, TZX, CSW, PZX, or a .zip of one.'), openButton),
+    h('div', { class: 'deck-well' }, h('span', {}, m('Drop a tape here,')), h('span', {}, m('or choose one from the shelf'))),
+    h('div', { class: 'deck-empty-text' }, h('strong', {}, m('The deck is empty')), h('p', {}, m('Choose a game from the shelf and it goes in, rewound, with LOAD "" typed for you. Or open a tape of your own: TAP, TZX, CSW, PZX, or a .zip of one.')), openButton),
   );
   const styles = segmented<LoadingStyle>(
-    'How tapes load',
+    m('How tapes load'),
     [
-      { value: 'authentic', label: 'Authentic' },
-      { value: 'accelerated', label: 'Accelerated' },
-      { value: 'instant', label: 'Instant' },
+      { value: 'authentic', label: m('Authentic') },
+      { value: 'accelerated', label: m('Accelerated') },
+      { value: 'instant', label: m('Instant') },
     ],
     loading,
     (v) => {
-      hint.textContent = LOADING_HINTS[v];
+      hint.replaceChildren(textOf(LOADING_HINTS[v]));
       onLoading(v);
     },
     'deck-styles',
   );
   const hint = h('p', { class: 'deck-hint' }, LOADING_HINTS[loading]);
   const savedText = h('span', {});
-  const savedButton = h('button', { type: 'button', class: 'btn', title: 'What was SAVEd, as a TAP file' }, icon('save'), h('span', { class: 'btn-label' }, 'Download .tap'));
+  /** What a SAVE recorded, as last said: to be said again in another language. */
+  let savedWas = { blocks: 0, bytes: 0 };
+  const savedButton = h('button', { type: 'button', class: 'btn', title: m('What was SAVEd, as a TAP file') }, icon('save'), h('span', { class: 'btn-label' }, m('Download .tap')));
   savedButton.addEventListener('click', onDownloadSaved);
   const saved = h('div', { class: 'deck-saved', hidden: true }, icon('tape'), savedText, savedButton);
 
   const cassette = h('div', { class: 'cassette-wrap' }, svg);
   const el = h(
     'section',
-    { class: 'panel deck empty', 'aria-label': 'Tape deck' },
-    h('header', { class: 'panel-head' }, h('h2', {}, 'Tape'), counter),
+    { class: 'panel deck empty', 'aria-label': m('Tape deck') },
+    h('header', { class: 'panel-head' }, h('h2', {}, m('Tape')), counter),
     cassette,
     empty,
     keys,
@@ -192,10 +224,10 @@ export function createDeck(tape: () => Tape, onLoading: (style: LoadingStyle) =>
       const blocks = tape().blocks();
       list.replaceChildren();
       starts = [];
-      let t = 0;
+      let at = 0;
       for (const b of blocks) {
-        starts.push(t);
-        t += b.seconds;
+        starts.push(at);
+        at += b.seconds;
       }
       const loaded = tape().state().loaded;
       // A tape going in slides into the deck, as a cassette does (not on a tape put back, a slot's or a moment's).
@@ -213,13 +245,14 @@ export function createDeck(tape: () => Tape, onLoading: (style: LoadingStyle) =>
       rainbow.setAttribute('visibility', c.rainbow ? 'visible' : 'hidden');
       ruled.setAttribute('visibility', c.rainbow ? 'hidden' : 'visible');
       rows = blocks.map((b, i) => {
-        const li = h('li', { class: `block block-${b.kind}`, title: 'Wind the tape to here' }, h('span', { class: 'block-kind', 'aria-hidden': 'true' }, kindIcon(b)), h('span', { class: 'block-label' }, b.label), h('span', { class: 'block-time' }, duration(b.seconds)), h('span', { class: 'block-progress' }));
+        const li = h('li', { class: `block block-${b.kind}`, title: m('Wind the tape to here') }, h('span', { class: 'block-kind', 'aria-hidden': 'true' }, kindIcon(b)), h('span', { class: 'block-label' }, blockLabel(b.label)), h('span', { class: 'block-time' }, duration(b.seconds)), h('span', { class: 'block-progress' }));
         li.addEventListener('click', () => tape().seek(i));
         list.append(li);
         return li;
       });
       empty.hidden = loaded;
-      label.textContent = name ? name.replace(/\.(zip|tzx|tap)$/gi, '').slice(0, 30) : 'No tape';
+      labelName = name ? name.replace(/\.(zip|tzx|tap)$/gi, '').slice(0, 30) : null;
+      label.textContent = labelName ?? t('No tape');
       lastBlock = -1;
       deck.update();
     },
@@ -253,12 +286,14 @@ export function createDeck(tape: () => Tape, onLoading: (style: LoadingStyle) =>
       img.src = url;
     },
     setSaved(blocks, bytes) {
+      savedWas = { blocks, bytes };
       saved.hidden = blocks === 0;
-      savedText.textContent = `SAVE recorded ${blocks} block${blocks === 1 ? '' : 's'}, ${bytes.toLocaleString()} bytes`;
+      const size = bytes.toLocaleString();
+      savedText.textContent = blocks === 1 ? t('SAVE recorded {blocks} block, {bytes} bytes', { blocks, bytes: size }) : t('SAVE recorded {blocks} blocks, {bytes} bytes', { blocks, bytes: size });
     },
     setLoading(style) {
       styles.set(style);
-      hint.textContent = LOADING_HINTS[style];
+      hint.replaceChildren(textOf(LOADING_HINTS[style]));
     },
     update() {
       const st = tape().state();
@@ -309,6 +344,18 @@ export function createDeck(tape: () => Tape, onLoading: (style: LoadingStyle) =>
       }
     },
   };
+  // In another language: the empty label, the blocks' times and what was SAVEd, said again.
+  onLanguage(() => {
+    if (labelName === null) label.textContent = t('No tape');
+    rows.forEach((li, i) => {
+      const block = tape().blocks()[i];
+      const name = li.querySelector('.block-label');
+      const time = li.querySelector('.block-time');
+      if (name && block) name.textContent = blockLabel(block.label);
+      if (time) time.textContent = duration(block?.seconds ?? 0);
+    });
+    if (savedWas.blocks) deck.setSaved(savedWas.blocks, savedWas.bytes);
+  });
   return deck;
 }
 

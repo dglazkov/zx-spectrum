@@ -56,6 +56,9 @@ web/
   src/library/games/           the cards, a module a game (saboteur.ts, ...), found by games/index.ts (cardFor)
   src/library/start.ts         a start route's shape, the screen helpers routes read with, and the pilot that drives one
   src/library/featured.json    the shelf, recorded and checked by tools/featured.mjs
+  src/i18n/i18n.ts             the page's words in its language: t() and m() by their English, which language
+                               (?lang=, chosen, the browser's), changed at once (docs/russian.md)
+  src/i18n/ru.ts               the page's Russian; each play card has its own (library/games/: a module's `ru`)
   src/state/settings.ts        what is remembered (localStorage, every access wrapped)
   src/state/rewind.ts          moments kept for going back
   src/state/saves.ts           save slots per game (IndexedDB, every access wrapped; memory without it)
@@ -86,7 +89,8 @@ Commands (in `web/`, after `npm install`): `npm run dev` (builds the module if i
 [phone] [--sharp]`, `node tools/bench.mjs [--frames N] [--json]`, `node tests/smoke.mjs URL`, `node tools/featured.mjs
 [--check]`.
 
-The page's address takes: `?game=<ZXDB id>` (that game, loaded straight away: `?game=4293` is Saboteur), `?emulator=stub`
+The page's address takes: `?game=<ZXDB id>` (that game, loaded straight away: `?game=4293` is Saboteur), `?lang=ru` or
+`?lang=en` (the page's language, remembered: docs/russian.md), `?emulator=stub`
 (the stand-in), `?renderer=2d`, and `?sound=off` (no sound card at all: the machine runs on the display's clock alone,
 as the page's tests need, since a sound card's clock is the wall's). When it is up, `<body>` has `data-ready`,
 `data-emulator` (`wasm` or `stub`) and `data-renderer`, and `window.zx` holds `{ app, emulator, renderer, kind }`, for

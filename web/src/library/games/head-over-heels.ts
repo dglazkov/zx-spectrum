@@ -4,7 +4,7 @@
 // then the main menu, where ENTER on PLAY THE GAME starts after a short look at the Blacktooth empire
 // (web/tests/wasm/games/head-over-heels.spec.ts).
 
-import { byHand, type GameCard } from '../card';
+import { byHand, type CardWords, type GameCard } from '../card';
 
 export const card: GameCard = {
   id: '0002259',
@@ -38,4 +38,33 @@ export const card: GameCard = {
     { title: 'The instructions, as text (Spectrum Computing)', url: 'https://spectrumcomputing.co.uk/pub/sinclair/games-info/h/HeadOverHeels.txt' },
     { title: 'Head over Heels in the ZXDB (Spectrum Computing)', url: 'https://spectrumcomputing.co.uk/entry/2259' },
   ],
+};
+
+/** The card's words in Russian, by their English (i18n.ts). */
+export const ru: CardWords = {
+  'Two spies from the planet Freedom, Head and Heels, are caught and locked up apart in the Blacktooth empire. Head can jump high and glide, and later fire doughnuts; Heels runs fast and can carry things in a bag. Each alone is weak, but stacked one on the other they are a team.':
+    'Двух шпионов с планеты Freedom, Head и Heels, схватили и заперли порознь в империи Blacktooth. Head умеет высоко прыгать и парить в воздухе, а позже и стрелять пончиками; Heels быстро бегает и носит вещи в сумке. Поодиночке каждый слаб, но когда один стоит на плечах у другого, они — команда.',
+  'Bring Head and Heels back together, then find the lost crowns of the five worlds of Blacktooth so the slave planets rise up, and escape back to Freedom.':
+    'Снова сведите Head и Heels вместе, затем найдите потерянные короны пяти миров Blacktooth, чтобы порабощённые планеты восстали, и сбегите обратно на планету Freedom.',
+  'Press a swap key (S, D, F or G) to switch between the two; when one stands on the other, it joins them.':
+    'Нажмите клавишу смены (S, D, F или G), чтобы переключиться с одного героя на другого; если один стоит на другом, она соединит их вместе.',
+  'Heels can carry one object at a time: use it to fetch springs or stand on things to reach high doors.':
+    'Heels носит только один предмет за раз: пусть он приносит пружины или вещи, на которые можно встать, чтобы добраться до высоких дверей.',
+  'Look for the bunnies: they give extra lives, a higher jump, more speed or a shield.':
+    'Ищите зайчиков: они дают дополнительные жизни, прыжок повыше, больше скорости или щит.',
+  'Walk left': 'Идти влево',
+  'Walk right': 'Идти вправо',
+  'Walk down': 'Идти вниз',
+  'Walk up': 'Идти вверх',
+  'Jump': 'Прыжок',
+  'Pick up or put down (Heels, with the bag)': 'Взять или положить (Heels, с сумкой)',
+  'Fire a doughnut (Head, with the hooter)': 'Выстрелить пончиком (Head, с дудкой)',
+  'Swap between Head and Heels': 'Переключиться между Head и Heels',
+  'Hold the game: then give up or carry on': 'Пауза: затем прервать игру или продолжить',
+  'At SELECT JOYSTICK, any key moves the marker: leave it on KEMPSTON JOYSTICK (the arrow keys and Left Alt, a gamepad, or the touch pad), or move it to KEYS/KEY JOYSTICK, and press ENTER.':
+    'На экране SELECT JOYSTICK любая клавиша двигает указатель: оставьте его на KEMPSTON JOYSTICK (стрелки и левый Alt, геймпад или экранная крестовина) или переведите на KEYS/KEY JOYSTICK, затем нажмите ENTER.',
+  'At the main menu press ENTER on PLAY THE GAME. The map of the Blacktooth empire shows for a moment, then you are in.':
+    'В главном меню нажмите ENTER на пункте PLAY THE GAME. На мгновение покажется карта империи Blacktooth, а затем начнётся игра.',
+  'The instructions, as text (Spectrum Computing)': 'Инструкция, текстом (Spectrum Computing)',
+  'Head over Heels in the ZXDB (Spectrum Computing)': 'Head over Heels в ZXDB (Spectrum Computing)',
 };

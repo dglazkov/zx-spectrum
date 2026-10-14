@@ -1,14 +1,16 @@
 // The page's few kinds of control, so that every panel is made of the same parts: a button, a set of choices of
-// which one is chosen (segmented), a switch, a list to choose from, and a labelled row to put one in.
+// which one is chosen (segmented), a switch, a list to choose from, and a labelled row to put one in. Their words are
+// Words (i18n.ts): the page's own, as m(), follow the language.
 
+import type { Words } from '../i18n/i18n';
 import { h } from './dom';
 import { icon } from './icons';
 
 export interface ButtonOptions {
   icon?: string;
-  label?: string;
+  label?: Words;
   /** Said by a tooltip and to a screen reader, where the label is not shown. */
-  title?: string;
+  title?: Words;
   className?: string;
   onClick?: (e: MouseEvent) => void;
 }
@@ -23,9 +25,9 @@ export function button(o: ButtonOptions): HTMLButtonElement {
 
 export interface Choice<T> {
   value: T;
-  label?: string;
+  label?: Words;
   icon?: string;
-  title?: string;
+  title?: Words;
 }
 
 export interface Segmented<T> {
@@ -34,7 +36,7 @@ export interface Segmented<T> {
 }
 
 /** Choices side by side, one of them chosen: a radio group. */
-export function segmented<T extends string | number>(name: string, choices: readonly Choice<T>[], value: T, onChange: (value: T) => void, className = ''): Segmented<T> {
+export function segmented<T extends string | number>(name: Words, choices: readonly Choice<T>[], value: T, onChange: (value: T) => void, className = ''): Segmented<T> {
   const el = h('div', { class: `segmented ${className}`.trim(), role: 'radiogroup', 'aria-label': name });
   const buttons = choices.map((c) => {
     const b = h('button', { type: 'button', role: 'radio', class: 'seg', title: c.title ?? c.label, 'aria-label': c.label ? undefined : c.title, 'data-value': String(c.value) });
@@ -62,7 +64,7 @@ export interface Switch {
   set(on: boolean): void;
 }
 
-export function toggle(label: string, on: boolean, onChange: (on: boolean) => void): Switch {
+export function toggle(label: Words, on: boolean, onChange: (on: boolean) => void): Switch {
   const input = h('input', { type: 'checkbox', role: 'switch' });
   input.checked = on;
   input.addEventListener('change', () => onChange(input.checked));
@@ -70,7 +72,7 @@ export function toggle(label: string, on: boolean, onChange: (on: boolean) => vo
   return { el, set: (v) => (input.checked = v) };
 }
 
-export function select<T extends string>(label: string, choices: readonly Choice<T>[], value: T, onChange: (value: T) => void): { el: HTMLSelectElement; set(v: T): void } {
+export function select<T extends string>(label: Words, choices: readonly Choice<T>[], value: T, onChange: (value: T) => void): { el: HTMLSelectElement; set(v: T): void } {
   const el = h('select', { class: 'select', 'aria-label': label });
   for (const c of choices) el.append(h('option', { value: c.value }, c.label ?? String(c.value)));
   el.value = value;
@@ -79,6 +81,6 @@ export function select<T extends string>(label: string, choices: readonly Choice
 }
 
 /** A labelled row of a settings panel. */
-export function field(label: string, control: HTMLElement, hint?: string): HTMLElement {
+export function field(label: Words, control: HTMLElement, hint?: Words): HTMLElement {
   return h('div', { class: 'field' }, h('div', { class: 'field-text' }, h('div', { class: 'field-label' }, label), hint ? h('div', { class: 'field-hint' }, hint) : null), control);
 }

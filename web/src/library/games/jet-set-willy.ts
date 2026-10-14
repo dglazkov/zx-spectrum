@@ -8,7 +8,7 @@
 // column plus 18 times its row), as keys 1 to 4, one a block; a block not yet entered has a white attribute (7) on row 10.
 // Then it holds ENTER at the title (the tune reads keys between notes) until the first room's panel shows.
 
-import type { GameCard } from '../card';
+import type { CardWords, GameCard } from '../card';
 import type { Route } from '../start';
 
 /** The code card: the byte for each square, two bits a block (the first block in the top bits), each a key 1 to 4. */
@@ -72,4 +72,29 @@ export const card: GameCard = {
     { title: 'The instructions from the inlay, as text (Spectrum Computing)', url: 'https://spectrumcomputing.co.uk/pub/sinclair/games-info/j/JetSetWilly.txt' },
     { title: 'Jet Set Willy in the ZXDB (Spectrum Computing)', url: 'https://spectrumcomputing.co.uk/entry/2589' },
   ],
+};
+
+/** The card's words in Russian, by their English (i18n.ts). */
+export const ru: CardWords = {
+  'Miner Willy is rich now, with a mansion full of rooms he has never explored, and the party is over. His housekeeper Maria will not let him into bed until every glass and bottle left lying about has been tidied away.':
+    'Шахтёр Вилли разбогател: у него теперь особняк, полный комнат, где он ещё ни разу не бывал, а вечеринка только что закончилась. Экономка Мария не пустит его спать, пока он не уберёт все бокалы и бутылки, брошенные где попало.',
+  'Collect every flashing object in the house and its grounds, then get to the master bedroom, before the clock runs out at seven in the morning.':
+    'Соберите все мигающие предметы в доме и вокруг него, а потом доберитесь до хозяйской спальни — и успейте всё это до семи часов утра.',
+  'Rooms join at their edges: walk off the screen, or climb the ropes and stairs to go up.':
+    'Комнаты переходят одна в другую по краям экрана: чтобы попасть в соседнюю, уйдите за край, а наверх поднимайтесь по верёвкам и лестницам.',
+  'A fall from too high costs a life, and so does landing on anything that moves.':
+    'Падение со слишком большой высоты отнимает одну жизнь — как и приземление на что-нибудь движущееся.',
+  'Some objects sit in rooms you can only reach from above: look for a way in from the roof.':
+    'Некоторые предметы лежат в комнатах, куда можно попасть только сверху: ищите вход с крыши.',
+  'Walk left': 'Идти влево',
+  'Walk right': 'Идти вправо',
+  'Jump on the spot': 'Прыжок на месте',
+  'Jump left or right': 'Прыжок влево или вправо',
+  'Pause': 'Пауза',
+  'The game asks for the colours at a square of its code card. The Start button enters them for you; by hand, read the square’s four colours off the card and press 1 to 4 for each block.':
+    'Игра просит ввести цвета одной клетки со своей карты кодов. Кнопка «Начать игру» введёт их за вас; если вводите сами, найдите на карте четыре цвета этой клетки и для каждого блока нажмите клавишу от 1 до 4.',
+  'At the title, hold ENTER until the first room shows. The joystick needs no choosing: the game reads it by itself.':
+    'На заставке удерживайте ENTER, пока не появится первая комната. Джойстик выбирать не нужно: игра сама его распознаёт.',
+  'The instructions from the inlay, as text (Spectrum Computing)': 'Инструкция с вкладыша, текстом (Spectrum Computing)',
+  'Jet Set Willy in the ZXDB (Spectrum Computing)': 'Jet Set Willy в ZXDB (Spectrum Computing)',
 };

@@ -4,6 +4,7 @@
 // joystick. Both the overlay on the screen (overlay.ts) and the game's panel (game.ts) show it. No DOM here: what it
 // works out is tested on its own (howto.test.ts).
 
+import { m, say, t } from '../i18n/i18n';
 import { FIRE_KEYS } from '../input/keymap';
 import { isByHand, type Control, type GameCard, type Pad } from '../library/card';
 import type { Route } from '../library/start';
@@ -56,12 +57,19 @@ export interface HowTo {
 /** A step of a start by hand as it shows: its words, with each key it names a keycap where the words name it. */
 export type StepNow = readonly (string | Cap)[];
 
-/** The fire key's name, as Settings lists it ('Left Alt'). */
+/** The fire key's name, as Settings lists it ('Left Alt'), in the page's language. */
 export function fireName(code: string): string {
-  return FIRE_KEYS.find((k) => k.code === code)?.name ?? code;
+  const name = FIRE_KEYS.find((k) => k.code === code)?.name;
+  return name ? t(name) : code;
 }
 
-const ARROWS: Readonly<Record<Exclude<Pad, 'FIRE'>, [string, string]>> = { UP: ['↑', 'Up'], DOWN: ['↓', 'Down'], LEFT: ['←', 'Left'], RIGHT: ['→', 'Right'] };
+/** Each direction: its arrow, and what it is called on the touch pad and on the keyboard. */
+const ARROWS = {
+  UP: ['↑', m('Up on the pad'), m('Up arrow')],
+  DOWN: ['↓', m('Down on the pad'), m('Down arrow')],
+  LEFT: ['←', m('Left on the pad'), m('Left arrow')],
+  RIGHT: ['→', m('Right on the pad'), m('Right arrow')],
+} as const;
 
 /** The joystick's directions and fire as this person presses them. */
 export function padCaps(pad: readonly Pad[], hands: Hands): Press {
@@ -70,8 +78,9 @@ export function padCaps(pad: readonly Pad[], hands: Hands): Press {
   return [...pad]
     .sort((a, b) => order.indexOf(a) - order.indexOf(b))
     .map((p): Cap => {
-      if (p !== 'FIRE') return { label: ARROWS[p][0], title: hands.touch ? `${ARROWS[p][1]} on the pad` : `${ARROWS[p][1]} arrow`, kind: 'arrow' };
-      return hands.touch ? { label: 'FIRE', title: 'FIRE, beside the pad', kind: 'fire' } : { label: fireName(hands.fireCode), title: `Fire: ${fireName(hands.fireCode)}${hands.gamepad ? ', or any face button of the gamepad' : ''}`, kind: 'fire' };
+      if (p !== 'FIRE') return { label: ARROWS[p][0], title: say(hands.touch ? ARROWS[p][1] : ARROWS[p][2]), kind: 'arrow' };
+      const key = fireName(hands.fireCode);
+      return hands.touch ? { label: t('FIRE'), title: t('FIRE, beside the pad'), kind: 'fire' } : { label: key, title: hands.gamepad ? t('Fire: {key}, or any face button of the gamepad', { key }) : t('Fire: {key}', { key }), kind: 'fire' };
     });
 }
 
@@ -82,15 +91,15 @@ export function padCaps(pad: readonly Pad[], hands: Hands): Press {
  */
 export function keyCap(name: string, hands: Hands): Cap {
   const n = name.trim().toUpperCase();
-  if (hands.touch) return { label: n, title: `${n} on the keyboard below`, kind: 'key' };
+  if (hands.touch) return { label: n, title: t('{key} on the keyboard below', { key: n }), kind: 'key' };
   const pc: Record<string, string> = {
-    SPACE: 'Space',
+    SPACE: t('Space'),
     ENTER: 'Enter',
     'CAPS SHIFT': 'Shift',
     'SYMBOL SHIFT': /^Alt/.test(hands.fireCode) ? 'Ctrl' : 'Alt',
     BREAK: 'Esc',
   };
-  return { label: pc[n] ?? n, title: pc[n] ? `${n}: ${pc[n]} on this keyboard` : n, kind: 'key' };
+  return { label: pc[n] ?? n, title: pc[n] ? t('{key}: {pc} on this keyboard', { key: n, pc: pc[n] }) : n, kind: 'key' };
 }
 
 /** Keys held together ('SYMBOL SHIFT+A', or a list) as keycaps. */
@@ -125,15 +134,15 @@ export function controlsNow(card: GameCard, playing: Playing): HowTo {
   const joystick = mode !== 'Keys';
   const fire = fireName(playing.fireCode);
   let how: string;
-  if (mode === 'Joystick') how = playing.touch ? 'The pad and FIRE beside the screen.' : `The arrow keys and ${fire}${playing.gamepad ? ', or the gamepad' : ', or a gamepad'}.`;
-  else if (mode === 'Arrows') how = playing.touch ? 'The pad and FIRE press the game’s own keys for you.' : `The arrow keys and ${fire} press the game’s own keys for you${playing.gamepad ? ' (the gamepad too)' : ''}.`;
-  else how = playing.touch ? 'The game’s own keys: tap them on the keyboard below.' : 'The game’s own keys, in their Spectrum places on yours.';
-  const rows = card.controls.map((c) => ({ does: c.does, press: pressFor(c, joystick, playing) }));
-  const extras = card.extras.map((x) => ({ does: x.does, press: keyCaps([x.key], playing) }));
+  if (mode === 'Joystick') how = playing.touch ? t('The pad and FIRE beside the screen.') : playing.gamepad ? t('The arrow keys and {fire}, or the gamepad.', { fire }) : t('The arrow keys and {fire}, or a gamepad.', { fire });
+  else if (mode === 'Arrows') how = playing.touch ? t('The pad and FIRE press the game’s own keys for you.') : playing.gamepad ? t('The arrow keys and {fire} press the game’s own keys for you (the gamepad too).', { fire }) : t('The arrow keys and {fire} press the game’s own keys for you.', { fire });
+  else how = playing.touch ? t('The game’s own keys: tap them on the keyboard below.') : t('The game’s own keys, in their Spectrum places on yours.');
+  const rows = card.controls.map((c) => ({ does: t(c.does), press: pressFor(c, joystick, playing) }));
+  const extras = card.extras.map((x) => ({ does: t(x.does), press: keyCaps([x.key], playing) }));
   let note: string | null = null;
   if (mode === 'Arrows' && card.keymap) {
     const order: Pad[] = ['UP', 'DOWN', 'LEFT', 'RIGHT', 'FIRE'];
-    const pairs = order.filter((p) => card.keymap?.[p]).map((p) => `${padCaps([p], playing)[0].label} is ${keyCap(card.keymap![p]!, { ...playing, touch: false }).label}`);
+    const pairs = order.filter((p) => card.keymap?.[p]).map((p) => t('{arrow} is {key}', { arrow: padCaps([p], playing)[0].label, key: keyCap(card.keymap![p]!, { ...playing, touch: false }).label }));
     note = `${pairs.join(' · ')}.`;
   }
   const steps = stepsNow(card, playing);
@@ -143,17 +152,18 @@ export function controlsNow(card: GameCard, playing: Playing): HowTo {
 /** A step's words with each key it names (as the route's steps name them) a keycap; 'any' is "any key", at its end. */
 export function stepNow(step: Route['steps'][number], hands: Hands): StepNow {
   const out: (string | Cap)[] = [];
+  const text = t(step.text);
   const names = step.keys.filter((k) => k !== 'any');
   const pattern = names.length ? new RegExp(`(?<![A-Za-z0-9])(${names.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})(?![A-Za-z0-9])`, 'g') : null;
   let last = 0;
   if (pattern)
-    for (const m of step.text.matchAll(pattern)) {
-      out.push(step.text.slice(last, m.index));
-      out.push(...keyCaps([m[0]], hands));
-      last = (m.index ?? 0) + m[0].length;
+    for (const found of text.matchAll(pattern)) {
+      out.push(text.slice(last, found.index));
+      out.push(...keyCaps([found[0]], hands));
+      last = (found.index ?? 0) + found[0].length;
     }
-  out.push(step.text.slice(last));
-  if (step.keys.includes('any')) out.push(' ', { label: 'any key', title: 'Any key', kind: 'key' });
+  out.push(text.slice(last));
+  if (step.keys.includes('any')) out.push(' ', { label: t('any key'), title: t('Any key'), kind: 'key' });
   return out.filter((p) => p !== '');
 }
 
@@ -165,29 +175,46 @@ export function stepsNow(card: GameCard, hands: Hands): StepNow[] {
 /** The panel's table of controls: each with how the joystick does it and how the game's keys do. */
 export function controlsTable(card: GameCard, hands: Hands): { does: string; joystick: Press | null; keys: Press | null }[] {
   const joystick = hasJoystick(card);
-  return card.controls.map((c) => ({ does: c.does, joystick: joystick && c.pad ? padCaps(c.pad, hands) : null, keys: c.keys ? keyCaps(c.keys, { ...hands, touch: false }) : null }));
+  return card.controls.map((c) => ({ does: t(c.does), joystick: joystick && c.pad ? padCaps(c.pad, hands) : null, keys: c.keys ? keyCaps(c.keys, { ...hands, touch: false }) : null }));
 }
 
 // --- A game with no card -----------------------------------------------------------------------------------------
 
 /** ZXDB's names for how a game is played, said plainly. */
-const ZXDB: Readonly<Record<string, string>> = {
-  'Kempston Joystick': 'a Kempston joystick',
-  Cursor: 'a cursor joystick (5, 6, 7, 8 and 0)',
-  'Interface 2 (left)': 'a Sinclair joystick',
-  'Interface 2 (right)': 'a Sinclair joystick',
-  'Redefineable keys': 'keys you choose at its menu',
-  'Redefinable keys': 'keys you choose at its menu',
-  'Fuller Joystick': 'a Fuller joystick',
-  'Timex Joystick': 'a Timex joystick',
+const ZXDB: Readonly<Record<string, ReturnType<typeof m>>> = {
+  'Kempston Joystick': m('a Kempston joystick'),
+  Cursor: m('a cursor joystick (5, 6, 7, 8 and 0)'),
+  'Interface 2 (left)': m('a Sinclair joystick'),
+  'Interface 2 (right)': m('a Sinclair joystick'),
+  'Redefineable keys': m('keys you choose at its menu'),
+  'Redefinable keys': m('keys you choose at its menu'),
+  'Fuller Joystick': m('a Fuller joystick'),
+  'Timex Joystick': m('a Timex joystick'),
 };
+
+/** ZXDB's names for how a game is played, as the game's panel lists them: in English as ZXDB has them. */
+const ZXDB_NAMES: Readonly<Record<string, ReturnType<typeof m>>> = {
+  'Kempston Joystick': m('zxdb|Kempston Joystick'),
+  Cursor: m('zxdb|Cursor'),
+  'Interface 2 (left)': m('zxdb|Interface 2 (left)'),
+  'Interface 2 (right)': m('zxdb|Interface 2 (right)'),
+  'Redefineable keys': m('zxdb|Redefineable keys'),
+  'Redefinable keys': m('zxdb|Redefinable keys'),
+  'Fuller Joystick': m('zxdb|Fuller Joystick'),
+  'Timex Joystick': m('zxdb|Timex Joystick'),
+};
+
+/** A ZXDB control's name in the page's language, where the page knows it; as ZXDB has it otherwise. */
+export function zxdbName(control: string): string {
+  return ZXDB_NAMES[control] ? say(ZXDB_NAMES[control]) : control;
+}
 
 /** ZXDB's list of controls read out as a sentence, or null where it lists none. */
 export function zxdbSays(controls: readonly string[]): string | null {
-  const said = [...new Set(controls.map((c) => ZXDB[c] ?? c.toLowerCase()))];
+  const said = [...new Set(controls.map((c) => (ZXDB[c] ? say(ZXDB[c]) : c.toLowerCase())))];
   if (!said.length) return null;
-  const list = said.length === 1 ? said[0] : `${said.slice(0, -1).join(', ')} or ${said.at(-1)}`;
-  return `The ZXDB says it takes ${list}.`;
+  const list = said.length === 1 ? said[0] : t('{some} or {last}', { some: said.slice(0, -1).join(', '), last: said.at(-1)! });
+  return t('The ZXDB says it takes {list}.', { list });
 }
 
 /** Whether the joystick line can promise the arrows: ZXDB lists a Kempston joystick, or lists nothing either way. */
@@ -197,15 +224,15 @@ export function kempstonLikely(controls: readonly string[]): boolean {
 
 /** The one honest line about the joystick, for a game with no card. */
 export function joystickLine(controls: readonly string[], hands: Hands): string {
-  const how = hands.touch ? 'the pad and FIRE' : `the arrow keys and ${fireName(hands.fireCode)}`;
-  if (kempstonLikely(controls)) return `Most games of the time take a Kempston joystick from their menu: choose it there, then play with ${how}.`;
-  return `The ZXDB lists no Kempston joystick for it: play with its own keys (its manual has them), or choose the joystick it takes in Settings, and play with ${how}.`;
+  const fire = fireName(hands.fireCode);
+  if (kempstonLikely(controls)) return hands.touch ? t('Most games of the time take a Kempston joystick from their menu: choose it there, then play with the pad and FIRE.') : t('Most games of the time take a Kempston joystick from their menu: choose it there, then play with the arrow keys and {fire}.', { fire });
+  return hands.touch ? t('The ZXDB lists no Kempston joystick for it: play with its own keys (its manual has them), or choose the joystick it takes in Settings, and play with the pad and FIRE.') : t('The ZXDB lists no Kempston joystick for it: play with its own keys (its manual has them), or choose the joystick it takes in Settings, and play with the arrow keys and {fire}.', { fire });
 }
 
 /** What is said of ZXDB's controls for a game with no card: read out, or that it lists none, or (a file opened) nothing. */
 export function zxdbLine(controls: readonly string[], inZxdb: boolean): string {
-  if (!inZxdb) return 'Opened from a file: the page knows nothing of how it is played.';
-  return zxdbSays(controls) ?? 'The ZXDB lists no controls for it.';
+  if (!inZxdb) return t('Opened from a file: the page knows nothing of how it is played.');
+  return zxdbSays(controls) ?? t('The ZXDB lists no controls for it.');
 }
 
 /** What the overlay shows for a game with no card: what ZXDB and the manual say, and the honest line. */

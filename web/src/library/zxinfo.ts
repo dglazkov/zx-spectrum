@@ -6,6 +6,8 @@
 // The archive's files come through the server too, at /archive/<path>, as they come without cross-origin headers.
 // Pictures are shown straight from where they are.
 
+import { t } from '../i18n/i18n';
+
 /** A file of an entry, as ZXDB lists it. */
 export interface ZxFile {
   readonly path: string;
@@ -140,7 +142,7 @@ export function searchQuery(text: string, { offset = 0, size = 24, availableOnly
 export async function search(text: string, options: SearchOptions & { signal?: AbortSignal; base?: string } = {}): Promise<SearchResult> {
   const base = options.base ?? '/zxinfo';
   const res = await fetch(`${base}/v3/search?${searchQuery(text, options)}`, { signal: options.signal });
-  if (!res.ok) throw new Error(`the ZXDB search failed (${res.status})`);
+  if (!res.ok) throw new Error(t('the ZXDB search failed ({status})', { status: res.status }));
   const body = (await res.json()) as { hits?: { total?: { value?: number } | number; hits?: ZxHit[] } };
   const total = typeof body.hits?.total === 'number' ? body.hits.total : (body.hits?.total?.value ?? 0);
   return { total, entries: (body.hits?.hits ?? []).map(entryOf) };
@@ -150,7 +152,7 @@ export async function search(text: string, options: SearchOptions & { signal?: A
 export async function fetchEntry(id: string, options: { signal?: AbortSignal; base?: string } = {}): Promise<ZxEntry> {
   const base = options.base ?? '/zxinfo';
   const res = await fetch(`${base}/v3/games/${encodeURIComponent(id)}?mode=compact`, { signal: options.signal });
-  if (!res.ok) throw new Error(`the ZXDB has no entry ${id} (${res.status})`);
+  if (!res.ok) throw new Error(t('the ZXDB has no entry {id} ({status})', { id, status: res.status }));
   return entryOf((await res.json()) as ZxHit);
 }
 
@@ -162,7 +164,7 @@ export function archiveUrl(path: string): string {
 /** Fetches an archive file through the page's server, reporting progress (0–1) as it comes. */
 export async function fetchArchive(path: string, progress?: (done: number) => void, signal?: AbortSignal): Promise<Uint8Array> {
   const res = await fetch(archiveUrl(path), { signal });
-  if (!res.ok) throw new Error(`the archive would not hand out ${path} (${res.status})`);
+  if (!res.ok) throw new Error(t('the archive would not hand out {path} ({status})', { path, status: res.status }));
   // The length is for progress only: a body sent compressed is longer, decoded, than the length it came with.
   const total = Number(res.headers.get('content-length')) || 0;
   if (!res.body || !total) return new Uint8Array(await res.arrayBuffer());

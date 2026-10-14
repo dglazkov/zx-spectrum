@@ -74,6 +74,26 @@ export function byHand(steps: Route['steps'], skills: Route['skills'] = null): B
   };
 }
 
+/**
+ * Every sentence of a card that a person reads, as the page shows them: its blurb, goal and tips, what each control and
+ * extra does, its start's steps, and its sources' titles. Each is the English a translation of the card is found by
+ * (i18n.ts): a card module's `ru` holds them all in Russian.
+ */
+export function cardWords(card: GameCard): string[] {
+  return [
+    card.blurb,
+    card.goal,
+    ...card.tips,
+    ...card.controls.map((c) => c.does),
+    ...card.extras.map((x) => x.does),
+    ...card.start.steps.map((s) => s.text),
+    ...card.sources.map((s) => s.title),
+  ];
+}
+
+/** A card's words in another language, by their English: every one of cardWords(card), and nothing else. */
+export type CardWords = Readonly<Record<string, string>>;
+
 /** Whether a card's start is one the person makes by hand. */
 export function isByHand(route: Route): route is ByHand {
   return (route as Partial<ByHand>).byHand === true;

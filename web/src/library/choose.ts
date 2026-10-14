@@ -4,6 +4,7 @@
 // for the 128K before one for both; the plain file before a variant, and the game as sold before a demo, a prototype or
 // a fix. It loads only what ZXDB lists as Available.
 
+import { m, type Msg } from '../i18n/i18n';
 import type { Model } from '../emulator/emulator';
 import type { ZxEntry, ZxFile } from './zxinfo';
 
@@ -19,6 +20,11 @@ export interface Choice {
 /** Why an entry cannot be loaded, said to the person. */
 export class Unloadable extends Error {
   override name = 'Unloadable';
+
+  /** The reason, in the page's words (following its language where it shows). */
+  constructor(readonly words: Msg) {
+    super(words.toString());
+  }
 }
 
 /** The machine for ZXDB's machine type, or null for one this is not (a ZX81, a Timex, the Next, a SAM). */
@@ -81,10 +87,10 @@ function variant(file: ZxFile): number {
 /** The file to load for `entry`, and the machine; throws Unloadable with the reason when there is none. */
 export function choose(entry: ZxEntry): Choice {
   if (entry.availability !== 'Available') {
-    throw new Unloadable(`${entry.title}: ZXDB lists it as ${(entry.availability ?? 'not available').toLowerCase()}, so it is not loaded here.`);
+    throw new Unloadable(m('{title}: ZXDB lists it as {availability}, so it is not loaded here.', { title: entry.title, availability: (entry.availability ?? 'not available').toLowerCase() }));
   }
   const model = machineFor(entry.machine);
-  if (!model) throw new Unloadable(`${entry.title} is for the ${entry.machine}, which this is not.`);
+  if (!model) throw new Unloadable(m('{title} is for the {machine}, which this is not.', { title: entry.title, machine: entry.machine ?? '' }));
   const wants128 = model !== '48k' && model !== '16k';
   type Candidate = { file: ZxFile; kind: FileKind; release: number; order: number };
   const candidates: Candidate[] = [];
@@ -96,7 +102,7 @@ export function choose(entry: ZxEntry): Choice {
   );
   if (!candidates.length) {
     const has = [...new Set(entry.releases.flat().map((f) => f.type))].join(', ');
-    throw new Unloadable(`The archive has no tape or snapshot of ${entry.title}${has ? ` (only ${has.toLowerCase()})` : ''}.`);
+    throw new Unloadable(has ? m('The archive has no tape or snapshot of {title} (only {has}).', { title: entry.title, has: has.toLowerCase() }) : m('The archive has no tape or snapshot of {title}.', { title: entry.title }));
   }
   // Each key is smaller for the better file; the first that differs decides.
   const key = (c: Candidate): number[] => {

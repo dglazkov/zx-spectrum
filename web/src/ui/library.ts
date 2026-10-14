@@ -4,6 +4,7 @@
 import featured from '../library/featured.json';
 import { choose, Unloadable } from '../library/choose';
 import { entryOf, search, type ZxEntry, type ZxHit } from '../library/zxinfo';
+import { m, textOf, type Msg } from '../i18n/i18n';
 import { h } from './dom';
 import { icon } from './icons';
 
@@ -27,11 +28,11 @@ export function createLibrary(onPick: (entry: ZxEntry) => void): Library {
   const cards = new Map<string, HTMLElement>();
 
   const card = (entry: ZxEntry): HTMLElement => {
-    let why: string | null = null;
+    let why: Msg | null = null;
     try {
       choose(entry);
     } catch (e) {
-      if (e instanceof Unloadable) why = e.message;
+      if (e instanceof Unloadable) why = e.words;
       else throw e;
     }
     const picture = entry.screen
@@ -39,9 +40,9 @@ export function createLibrary(onPick: (entry: ZxEntry) => void): Library {
       : placeholder(entry);
     const el = h(
       'button',
-      { type: 'button', class: `card${why ? ' card-off' : ''}`, 'data-id': entry.id, title: why ?? `Load ${entry.title}` },
-      h('div', { class: 'card-picture' }, picture, h('div', { class: 'card-load' }, icon('play'), h('span', {}, why ? 'Not here' : 'Load')), h('div', { class: 'card-bar' })),
-      h('div', { class: 'card-text' }, h('div', { class: 'card-title' }, entry.title), h('div', { class: 'card-meta' }, [entry.year, entry.publisher].filter(Boolean).join(' · ') || ' ')),
+      { type: 'button', class: `card${why ? ' card-off' : ''}`, 'data-id': entry.id, title: why ?? m('Load {title}', { title: entry.title }) },
+      h('div', { class: 'card-picture' }, picture, h('div', { class: 'card-load' }, icon('play'), h('span', {}, why ? m('Not here') : m('Load'))), h('div', { class: 'card-bar' })),
+      h('div', { class: 'card-text', translate: 'no' }, h('div', { class: 'card-title' }, entry.title), h('div', { class: 'card-meta' }, [entry.year, entry.publisher].filter(Boolean).join(' · ') || ' ')),
       machineBadge(entry.machine) ? h('span', { class: 'card-machine' }, machineBadge(entry.machine)) : null,
     );
     el.addEventListener('click', () => {
@@ -52,10 +53,10 @@ export function createLibrary(onPick: (entry: ZxEntry) => void): Library {
   };
 
   const grid = h('div', { class: 'cards' });
-  const heading = h('h3', { class: 'library-heading' }, 'From the shelf');
+  const heading = h('h3', { class: 'library-heading' }, m('From the shelf'));
   const status = h('p', { class: 'library-status', role: 'status' });
-  const more = h('button', { type: 'button', class: 'btn more', hidden: true }, 'More');
-  const input = h('input', { type: 'search', class: 'search', placeholder: 'Search the ZXDB: Saboteur, Ultimate, 1985…', 'aria-label': 'Search the ZXDB', enterkeyhint: 'search', spellcheck: 'false', autocomplete: 'off' });
+  const more = h('button', { type: 'button', class: 'btn more', hidden: true }, m('More'));
+  const input = h('input', { type: 'search', class: 'search', placeholder: m('Search the ZXDB: Saboteur, Ultimate, 1985…'), 'aria-label': m('Search the ZXDB'), enterkeyhint: 'search', spellcheck: 'false', autocomplete: 'off' });
   const form = h('form', { class: 'search-form', role: 'search' }, icon('search'), input);
 
   let query = '';
@@ -63,7 +64,7 @@ export function createLibrary(onPick: (entry: ZxEntry) => void): Library {
   let controller: AbortController | null = null;
 
   const showShelf = () => {
-    heading.textContent = 'From the shelf';
+    heading.replaceChildren(textOf(m('From the shelf')));
     status.textContent = '';
     status.classList.remove('error');
     grid.replaceChildren(...SHELF.map(card));
@@ -76,7 +77,7 @@ export function createLibrary(onPick: (entry: ZxEntry) => void): Library {
     if (!append) {
       offset = 0;
       heading.textContent = `“${text}”`;
-      status.textContent = 'Searching…';
+      status.replaceChildren(textOf(m('Searching…')));
       grid.classList.add('waiting');
     }
     const signal = controller.signal;
@@ -89,17 +90,26 @@ export function createLibrary(onPick: (entry: ZxEntry) => void): Library {
       const hidden = all ? all.total - result.total : 0;
       status.classList.remove('error');
       status.replaceChildren(
-        result.total ? `${result.total.toLocaleString()} found.` : 'Nothing found to load. ZXDB knows games by their titles, their authors and their publishers.',
-        hidden > 0 ? h('span', { class: 'library-hidden' }, ` ${hidden.toLocaleString()} more ${hidden === 1 ? 'is' : 'are'} in the ZXDB but not in the archive to load: their rights holders asked for them not to be handed out (Ultimate’s among them).`) : '',
+        textOf(result.total ? m('{n} found.', { n: result.total.toLocaleString() }) : m('Nothing found to load. ZXDB knows games by their titles, their authors and their publishers.')),
+        hidden > 0
+          ? h(
+              'span',
+              { class: 'library-hidden' },
+              ' ',
+              hidden === 1
+                ? m('{n} more is in the ZXDB but not in the archive to load: their rights holders asked for them not to be handed out (Ultimate’s among them).', { n: hidden.toLocaleString(), count: hidden })
+                : m('{n} more are in the ZXDB but not in the archive to load: their rights holders asked for them not to be handed out (Ultimate’s among them).', { n: hidden.toLocaleString(), count: hidden }),
+            )
+          : '',
       );
       more.hidden = offset >= result.total;
     } catch (e) {
       if ((e as Error).name === 'AbortError') return;
       if (!append) grid.replaceChildren();
-      const again = h('button', { type: 'button', class: 'btn' }, 'Try again');
+      const again = h('button', { type: 'button', class: 'btn' }, m('Try again'));
       again.addEventListener('click', () => run(text, append));
       status.classList.add('error');
-      status.replaceChildren(h('strong', {}, 'The ZXDB could not be reached'), h('span', {}, ` (${(e as Error).message}). The shelf still works: clear the search to go back to it.`), again);
+      status.replaceChildren(h('strong', {}, m('The ZXDB could not be reached')), ' ', h('span', {}, m('({why}). The shelf still works: clear the search to go back to it.', { why: (e as Error).message })), ' ', again);
     } finally {
       grid.classList.remove('waiting');
     }
@@ -127,8 +137,8 @@ export function createLibrary(onPick: (entry: ZxEntry) => void): Library {
 
   const el = h(
     'section',
-    { class: 'panel library', 'aria-label': 'Library' },
-    h('header', { class: 'panel-head' }, h('h2', {}, 'Library'), h('a', { class: 'panel-note', href: 'https://zxinfo.dk', target: '_blank', rel: 'noopener' }, 'ZXDB · ZXInfo')),
+    { class: 'panel library', 'aria-label': m('Library') },
+    h('header', { class: 'panel-head' }, h('h2', {}, m('Library')), h('a', { class: 'panel-note', href: 'https://zxinfo.dk', target: '_blank', rel: 'noopener' }, 'ZXDB · ZXInfo')),
     form,
     heading,
     status,

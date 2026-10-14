@@ -4,6 +4,7 @@
 // to read it by. Pressing on it, or dragging along it, shows the picture from that moment; letting go goes back to it.
 // Arrow keys move along it (Shift: ten seconds at a time), Enter goes back, Escape leaves it.
 
+import { m, onLanguage, t } from '../i18n/i18n';
 import type { Moment } from '../state/rewind';
 import { capture, h } from './dom';
 import { icon } from './icons';
@@ -22,8 +23,8 @@ export interface TimelineHooks {
   now(): number;
   /** The palette, 16 × RGB. */
   palette(): Uint8Array;
-  /** Shows a moment's picture in place of the machine's (null: the machine's again), and how long ago it was. */
-  preview(moment: Moment | null, ago: string): void;
+  /** Shows a moment's picture in place of the machine's (null: the machine's again), and how long ago it was: said, and in seconds. */
+  preview(moment: Moment | null, ago: string, seconds: number): void;
   goBack(index: number): void;
 }
 
@@ -71,12 +72,12 @@ function tint(m: Moment, palette: Uint8Array): [number, number, number] {
 /** "8 s", "1:05", "10:00". */
 export function clock(seconds: number): string {
   const s = Math.max(0, Math.round(seconds));
-  return s < 60 ? `${s} s` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  return s < 60 ? t('{n} s', { n: s }) : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
 /** How much is kept: "40 s kept", "3 min kept". */
 function kept(seconds: number): string {
-  return seconds < 60 ? `${Math.round(seconds)} s kept` : `${Math.floor(seconds / 60)} min kept`;
+  return seconds < 60 ? t('{n} s kept', { n: Math.round(seconds) }) : t('{n} min kept', { n: Math.floor(seconds / 60) });
 }
 
 /** The ticks a strip of `span` seconds is read by. */
@@ -87,8 +88,8 @@ export function createTimeline(hooks: TimelineHooks): Timeline {
   const marker = h('div', { class: 'timeline-marker', hidden: true });
   const ticks = h('div', { class: 'timeline-ticks', 'aria-hidden': 'true' });
   const readout = h('span', { class: 'timeline-readout' }, '');
-  const track = h('div', { class: 'timeline-track', role: 'slider', tabindex: 0, 'aria-label': 'Go back in time', 'aria-valuemin': 0, 'aria-valuemax': 0, 'aria-valuenow': 0 }, canvas, marker);
-  const el = h('div', { class: 'timeline empty' }, h('span', { class: 'timeline-label' }, icon('history'), h('span', {}, 'Rewind')), h('div', { class: 'timeline-body' }, track, ticks), readout);
+  const track = h('div', { class: 'timeline-track', role: 'slider', tabindex: 0, 'aria-label': m('Go back in time'), 'aria-valuemin': 0, 'aria-valuemax': 0, 'aria-valuenow': 0 }, canvas, marker);
+  const el = h('div', { class: 'timeline empty' }, h('span', { class: 'timeline-label' }, icon('history'), h('span', {}, m('Rewind'))), h('div', { class: 'timeline-body' }, track, ticks), readout);
 
   /** What the strip shows: its newest moment and how many, its width, and when it was drawn (it is drawn at most four times a second, as moments come thick and fast flat out). */
   let drawn = '';
@@ -104,14 +105,14 @@ export function createTimeline(hooks: TimelineHooks): Timeline {
   };
   const ago = (m: Moment) => {
     const s = secondsAgo(m);
-    return s < 1 ? 'now' : `${clock(s)} ago`;
+    return s < 1 ? t('now') : t('{time} ago', { time: clock(s) });
   };
 
   const drawTicks = (seconds: number) => {
     const shown = TICKS.filter((t) => t <= Math.max(MIN_SPAN, seconds) * 1.001);
     ticks.replaceChildren(
-      h('span', { class: 'tick now', style: 'right: 0' }, 'now'),
-      ...shown.map((t) => h('span', { class: 'tick', style: `right: ${(placeOf(t, seconds) * 100).toFixed(2)}%` }, t < 60 ? `${t} s` : `${t / 60} min`)),
+      h('span', { class: 'tick now', style: 'right: 0' }, t('now')),
+      ...shown.map((n) => h('span', { class: 'tick', style: `right: ${(placeOf(n, seconds) * 100).toFixed(2)}%` }, n < 60 ? t('{n} s', { n }) : t('{n} min', { n: n / 60 }))),
     );
   };
 
@@ -134,7 +135,7 @@ export function createTimeline(hooks: TimelineHooks): Timeline {
       drawnSpan = seconds;
       drawTicks(seconds);
     }
-    if (choosing < 0) readout.textContent = moments.length ? kept(seconds) : 'Fills as it plays';
+    if (choosing < 0) readout.textContent = moments.length ? kept(seconds) : t('Fills as it plays');
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const palette = hooks.palette();
@@ -175,7 +176,7 @@ export function createTimeline(hooks: TimelineHooks): Timeline {
     if (!m) return;
     choosing = i;
     const said = ago(m);
-    hooks.preview(m, said);
+    hooks.preview(m, said, secondsAgo(m));
     const rect = track.getBoundingClientRect();
     marker.hidden = false;
     marker.style.right = `${placeOf(secondsAgo(m), span()) * rect.width}px`;
@@ -190,7 +191,7 @@ export function createTimeline(hooks: TimelineHooks): Timeline {
     choosing = -1;
     marker.hidden = true;
     el.classList.remove('choosing');
-    hooks.preview(null, '');
+    hooks.preview(null, '', 0);
     if (commit) hooks.goBack(i);
     drawn = '';
     drawnAt = -Infinity;
@@ -244,6 +245,13 @@ export function createTimeline(hooks: TimelineHooks): Timeline {
     e.stopPropagation();
   });
   track.addEventListener('blur', () => finish(false));
+  // Its ticks and its readout in the new language, drawn again at once.
+  onLanguage(() => {
+    ticks.replaceChildren();
+    drawn = '';
+    drawnAt = -Infinity;
+    draw();
+  });
 
   return { el, update: draw };
 }

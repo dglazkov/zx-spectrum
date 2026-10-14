@@ -17,6 +17,7 @@ import { choose, Unloadable } from './library/choose';
 import { fetchManual, type Manual } from './library/manual';
 import { isByHand, type GameCard } from './library/card';
 import { cardFor } from './library/games';
+import { LANGUAGES, NAMES, language, m, onLanguage, setLanguage, t, type Lang, type Words } from './i18n/i18n';
 import { screenOf, StartPilot, type StartChoice } from './library/start';
 import { archiveUrl, fetchArchive, fetchEntry, type ZxEntry } from './library/zxinfo';
 import { LIFT_128, Sound } from './audio/sound';
@@ -25,7 +26,7 @@ import { Saves, thumbnailOf, type Slot } from './state/saves';
 import { loadSettings, saveSettings, type Settings } from './state/settings';
 import { button, segmented } from './ui/controls';
 import { createDeck, PLAIN_SHELL, type Shell } from './ui/deck';
-import { byId, download, h, s } from './ui/dom';
+import { byId, download, h, phrase, s } from './ui/dom';
 import { createGamePanel, type GameInfo, type StartState } from './ui/game';
 import { createHelp } from './ui/help';
 import { controlsNow, fallbackHowTo, modeOf, type Hands, type HowTo } from './ui/howto';
@@ -77,7 +78,8 @@ const CONTROLS_FRAMES = 400;
 const LOADED_FRAMES = 150;
 
 const hex4 = (v: number) => v.toString(16).toUpperCase().padStart(4, '0');
-const SLOT_NAMES = ['the quick slot', 'slot 1', 'slot 2', 'slot 3'];
+/** What is said of a slot: of the quick slot (0, F2), or of a numbered one, its number the blank {n}. */
+const slotWords = (slot: number, quick: string, numbered: string): Words => (slot === 0 ? m(quick) : m(numbered, { n: slot }));
 /** Where the page remembers which game a snapshot it saved was of, so that opening the file again brings the game back. */
 const SNAPSHOTS_KEY = 'zx-spectrum.snapshots';
 
@@ -175,6 +177,8 @@ export class App {
   private speedControl!: ReturnType<typeof segmented<string>>;
   private displayControl!: ReturnType<typeof segmented<string>>;
   private modelChip!: HTMLButtonElement;
+  private langBadge!: HTMLElement;
+  private langMenu!: HTMLElement;
   private keysChip!: HTMLElement;
   private soundButton!: HTMLButtonElement;
   private pauseButton!: HTMLButtonElement;
@@ -308,7 +312,7 @@ export class App {
   /** A breakpoint: the machine waits, and the inspector shows where. */
   private stopAt(pc: number): void {
     this.setSpeed('pause');
-    toast(`Stopped at the breakpoint at ${hex4(pc)}.`);
+    toast(m('Stopped at the breakpoint at {at}.', { at: hex4(pc) }));
     if (!this.settingsPanel.el.open) this.openSettings();
     this.inspector.el.scrollIntoView({ block: 'nearest' });
   }
@@ -323,7 +327,7 @@ export class App {
     if (did === 'frame') {
       this.history++;
       if (this.rewind.due(this.history)) this.keepMoment();
-    } else if (did === 'breakpoint') toast(`At the breakpoint at ${hex4(this.emulator.registers().pc)}.`);
+    } else if (did === 'breakpoint') toast(m('At the breakpoint at {at}.', { at: hex4(this.emulator.registers().pc) }));
   }
 
   /** What a SAVE has recorded, looked at now and then: a new recording is offered to download. */
@@ -392,9 +396,10 @@ export class App {
     if (!game || (this.controlsShown && !started)) return;
     this.controlsShown = true;
     if (wasDismissed(game.key)) {
-      const again = this.touchFirst ? 'The Controls button on the set' : 'F3';
       const card = this.card();
-      toast(card && isByHand(card.start) ? `${game.title} has loaded. ${again} shows how to start it, and its controls.` : `${game.title}: you are playing. ${again} shows the controls.`);
+      const title = game.title;
+      if (card && isByHand(card.start)) toast(this.touchFirst ? m('{title} has loaded. The Controls button on the set shows how to start it, and its controls.', { title }) : m('{title} has loaded. F3 shows how to start it, and its controls.', { title }));
+      else toast(this.touchFirst ? m('{title}: you are playing. The Controls button on the set shows the controls.', { title }) : m('{title}: you are playing. F3 shows the controls.', { title }));
       return;
     }
     this.showControls(true);
@@ -414,7 +419,7 @@ export class App {
   /** The controls over the screen: by themselves for a few seconds (`auto`), or asked for, until asked away. */
   showControls(auto = false): void {
     if (!this.game) {
-      toast('Load a game first: its controls show here.');
+      toast(m('Load a game first: its controls show here.'));
       return;
     }
     this.overlay.show(this.howTo(), this.game.title, auto);
@@ -431,7 +436,8 @@ export class App {
   private promptStart(): void {
     const card = this.card();
     const way = card && modeOf(card, this.playChoice.joystick);
-    this.overlay.prompt(this.startShown === 'ready' && way ? `The page answers its menus for you${way === 'Keys' ? '' : `, and you play with ${this.touchFirst ? 'the pad and FIRE' : 'the arrow keys'}`}.` : null);
+    const hint = way === 'Keys' ? m('The page answers its menus for you.') : this.touchFirst ? m('The page answers its menus for you, and you play with the pad and FIRE.') : m('The page answers its menus for you, and you play with the arrow keys.');
+    this.overlay.prompt(this.startShown === 'ready' && way ? hint : null);
   }
 
   private showStart(state: StartState): void {
@@ -533,7 +539,7 @@ export class App {
     if (!this.preview) this.osd.show(this.userSpeed === 'pause' ? { kind: 'paused' } : { kind: 'none' });
     this.deck.update();
     const barShown = this.tapeBar.shown;
-    this.tapeBar.update({ title: this.game?.title ?? this.emulator.tape.blocks()[0]?.label ?? 'The tape', loading: this.autoLoad !== null, fast: this.fastLoad || this.settings.loading !== 'authentic', style: this.settings.loading });
+    this.tapeBar.update({ title: this.game?.title ?? this.emulator.tape.blocks()[0]?.label ?? t('The tape'), loading: this.autoLoad !== null, fast: this.fastLoad || this.settings.loading !== 'authentic', style: this.settings.loading });
     // Room under the screen for the tape's bar while it shows, so that it is in the window with the screen.
     if (this.tapeBar.shown !== barShown) this.resize();
     this.timeline.update();
@@ -705,6 +711,7 @@ export class App {
       this.gamePanel.hands(this.hands());
       this.overlay.update(this.howTo(), this.game?.title ?? '');
     }
+    if (patch.language && patch.language !== language() && (LANGUAGES as readonly string[]).includes(patch.language)) setLanguage(patch.language as Lang);
     this.settingsPanel.sync({ ...this.settings, model: this.emulator.model });
     this.deck.setLoading(this.settings.loading);
     this.displayControl.set(this.settings.display);
@@ -807,7 +814,7 @@ export class App {
         }
       }
     } catch (e) {
-      card.querySelector('.stopped-why')!.textContent = `It would not start again (${(e as Error).message}): reloading the page will.`;
+      card.querySelector('.stopped-why')!.textContent = t('It would not start again ({why}): reloading the page will.', { why: (e as Error).message });
       card.classList.remove('working');
       return;
     }
@@ -817,7 +824,7 @@ export class App {
     this.afterJump();
     this.deck.inserted(emu.tape.state().loaded ? (this.game?.title ?? this.lastTape?.name ?? null) : null, this.shellOf(this.game));
     this.setSpeed(1);
-    toast('Started again, at the last moment kept before it stopped.');
+    toast(m('Started again, at the last moment kept before it stopped.'));
   }
 
   // --- Files -------------------------------------------------------------------------------------------------------
@@ -830,7 +837,7 @@ export class App {
   loadFile(bytes: Uint8Array, name: string, options: { model?: Model; autoload?: boolean; title?: string; entry?: ZxEntry } = {}): LoadResult | null {
     if (this.broken) return null;
     if (bytes.length > MAX_FILE) {
-      toast(`${name} is ${(bytes.length / 1048576).toFixed(0)} MB, larger than any Spectrum file: it is not one the machine can load.`, 'error');
+      toast(m('{name} is {size} MB, larger than any Spectrum file: it is not one the machine can load.', { name, size: (bytes.length / 1048576).toFixed(0) }), 'error');
       return null;
     }
     let result: LoadResult;
@@ -842,14 +849,15 @@ export class App {
         this.fail(e);
         return null;
       }
-      toast(e instanceof LoadError ? e.message : `${name} could not be loaded: ${(e as Error).message}`, 'error', { action: { label: 'Open another file', run: () => this.fileInput.click() } });
+      // The core's reason is its own, in English: said as it is, after the page's words for what happened.
+      toast(e instanceof LoadError ? m('loaderror|{why}', { why: e.message }) : m('{name} could not be loaded: {why}', { name, why: (e as Error).message }), 'error', { action: { label: m('Open another file'), run: () => this.fileInput.click() } });
       return null;
     }
     if (result.kind === 'tape' && !result.blocks?.length) {
       // A tape with nothing on it to play (the stand-in takes one): out of the deck again, and the machine left alone.
       this.emulator.tape.eject();
       this.deck.inserted(null);
-      toast(`${name} has nothing on it the deck can play: the machine was left as it was.`, 'error', { action: { label: 'Open another file', run: () => this.fileInput.click() } });
+      toast(m('{name} has nothing on it the deck can play: the machine was left as it was.', { name }), 'error', { action: { label: m('Open another file'), run: () => this.fileInput.click() } });
       return null;
     }
     this.touched = true;
@@ -870,7 +878,7 @@ export class App {
       this.resize();
       this.setGame(game);
       this.deck.inserted(this.emulator.tape.state().loaded ? title : null);
-      toast(`${title}: a snapshot of a ${MODELS[result.model ?? this.emulator.model].name}.`);
+      toast(m('{title}: a snapshot of a {model}.', { title, model: MODELS[result.model ?? this.emulator.model].name }));
       // A snapshot this page saved of a game brings the game back with it (its panel, its keys, its slots).
       const known = this.snapshotGame(bytes);
       if (known) {
@@ -895,10 +903,10 @@ export class App {
         if (!switched) this.reset();
         this.autoLoad = { stage: 'boot', since: this.emulator.frameCount };
         toast(`${title}: ${MODELS[this.emulator.model].menu ? 'Tape Loader' : 'LOAD ""'}…`);
-      } else toast(`${title} is in the deck: press play when the program asks for it.`);
+      } else toast(m('{title} is in the deck: press play when the program asks for it.', { title }));
       this.deck.inserted(title, this.shellOf(auto ? game : this.game));
     } else {
-      toast(`${result.name} is on the screen.`);
+      toast(m('{name} is on the screen.', { name: result.name }));
     }
     return result;
   }
@@ -917,7 +925,7 @@ export class App {
       choice = choose(entry);
     } catch (e) {
       if (e instanceof Unloadable) {
-        toast(e.message, 'error');
+        toast(e.words, 'error');
         return;
       }
       throw e;
@@ -952,7 +960,8 @@ export class App {
       this.fetching = null;
       this.library.progress(entry.id, (e as Error).message);
       const offline = /fetch|network/i.test((e as Error).message);
-      toast(`${entry.title} could not be fetched: ${offline ? 'the archive did not answer (the network seems to be down)' : (e as Error).message}. Nothing in the machine was changed.`, 'error', { action: { label: 'Try again', run: () => void this.loadEntry(entry) } });
+      const title = entry.title;
+      toast(offline ? m('{title} could not be fetched: the archive did not answer (the network seems to be down). Nothing in the machine was changed.', { title }) : m('{title} could not be fetched: {why}. Nothing in the machine was changed.', { title, why: (e as Error).message }), 'error', { action: { label: m('Try again'), run: () => void this.loadEntry(entry) } });
     } finally {
       if (this.picking === picking) this.picking = null;
     }
@@ -963,12 +972,12 @@ export class App {
     const id = new URLSearchParams(location.search).get('game')?.trim() ?? '';
     if (!id) return;
     if (!/^[0-9]{1,7}$/.test(id)) {
-      toast(`“${id}” is not a ZXDB entry’s number.`, 'error');
+      toast(m('“{id}” is not a ZXDB entry’s number.', { id }), 'error');
       return;
     }
     const padded = id.padStart(7, '0');
     const shelf = SHELF.find((e) => e.id === padded);
-    this.fetching = toast(`${shelf?.title ?? `ZXDB ${Number(id)}`}: fetching it from the archive…`, 'info', { seconds: 30 });
+    this.fetching = toast(m('{title}: fetching it from the archive…', { title: shelf?.title ?? `ZXDB ${Number(id)}` }), 'info', { seconds: 30 });
     (shelf ? Promise.resolve(shelf) : fetchEntry(padded))
       .then((entry) => this.loadEntry(entry))
       .catch((e: Error) => {
@@ -1008,10 +1017,10 @@ export class App {
         return;
       }
       await navigator.clipboard.writeText(link);
-      toast(`Copied: ${link}`);
+      toast(m('Copied: {link}', { link }));
     } catch (e) {
       if ((e as Error).name === 'AbortError') return;
-      toast(`The link: ${link}`, 'info', 10);
+      toast(m('The link: {link}', { link }), 'info', 10);
     }
   }
 
@@ -1034,7 +1043,7 @@ export class App {
     const info: GameInfo = {
       key: game.key,
       title: game.title,
-      meta: e ? [e.year, e.publisher, e.machine?.replace(/^ZX-Spectrum\s*/, '')].filter(Boolean).join(' · ') : 'Opened from a file',
+      meta: e ? [e.year, e.publisher, e.machine?.replace(/^ZX-Spectrum\s*/, '')].filter(Boolean).join(' · ') : m('Opened from a file'),
       inlay: e?.inlay ? archiveUrl(e.inlay) : null,
       share: e ? this.shareLink() : null,
       card,
@@ -1061,7 +1070,7 @@ export class App {
           this.markKeys();
           if (this.overlay.shown) this.overlay.update(this.howTo(), game.title);
         })
-        .catch((err: Error) => this.game === game && this.gamePanel.manual(`The manual could not be fetched: ${err.message}.`));
+        .catch((err: Error) => this.game === game && this.gamePanel.manual(m('The manual could not be fetched: {why}.', { why: err.message })));
     }
   }
 
@@ -1113,7 +1122,7 @@ export class App {
     const s: Slot = { id: `${key}:${slot}`, game: key, slot, title: this.game?.title ?? 'BASIC', savedAt: Date.now(), state, snapshot, picture: thumbnailOf(emu.frame()) };
     const tape = this.tapeFile?.game === key ? { game: key, name: this.tapeFile.name, bytes: this.tapeFile.bytes } : null;
     const kept = await this.saves.put(s, tape);
-    toast(kept ? `Saved in ${SLOT_NAMES[slot]}.` : `Saved in ${SLOT_NAMES[slot]} while this page is open: this browser is keeping no site data.`);
+    toast(kept ? slotWords(slot, 'Saved in the quick slot.', 'Saved in slot {n}.') : slotWords(slot, 'Saved in the quick slot while this page is open: this browser is keeping no site data.', 'Saved in slot {n} while this page is open: this browser is keeping no site data.'));
     await this.showSlots();
   }
 
@@ -1123,7 +1132,7 @@ export class App {
     const key = this.slotsKey();
     const s = await this.saves.get(key, slot);
     if (!s) {
-      toast(`Nothing is saved in ${SLOT_NAMES[slot]} yet: F2 saves there.`);
+      toast(slotWords(slot, 'Nothing is saved in the quick slot yet: F2 saves there.', 'Nothing is saved in slot {n} yet.'));
       return;
     }
     const emu = this.emulator;
@@ -1148,14 +1157,14 @@ export class App {
         if (!s.snapshot.length) throw new Error('no snapshot');
         emu.load(s.snapshot, 'slot.szx');
       } catch {
-        toast(`What is in ${SLOT_NAMES[slot]} cannot be read by this version of the page.`, 'error');
+        toast(slotWords(slot, 'What is in the quick slot cannot be read by this version of the page.', 'What is in slot {n} cannot be read by this version of the page.'), 'error');
         return;
       }
     }
     this.programLoaded = true;
     this.afterJump();
     this.resize();
-    toast(`Back to ${SLOT_NAMES[slot]}.`);
+    toast(slotWords(slot, 'Back to the quick slot.', 'Back to slot {n}.'));
   }
 
   saveSnapshot(format: SnapshotFormat): void {
@@ -1257,7 +1266,7 @@ export class App {
       .map((r) => r.replace(/▒/g, ' ').trim())
       .filter(Boolean);
     this.reader.textContent = '';
-    this.reader.textContent = rows.length ? `The screen reads: ${rows.join('. ')}` : 'The screen has no text the Spectrum’s font can read (a game’s own lettering, or pictures).';
+    this.reader.textContent = rows.length ? t('The screen reads: {text}', { text: rows.join('. ') }) : t('The screen has no text the Spectrum’s font can read (a game’s own lettering, or pictures).');
   }
 
   /** The screen as large as the display: the page fills it (on a phone held sideways, a console), and stays awake. */
@@ -1266,7 +1275,7 @@ export class App {
       if (document.fullscreenElement) await document.exitFullscreen();
       else await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
     } catch {
-      toast('This browser would not go full screen.');
+      toast(m('This browser would not go full screen.'));
     }
   }
 
@@ -1301,19 +1310,19 @@ export class App {
       'div',
       { class: 'brand' },
       s('svg', { class: 'brand-stripe', viewBox: '0 0 40 24', 'aria-hidden': 'true' }, ...STRIPE.map((c, i) => s('path', { d: `M${6 + i * 7} 24 L${16 + i * 7} 0 H${23 + i * 7} L${13 + i * 7} 24 Z`, fill: c }))),
-      h('span', { class: 'wordmark' }, 'ZX Spectrum'),
+      h('span', { class: 'wordmark', translate: 'no' }, 'ZX Spectrum'),
     );
-    this.modelChip = h('button', { type: 'button', class: 'chip model-chip', title: 'The machine (in Settings)' }, MODELS[this.emulator.model].short);
+    this.modelChip = h('button', { type: 'button', class: 'chip model-chip', title: m('The machine (in Settings)'), translate: 'no' }, MODELS[this.emulator.model].short);
     this.modelChip.addEventListener('click', () => this.openSettings());
     // Where the keys go: the machine's, or the page's controls (Shift+Tab goes to them, Escape back).
-    this.keysChip = h('span', { class: 'chip keys-chip', title: 'Where the PC’s keys go: to the Spectrum, or to the page’s controls (Shift+Tab; Escape gives them back). F1 lists them.' }, icon('keyboard'), h('span', {}, 'Keys: Spectrum'));
+    this.keysChip = h('span', { class: 'chip keys-chip', title: m('Where the PC’s keys go: to the Spectrum, or to the page’s controls (Shift+Tab; Escape gives them back). F1 lists them.') }, icon('keyboard'), h('span', {}, m('Keys: Spectrum')));
     this.speedControl = segmented<string>(
-      'Speed',
+      m('Speed'),
       [
-        { value: 'pause', icon: 'pause', title: 'Pause (F9)' },
-        { value: '1', label: '1×', title: 'At its own speed' },
-        { value: '2', label: '2×', title: 'Twice as fast' },
-        { value: 'max', icon: 'forward', title: 'Flat out' },
+        { value: 'pause', icon: 'pause', title: m('Pause (F9)') },
+        { value: '1', label: '1×', title: m('At its own speed') },
+        { value: '2', label: '2×', title: m('Twice as fast') },
+        { value: 'max', icon: 'forward', title: m('Flat out') },
       ],
       '1',
       (v) => {
@@ -1323,10 +1332,10 @@ export class App {
       'speed',
     );
     this.displayControl = segmented<string>(
-      'Display',
+      m('Display'),
       [
-        { value: 'sharp', icon: 'screen', label: 'Sharp', title: 'Sharp pixels' },
-        { value: 'tv', icon: 'screen', label: 'TV', title: 'A television' },
+        { value: 'sharp', icon: 'screen', label: m('Sharp'), title: m('Sharp pixels') },
+        { value: 'tv', icon: 'screen', label: m('TV'), title: m('A television') },
       ],
       this.settings.display,
       (v) => this.change({ display: v as Settings['display'] }),
@@ -1334,7 +1343,7 @@ export class App {
     );
     this.soundButton = button({
       icon: this.settings.muted ? 'mute' : 'sound',
-      title: 'Sound on or off',
+      title: m('Sound on or off'),
       className: 'sound-button',
       onClick: () => {
         // The first press starts the sound (and unmutes it); after that it mutes and unmutes.
@@ -1344,7 +1353,7 @@ export class App {
         } else this.change({ muted: !this.settings.muted });
       },
     });
-    this.pauseButton = button({ icon: 'pause', title: 'Pause, or carry on (F9)', className: 'only-narrow', onClick: () => this.togglePause() });
+    this.pauseButton = button({ icon: 'pause', title: m('Pause, or carry on (F9)'), className: 'only-narrow', onClick: () => this.togglePause() });
     this.fileInput = h('input', { type: 'file', accept: '.tap,.tzx,.z80,.sna,.szx,.slt,.scr,.zip,.csw,.pzx', hidden: true });
     const fileInput = this.fileInput;
     fileInput.addEventListener('change', async () => {
@@ -1353,24 +1362,48 @@ export class App {
       fileInput.value = '';
     });
     const snapMenu = h('div', { class: 'menu', hidden: true, role: 'menu' });
-    for (const [format, label] of [
-      ['z80', 'Save as .z80'],
-      ['szx', 'Save as .szx'],
-      ['sna', 'Save as .sna'],
-    ] as const) {
-      const item = h('button', { type: 'button', role: 'menuitem', class: 'menu-item' }, icon('save'), label);
+    for (const format of ['z80', 'szx', 'sna'] as const) {
+      const item = h('button', { type: 'button', role: 'menuitem', class: 'menu-item' }, icon('save'), m('Save as {file}', { file: `.${format}` }));
       item.addEventListener('click', () => {
         snapMenu.hidden = true;
         this.saveSnapshot(format);
       });
       snapMenu.append(item);
     }
-    const snapButton = button({ icon: 'save', label: 'Snapshot', title: 'Save the machine as a snapshot', className: 'hide-narrow' });
+    const snapButton = button({ icon: 'save', label: m('Snapshot'), title: m('Save the machine as a snapshot'), className: 'hide-narrow' });
     snapButton.addEventListener('click', (e) => {
       e.stopPropagation();
       snapMenu.hidden = !snapMenu.hidden;
     });
-    document.addEventListener('click', () => (snapMenu.hidden = true));
+    document.addEventListener('click', () => {
+      snapMenu.hidden = true;
+      this.showLanguages(false);
+    });
+    // The language: a globe and the two letters of the one spoken, as a Mac's menu bar shows its input; its menu has
+    // each language in its own words, so that the one a person reads is found whichever is spoken. (On a phone, in
+    // Settings: the bar has no room.)
+    this.langBadge = h('span', { class: 'lang-badge' });
+    const langButton = h('button', { type: 'button', class: 'btn lang-button hide-narrow', title: 'Language · Язык', 'aria-label': 'Language · Язык', 'aria-haspopup': 'menu', 'aria-expanded': 'false', translate: 'no' }, icon('globe'), this.langBadge);
+    langButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      snapMenu.hidden = true;
+      this.showLanguages(this.langMenu.hidden === true);
+    });
+    this.langMenu = h('div', { class: 'menu lang-menu', hidden: true, role: 'menu', 'aria-label': 'Language · Язык', translate: 'no' });
+    for (const lang of LANGUAGES) {
+      const item = h('button', { type: 'button', role: 'menuitemradio', class: 'menu-item', lang, 'data-lang': lang, 'aria-checked': 'false' }, icon('check'), h('span', { class: 'lang-badge' }, NAMES[lang].short), NAMES[lang].name);
+      item.addEventListener('click', () => {
+        this.showLanguages(false);
+        this.change({ language: lang });
+      });
+      this.langMenu.append(item);
+    }
+    this.langMenu.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      this.showLanguages(false);
+      langButton.focus();
+    });
     const tools = h(
       'div',
       { class: 'tools' },
@@ -1378,24 +1411,25 @@ export class App {
       this.pauseButton,
       this.displayControl.el,
       this.soundButton,
-      button({ icon: 'keyboard', title: 'Show or hide the keyboard', className: 'hide-narrow', onClick: () => this.change({ keyboard: !this.settings.keyboard }) }),
-      button({ icon: 'open', label: 'Open', title: 'Open a tape, a snapshot or a screen', onClick: () => fileInput.click() }),
+      button({ icon: 'keyboard', title: m('Show or hide the keyboard'), className: 'hide-narrow', onClick: () => this.change({ keyboard: !this.settings.keyboard }) }),
+      button({ icon: 'open', label: m('Open'), title: m('Open a tape, a snapshot or a screen'), onClick: () => fileInput.click() }),
       h('div', { class: 'menu-host' }, snapButton, snapMenu),
-      button({ icon: 'fullscreen', title: 'The screen as large as the display', onClick: () => void this.toggleFullscreen() }),
-      button({ icon: 'power', title: 'Switch it off and on again', onClick: () => this.reset() }),
-      button({ icon: 'help', title: 'Keys (F1)', className: 'hide-narrow help-button', onClick: () => this.help.open() }),
-      button({ icon: 'settings', title: 'Settings', onClick: () => this.openSettings() }),
+      button({ icon: 'fullscreen', title: m('The screen as large as the display'), onClick: () => void this.toggleFullscreen() }),
+      button({ icon: 'power', title: m('Switch it off and on again'), onClick: () => this.reset() }),
+      button({ icon: 'help', title: m('Keys (F1)'), className: 'hide-narrow help-button', onClick: () => this.help.open() }),
+      button({ icon: 'settings', title: m('Settings'), onClick: () => this.openSettings() }),
+      h('div', { class: 'menu-host hide-narrow' }, langButton, this.langMenu),
       fileInput,
     );
     const bar = h('header', { class: 'bar' }, h('div', { class: 'bar-left' }, brand, this.modelChip, this.keysChip), tools);
 
     // The screen.
-    this.veil = h('button', { type: 'button', class: 'veil', title: 'Browsers keep sound off until you click or press a key' }, icon('sound'), h('span', {}, this.touchFirst ? 'Tap for sound' : 'Click for sound'));
+    this.veil = h('button', { type: 'button', class: 'veil', title: m('Browsers keep sound off until you click or press a key') }, icon('sound'), h('span', {}, this.touchFirst ? m('Tap for sound') : m('Click for sound')));
     this.veil.addEventListener('click', () => this.startSound());
     this.osd = createOsd();
-    const restart = h('button', { type: 'button', class: 'btn btn-primary' }, icon('power'), h('span', { class: 'btn-label' }, 'Start it again'));
+    const restart = h('button', { type: 'button', class: 'btn btn-primary' }, icon('power'), h('span', { class: 'btn-label' }, m('Start it again')));
     restart.addEventListener('click', () => void this.restart());
-    this.stoppedCard = h('div', { class: 'screen-card stopped', role: 'alert', hidden: true }, h('strong', {}, 'The machine stopped'), h('p', { class: 'stopped-why' }), h('p', {}, 'Started again, it goes back to the last moment kept, with its tape.'), restart);
+    this.stoppedCard = h('div', { class: 'screen-card stopped', role: 'alert', hidden: true }, h('strong', {}, m('The machine stopped')), h('p', { class: 'stopped-why' }), h('p', {}, m('Started again, it goes back to the last moment kept, with its tape.')), restart);
     this.overlay = createOverlay(
       {
         dismissed: () => {
@@ -1421,12 +1455,12 @@ export class App {
       frameRate: () => this.emulator.frameRate,
       now: () => this.history,
       palette: () => paletteById(this.settings.palette).rgb,
-      preview: (m, ago) => {
-        const picture = m && this.pictureOf(m);
-        this.preview = picture ? m : null;
+      preview: (moment, ago, seconds) => {
+        const picture = moment && this.pictureOf(moment);
+        this.preview = picture ? moment : null;
         if (picture) this.renderer.draw(picture);
         else this.newFrame = true;
-        this.osd.show(picture ? { kind: 'preview', ago } : { kind: 'none' });
+        this.osd.show(picture ? { kind: 'preview', ago, seconds } : { kind: 'none' });
         this.scheduler.speed = this.effectiveSpeed();
       },
       goBack: (i) => this.goBack(i),
@@ -1472,31 +1506,51 @@ export class App {
       resume: () => this.setSpeed(1),
       step: () => this.stepOne(),
     });
-    this.settingsPanel = createSettings(this.settings, (patch) => this.change(patch), () => this.about(), this.inspector.el);
+    this.settingsPanel = createSettings(this.settings, (patch) => this.change(patch), () => this.about(), this.inspector.el, language());
     this.help = createHelp();
 
     // On a phone, the way to a game from the first screen.
-    const chooseGame = h('button', { type: 'button', class: 'btn btn-primary choose-game only-narrow' }, icon('shelf'), h('span', { class: 'btn-label' }, 'Choose a game'));
+    const chooseGame = h('button', { type: 'button', class: 'btn btn-primary choose-game only-narrow' }, icon('shelf'), h('span', { class: 'btn-label' }, m('Choose a game')));
     chooseGame.addEventListener('click', () => this.library.el.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 
     this.mainCol = h('div', { class: 'main-col' }, this.screenWrap, this.tapeBar.el, this.timeline.el, chooseGame, touch.el, h('div', { class: 'keyboard-wrap' }, this.keyboardView.el));
     this.side = h('aside', { class: 'side' }, this.deck.el, this.gamePanel.el, this.library.el);
     const main = h('main', { class: 'stage', id: 'machine' }, this.mainCol, this.side);
-    const link = (href: string, text: string) => h('a', { href, target: '_blank', rel: 'noopener' }, text);
+    const link = (href: string, text: string) => h('a', { href, target: '_blank', rel: 'noopener', translate: 'no' }, text);
     const foot = h(
       'footer',
       { class: 'foot' },
-      h('p', { class: 'foot-amstrad' }, 'The machines’ ROMs are Sinclair Research’s and Amstrad’s. Amstrad have kindly given their permission for the redistribution of their copyrighted material but retain that copyright.'),
-      h('p', {}, 'Games, their inlays and their manuals come from the ', link('https://spectrumcomputing.co.uk', 'Spectrum Computing'), ' archive, found through the ', link('https://zxinfo.dk', 'ZXDB'), ' (by way of ZXInfo), and only those the ZXDB lists as available. Thank you to everyone who keeps them.'),
-      h('p', {}, h('a', { href: './how.html' }, 'How this Spectrum was built'), ', overnight, by a team of agents, and how we know it is faithful.'),
+      h('p', { class: 'foot-amstrad' }, m('The machines’ ROMs are Sinclair Research’s and Amstrad’s. Amstrad have kindly given their permission for the redistribution of their copyrighted material but retain that copyright.')),
+      phrase(h('p'), 'Games, their inlays and their manuals come from the {archive} archive, found through the {zxdb} (by way of ZXInfo), and only those the ZXDB lists as available. Thank you to everyone who keeps them.', { archive: link('https://spectrumcomputing.co.uk', 'Spectrum Computing'), zxdb: link('https://zxinfo.dk', 'ZXDB') }),
+      phrase(h('p'), '{how}, overnight, by a team of agents, and how we know it is faithful.', { how: h('a', { href: './how.html' }, m('How this Spectrum was built')) }),
     );
-    const drop = h('div', { class: 'drop', hidden: true }, h('div', { class: 'drop-card' }, icon('tape'), h('strong', {}, 'Drop it in'), h('span', {}, 'A tape (TAP, TZX, CSW, PZX), a snapshot (Z80, SNA, SZX), a screen (SCR), or a .zip of one')));
+    const drop = h('div', { class: 'drop', hidden: true }, h('div', { class: 'drop-card' }, icon('tape'), h('strong', {}, m('Drop it in')), h('span', {}, m('A tape (TAP, TZX, CSW, PZX), a snapshot (Z80, SNA, SZX), a screen (SCR), or a .zip of one'))));
     this.reader = h('div', { class: 'visually-hidden', role: 'status', 'aria-live': 'polite' });
     // The first paint's stand-in (index.html) gives way to the page.
     document.querySelector('.boot')?.remove();
     root.append(bar, main, foot, drop, this.settingsPanel.el, this.help.el, this.reader);
     this.deck.inserted(null);
     this.updateVeil();
+    this.showLanguages(false);
+    onLanguage(() => this.relanguage());
+  }
+
+  /** The language menu shown or put away, its badge and its tick on the language spoken. */
+  private showLanguages(open: boolean): void {
+    const lang = language();
+    this.langBadge.textContent = NAMES[lang].short;
+    this.langMenu.hidden = !open;
+    this.langMenu.previousElementSibling?.setAttribute('aria-expanded', String(open));
+    for (const item of this.langMenu.querySelectorAll<HTMLElement>('[data-lang]')) item.setAttribute('aria-checked', String(item.dataset.lang === lang));
+    if (open) this.langMenu.querySelector<HTMLElement>('[aria-checked="true"]')?.focus();
+  }
+
+  /** The language changed: what the page works out of the game and the machine, worked out again in it. */
+  private relanguage(): void {
+    this.showLanguages(false);
+    this.keysTo();
+    this.promptStart();
+    if (this.game && this.overlay.shown) this.overlay.update(this.howTo(), this.game.title);
   }
 
   /** Settings, showing the machine as it is now (a snapshot or a game may have switched it). */
@@ -1555,15 +1609,8 @@ export class App {
       const active = document.activeElement;
       if (active instanceof HTMLElement && active !== document.body && !active.closest('dialog') && !active.matches('input, select, textarea, summary')) active.blur();
     });
-    // Where the keys go, said in the bar.
-    const keysTo = () => {
-      const a = document.activeElement;
-      const page = !!a && a !== document.body;
-      this.keysChip.classList.toggle('page', page);
-      this.keysChip.lastElementChild!.textContent = page ? 'Keys: page' : 'Keys: Spectrum';
-    };
-    document.addEventListener('focusin', keysTo);
-    document.addEventListener('focusout', () => setTimeout(keysTo, 0));
+    document.addEventListener('focusin', () => this.keysTo());
+    document.addEventListener('focusout', () => setTimeout(() => this.keysTo(), 0));
     // Closing the tab (Ctrl+W meant as SYMBOL SHIFT and W, say) asks first, once something would be lost.
     window.addEventListener('beforeunload', (e) => {
       if (!this.touched) return;
@@ -1598,9 +1645,19 @@ export class App {
     });
   }
 
+  /** Where the keys go, said in the bar. */
+  private keysTo(): void {
+    const a = document.activeElement;
+    const page = !!a && a !== document.body;
+    this.keysChip.classList.toggle('page', page);
+    this.keysChip.lastElementChild!.textContent = page ? t('Keys: page') : t('Keys: Spectrum');
+  }
+
   private about(): string {
-    const core = this.kind === 'wasm' ? 'the emulator (crates/spectrum, compiled to WebAssembly)' : 'the stand-in emulator, which runs no Z80 (?emulator=stub): games stop at their loading screens';
-    return `Running ${core}, drawn with ${this.renderer.kind === 'webgl2' ? 'WebGL 2' : 'a 2D canvas'}${this.sound ? `, sound at ${this.sound.rate} Hz` : this.soundAllowed ? ', sound not started yet' : ', with no sound (?sound=off)'}.`;
+    const core = this.kind === 'wasm' ? t('the emulator (crates/spectrum, compiled to WebAssembly)') : t('the stand-in emulator, which runs no Z80 (?emulator=stub): games stop at their loading screens');
+    const drawn = this.renderer.kind === 'webgl2' ? 'WebGL 2' : t('a 2D canvas');
+    const sound = this.sound ? t(', sound at {rate} Hz', { rate: this.sound.rate }) : this.soundAllowed ? t(', sound not started yet') : t(', with no sound (?sound=off)');
+    return t('Running {core}, drawn with {drawn}{sound}.', { core, drawn, sound });
   }
 }
 

@@ -1,6 +1,7 @@
 // A line of news at the foot of the page: what was loaded goes after a few seconds; what went wrong stays until it is
 // dismissed, in plain words, with what to do about it where there is something (Try again).
 
+import { m, type Words } from '../i18n/i18n';
 import { h } from './dom';
 import { icon } from './icons';
 
@@ -15,10 +16,10 @@ export interface ToastOptions {
   /** Seconds it stays; an error stays until dismissed unless this says otherwise. */
   seconds?: number;
   /** A button on it: its label and what it does (the toast goes when it is pressed). */
-  action?: { label: string; run: () => void };
+  action?: { label: Words; run: () => void };
 }
 
-export function toast(message: string, kind: 'info' | 'error' = 'info', options: ToastOptions | number = {}): Toast {
+export function toast(message: Words, kind: 'info' | 'error' = 'info', options: ToastOptions | number = {}): Toast {
   const o = typeof options === 'number' ? { seconds: options } : options;
   if (!host) {
     host = h('div', { class: 'toasts', role: 'status', 'aria-live': 'polite' });
@@ -43,7 +44,7 @@ export function toast(message: string, kind: 'info' | 'error' = 'info', options:
   }
   const persistent = kind === 'error' && o.seconds === undefined;
   if (persistent || o.action) {
-    const close = h('button', { type: 'button', class: 'toast-close', 'aria-label': 'Dismiss' }, icon('close'));
+    const close = h('button', { type: 'button', class: 'toast-close', 'aria-label': m('Dismiss') }, icon('close'));
     close.addEventListener('click', dismiss);
     el.append(close);
   }
