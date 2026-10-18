@@ -175,6 +175,8 @@ describe('what goes wrong in passing through, said once at its severity', () => 
     origin = createServer((req, res) => {
       if (req.url === '/pub/sinclair/away.tap') return res.writeHead(302, { Location: 'https://evil.example/x' }).end();
       if (req.url === '/pub/sinclair/big.tap') return res.writeHead(200, { 'Content-Length': 5000 }).end(Buffer.alloc(5000));
+      // As api.zxinfo.dk answered every path on Oct 18: its nginx up, what is behind it not.
+      if (req.url === '/pub/sinclair/down.tap') return res.writeHead(502, { 'Content-Type': 'text/html' }).end('<html><head><title>502 Bad Gateway</title></head></html>');
       res.writeHead(404).end();
     });
     await new Promise((r) => origin.listen(0, '127.0.0.1', r));
@@ -213,6 +215,19 @@ describe('what goes wrong in passing through, said once at its severity', () => 
     expect((await fetch(`${base}/dead/pub/sinclair/x.tap`)).status).toBe(502);
     expect(said.errors).toHaveLength(1);
     expect(said.errors[0][0]).toBeInstanceOf(Error);
+    expect(said.errors[0][0].stack).toMatch(/\n\s+at /);
+    expect(said.lines).toEqual([]);
+  });
+
+  it('an origin that answers 5xx is not reached either: once, with its host and status, and not its page', async () => {
+    listen();
+    const res = await fetch(`${base}/archive/pub/sinclair/down.tap`);
+    expect(res.status).toBe(502);
+    expect(res.headers.get('content-type')).toMatch(/^text\/plain/);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    expect(await res.text()).toMatch(/^127\.0\.0\.1:\d+ answered 502/);
+    expect(said.errors).toHaveLength(1);
+    expect(said.errors[0][0].message).toMatch(/^\/archive: 127\.0\.0\.1:\d+ answered 502$/);
     expect(said.errors[0][0].stack).toMatch(/\n\s+at /);
     expect(said.lines).toEqual([]);
   });

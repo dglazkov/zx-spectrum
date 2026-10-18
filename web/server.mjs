@@ -232,6 +232,16 @@ async function pass(req, res, routes, limit) {
       }
       url = to.href;
     }
+    // The origin up but failing behind its front (ZXInfo's nginx answering 502 for every path, on Oct 18) is the origin
+    // not reached, as a refused connection is: said once, with its host and status, rather than passed on as its page.
+    if (upstream.status >= 500) {
+      upstream.body?.cancel();
+      const host = new URL(url).host;
+      logError(new Error(`${route.prefix}: ${host} answered ${upstream.status}`));
+      res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(`${host} answered ${upstream.status}: try again in a little while\n`);
+      return true;
+    }
     // fetch hands over the body decoded, so a length the origin gave for a compressed body is not this body's: the
     // body then goes without one (chunked), checked against the cap as it streams.
     const encoded = !/^(identity)?$/i.test(upstream.headers.get('content-encoding') ?? '');
