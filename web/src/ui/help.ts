@@ -1,5 +1,6 @@
 // Every key the page knows, on one sheet (F1, or the ? in the bar): the machine's keys on the PC's, the page's own
-// shortcuts, and how to move between the machine and the page's controls with the keyboard alone.
+// shortcuts (nerd's feedback card's among them), and how to move between the machine and the page's controls with the
+// keyboard alone.
 
 import { m, type Words } from '../i18n/i18n';
 import { h } from './dom';
@@ -16,6 +17,7 @@ const ROWS: readonly (readonly [readonly Words[], Words])[] = [
   [['F1'], m('This sheet')],
   [['F2', 'F4'], m('Save the quick slot · load it')],
   [['F3'], m('The game’s controls over the screen, as you press them now (again to hide them)')],
+  [['F7'], m('Send feedback on the page')],
   [['F8'], m('Read the screen aloud (a screen reader says it)')],
   [['F9'], m('Pause, or carry on')],
   [[m('Arrows'), m('Left Alt')], m('The joystick, once a program is loaded (at BASIC the arrows move the cursor); for a game that takes no joystick, its own keys')],

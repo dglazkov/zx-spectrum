@@ -1,5 +1,6 @@
 // The PC's keyboard, listened to: each key mapped (keymap.ts) and handed to the feeder at the frame the machine is
-// at, or to the joystick. Keys typed into the page's own fields (the library's search) are theirs, not the machine's.
+// at, or to the joystick. Keys typed into the page's own fields (the library's search, nerd's feedback card) are theirs,
+// not the machine's.
 
 import type { KeyFeeder } from './feeder';
 import { mapKey, operatorChords, type JoystickKeys, type Mapping } from './keymap';
@@ -27,9 +28,10 @@ const CONTROL_KEYS = new Set(['Tab', 'Enter', ' ', 'Escape', 'ArrowLeft', 'Arrow
  * mouse. A click leaves no focus on a control (app.ts lets it go), so a game's Space never presses the button last
  * clicked. Shift+Tab is always the page's: from the machine, it is the way to its controls (Tab is extended mode).
  */
-export function forThePage(e: Pick<KeyboardEvent, 'target' | 'key' | 'shiftKey'>): boolean {
+export function forThePage(e: Pick<KeyboardEvent, 'target' | 'key' | 'shiftKey'> & Partial<Pick<KeyboardEvent, 'composedPath'>>): boolean {
   if (e.key === 'Tab' && e.shiftKey) return true;
-  const target = e.target;
+  // Where the key really went: a field inside a shadow tree (nerd's feedback card) shows the window only its host.
+  const target = e.composedPath?.()[0] ?? e.target;
   if (!(target instanceof Element)) return false;
   if (target.closest('dialog[open]')) return true;
   if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || (target as HTMLElement).isContentEditable) return true;

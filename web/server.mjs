@@ -9,9 +9,20 @@
 //                      answers carry Access-Control-Allow-Origin twice, which browsers refuse (docs/web.md), and it
 //                      asks its clients to say who they are, which a browser cannot.
 //
+// And nerd's two (nerd guide telemetry), which print what the page says of its use as one line each, for nerd to read
+// from Cloud Logging:
+//
+//   /nerd/event        an event of the page's (web/src/telemetry.ts): {"nerd":"event","name":…,"kind":…,"n":…,"ms":…}
+//   /nerd/feedback     what a person sent with nerd's feedback card: {"nerd":"feedback","words":…,"page":…,…}
+//
+// An error the server catches and cannot mend is written once, where it is caught, with its stack, to standard error,
+// which Cloud Logging takes for severity ERROR; what is not the server's failure (the archive slow, a file too large)
+// is a line at WARNING.
+//
 //   node server.mjs [dir]      PORT says which port (8080 if unset)
 //
-// The dev server (vite.config.ts) passes the same two through with the same code: `passThrough` below.
+// The dev server (vite.config.ts) passes the same two through with the same code, `passThrough` below, and answers
+// nerd's two with `nerdTelemetry`.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join } from 'node:path';
@@ -21,6 +32,75 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { brotliCompressSync, constants, gzipSync } from 'node:zlib';
 
 const AGENT = 'zx-spectrum (https://zx-spectrum.lab.glazkov.ai)';
+
+/** An error the server cannot mend, with its stack: ERROR, by its stack, in Cloud Logging. */
+export function logError(e) {
+  console.error(e);
+}
+
+/** What went wrong but is not the server's failure, as one line at WARNING. */
+export function logWarning(message) {
+  console.log(JSON.stringify({ severity: 'WARNING', message }));
+}
+
+/** nerd's paths, and the fields of a body each prints: those alone, never the body as it came. */
+export const NERD_FIELDS = { event: ['name', 'kind', 'n', 'ms'], feedback: ['words', 'page', 'events', 'errors'] };
+const NERD_MAX_BYTES = 64 * 1024;
+
+/**
+ * A handler for /nerd/event and /nerd/feedback (see NERD_FIELDS): a POST of a JSON object, up to 64 KB, printed as one
+ * line of its own fields, answered 204; and says whether the request was one of them. A client may send so many a
+ * minute (the page sends a few a game). (Tests make one with a printer of their own.)
+ */
+export function makeNerdTelemetry({ print = (line) => console.log(line), limit = makeLimiter({ perMinute: 60, burst: 30 }) } = {}) {
+  return async (req, res) => {
+    const path = (req.url ?? '').split('?')[0];
+    const kind = /^\/nerd\/(event|feedback)$/.exec(path)?.[1];
+    if (!kind) return false;
+    const reply = (status, text) => {
+      res.writeHead(status, text ? { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } : { 'Cache-Control': 'no-store' });
+      res.end(text);
+    };
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', 'POST');
+      reply(405, 'Method not allowed\n');
+      return true;
+    }
+    if (limit && !limit(req)) {
+      reply(429, 'Too many requests\n');
+      return true;
+    }
+    const chunks = [];
+    let bytes = 0;
+    for await (const chunk of req) {
+      bytes += chunk.length;
+      if (bytes > NERD_MAX_BYTES) {
+        reply(413, 'Too large\n');
+        req.destroy();
+        return true;
+      }
+      chunks.push(chunk);
+    }
+    let body;
+    try {
+      body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    } catch {
+      body = null;
+    }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      reply(400, 'A JSON object, please\n');
+      return true;
+    }
+    const line = { nerd: kind };
+    for (const name of NERD_FIELDS[kind]) if (body[name] !== undefined) line[name] = body[name];
+    print(JSON.stringify(line));
+    reply(204);
+    return true;
+  };
+}
+
+/** nerd's two paths, printing to standard output. */
+export const nerdTelemetry = makeNerdTelemetry();
 
 /** What may be passed through, where to, and how much of it. */
 export const ROUTES = [
@@ -145,6 +225,7 @@ async function pass(req, res, routes, limit) {
       const next = upstream.headers.get('location');
       const to = next ? new URL(next, url) : null;
       if (!to || to.protocol !== new URL(route.origin).protocol || !route.hosts.includes(to.host) || hops >= 3) {
+        logWarning(`${route.prefix}: the origin redirected somewhere this server does not go`);
         res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' });
         res.end('The archive redirected somewhere this server does not go\n');
         return true;
@@ -156,6 +237,7 @@ async function pass(req, res, routes, limit) {
     const encoded = !/^(identity)?$/i.test(upstream.headers.get('content-encoding') ?? '');
     const length = encoded ? 0 : Number(upstream.headers.get('content-length') ?? 0);
     if (length > route.maxBytes) {
+      logWarning(`${route.prefix}: ${length} bytes, too large to pass through`);
       res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('Too large to pass through\n');
       upstream.body?.cancel();
@@ -188,8 +270,14 @@ async function pass(req, res, routes, limit) {
     });
     await pipeline(Readable.fromWeb(upstream.body), cap, res, { signal });
   } catch (e) {
+    // Said once, here, where it is caught: the archive slow, a file too large, or the client gone are not the server's
+    // failure; anything else is, with its stack.
+    const timedOut = e?.name === 'TimeoutError' || signal.aborted;
+    if (timedOut) logWarning(`${route.prefix}: the origin took longer than ${route.timeoutMs} ms`);
+    else if (e?.message === 'too large to pass through') logWarning(`${route.prefix}: too large to pass through, cut off`);
+    else if (!(res.destroyed && (e?.code === 'ERR_STREAM_PREMATURE_CLOSE' || e?.code === 'ECONNRESET'))) logError(e);
     if (!res.headersSent) {
-      res.writeHead(e?.name === 'TimeoutError' || signal.aborted ? 504 : 502, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.writeHead(timedOut ? 504 : 502, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end(`The archive could not be reached: ${e?.message ?? e}\n`);
     } else res.destroy();
   }
@@ -238,7 +326,20 @@ function readSite(root) {
 export function startServer(root, port) {
   const files = readSite(root);
   const server = createServer(async (req, res) => {
+    try {
+      await serve(req, res);
+    } catch (e) {
+      // Whatever the server did not see coming: said once, with its stack, and answered.
+      logError(e);
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.end('Something went wrong in the server\n');
+      } else res.destroy();
+    }
+  });
+  async function serve(req, res) {
     if (await passThrough(req, res)) return;
+    if (await nerdTelemetry(req, res)) return;
     const headers = { 'X-Content-Type-Options': 'nosniff' };
     const reply = (status, text) => {
       res.writeHead(status, { ...headers, 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -271,7 +372,7 @@ export function startServer(root, port) {
     headers['Content-Length'] = body.length;
     res.writeHead(200, headers);
     res.end(req.method === 'HEAD' ? undefined : body);
-  });
+  }
   server.listen(port, () => {
     let bytes = 0;
     for (const f of files.values()) bytes += f.body.length;

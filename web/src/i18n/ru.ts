@@ -183,6 +183,9 @@ export const RU: Readonly<Record<string, Entry>> = {
   'Lift the 128’s sound to the 48K’s loudness': 'Сделать звук 128-го таким же громким, как у 48K',
   'The 128’s music and beeper are quieter than a 48K’s beeper, as their circuits make them.': 'Музыка и бипер 128-го тише бипера 48K — так устроены их схемы.',
   'Inside the machine': 'Внутри компьютера',
+  Feedback: 'Отзыв',
+  'Send feedback': 'Отправить отзыв',
+  'What you think of the page, what you expected and what happened: it goes to whoever makes it, with the last few things done and any errors. F7 opens it too.': 'Что вы думаете о странице, чего ждали и что вышло: отзыв уйдёт тому, кто её делает, вместе с последними действиями и ошибками. F7 тоже открывает его.',
   About: 'О программе',
   // What Settings lists from elsewhere: the crops (video/fit.ts), the colours (video/palette.ts), the fire keys
   // (input/keymap.ts).
@@ -220,6 +223,7 @@ export const RU: Readonly<Record<string, Entry>> = {
   'The game’s controls over the screen, as you press them now (again to hide them)': 'Управление игрой поверх экрана — как вы играете сейчас (ещё раз — скрыть)',
   'Read the screen aloud (a screen reader says it)': 'Прочитать экран вслух (через программу чтения с экрана)',
   'Pause, or carry on': 'Пауза или продолжить',
+  'Send feedback on the page': 'Отправить отзыв о странице',
   Arrows: 'Стрелки',
   'The joystick, once a program is loaded (at BASIC the arrows move the cursor); for a game that takes no joystick, its own keys': 'Джойстик — после загрузки программы (в BASIC стрелки двигают курсор); в игре без джойстика — её собственные клавиши',
   'Alt with a key': 'Alt с клавишей',

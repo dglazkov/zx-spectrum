@@ -23,6 +23,7 @@ try {
   await import('./page/state.mjs');
   await import('./page/phone.mjs');
   await import('./page/language.mjs');
+  await import('./page/telemetry.mjs');
   await runAll(4);
 } finally {
   await browser.close();

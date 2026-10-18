@@ -1,20 +1,23 @@
 /// <reference types="vitest/config" />
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, type Connect, type Plugin } from 'vite';
 // The production server's pass-through (/archive to the archive, /zxinfo to the ZXInfo API), used by the dev server
 // as it is, so that the page sees the same thing in both.
-import { passThrough } from './server.mjs';
+// nerd's /nerd/event and /nerd/feedback are answered as the production server answers them, the line printed here.
+import { nerdTelemetry, passThrough } from './server.mjs';
+
+const serverPaths: Connect.NextHandleFunction = (req, res, next) => {
+  passThrough(req, res)
+    .then((handled) => handled || nerdTelemetry(req, res))
+    .then((handled) => (handled ? undefined : next()), next);
+};
 
 const passThroughPlugin = (): Plugin => ({
   name: 'zx-pass-through',
   configureServer(server) {
-    server.middlewares.use((req, res, next) => {
-      passThrough(req, res).then((handled: boolean) => (handled ? undefined : next()), next);
-    });
+    server.middlewares.use(serverPaths);
   },
   configurePreviewServer(server) {
-    server.middlewares.use((req, res, next) => {
-      passThrough(req, res).then((handled: boolean) => (handled ? undefined : next()), next);
-    });
+    server.middlewares.use(serverPaths);
   },
 });
 

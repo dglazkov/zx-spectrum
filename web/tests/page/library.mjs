@@ -86,6 +86,14 @@ test('Saboteur from the library: searched, fetched, loaded flat out to its £100
   await page.locator('.ov-close').click();
   const closed = await page.evaluate(() => ({ shown: !document.querySelector('.controls-overlay').hidden, kept: localStorage.getItem('zx-spectrum.controls-closed') }));
   assert(!closed.shown && JSON.parse(closed.kept ?? '[]').includes('zxdb:0004293'), `after the ×: ${JSON.stringify(closed)}`);
+  // What nerd was told (web/src/telemetry.ts): a game found by searching, its play begun by the Start button, and, as
+  // the page goes, how long it was played.
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide')));
+  await wait(page, 100);
+  const told = page.nerd.filter((n) => n.path === '/nerd/event').map((n) => n.body);
+  const names = told.map((b) => [b.name, b.kind].filter(Boolean).join(' '));
+  assert(JSON.stringify(names) === JSON.stringify(['game.loaded search', 'game.started button', 'game.played']), `the events: ${JSON.stringify(names)}`);
+  assert(told[1].ms > 0 && told[2].ms >= 18_000, `game.started after ${told[1].ms} ms, played ${told[2].ms} ms`);
   clean(page);
   await page.context().close();
   return `REWARD ${frames} frames after the tape went in; keys ${after.keys.join(' ')}; the game ${started.frames - s0} frames after Start; the controls over it`;

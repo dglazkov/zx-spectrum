@@ -147,12 +147,18 @@ async function open(options = {}) {
   const page = await context.newPage();
   page.problems = [];
   page.archive = [];
+  // What the page tells nerd (/nerd/event, /nerd/feedback), as the server would take it: each body, in order.
+  page.nerd = [];
   page.on('pageerror', (e) => page.problems.push(`pageerror: ${e.message}`));
   // Leaving a page something was done on asks first (beforeunload): the test's reloads say yes.
   page.on('dialog', (d) => d.accept());
   if (process.env.PAGE_LOG) page.on('console', (m) => console.log('  console', m.type(), m.text()));
   page.on('console', (m) => {
     if (m.type() === 'error') page.problems.push(`console: ${m.text()}`);
+  });
+  await page.route('**/nerd/*', (r) => {
+    page.nerd.push({ path: new URL(r.request().url()).pathname, body: JSON.parse(r.request().postData() ?? 'null') });
+    return r.fulfill({ status: 204 });
   });
   await page.route('**/zxinfo/v3/search?**', (r) => r.fulfill({ contentType: 'application/json', body: recording('search-saboteur') }));
   await page.route('**/zxinfo/v3/games/**', (r) => r.fulfill({ contentType: 'application/json', body: entryRecording(r.request().url()) }));

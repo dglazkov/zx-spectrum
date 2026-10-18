@@ -24,10 +24,10 @@ export function machineBadge(m: string | null): string | null {
   return name;
 }
 
-export function createLibrary(onPick: (entry: ZxEntry) => void): Library {
+export function createLibrary(onPick: (entry: ZxEntry, from: 'shelf' | 'search') => void): Library {
   const cards = new Map<string, HTMLElement>();
 
-  const card = (entry: ZxEntry): HTMLElement => {
+  const card = (entry: ZxEntry, from: 'shelf' | 'search'): HTMLElement => {
     let why: Msg | null = null;
     try {
       choose(entry);
@@ -46,7 +46,7 @@ export function createLibrary(onPick: (entry: ZxEntry) => void): Library {
       machineBadge(entry.machine) ? h('span', { class: 'card-machine' }, machineBadge(entry.machine)) : null,
     );
     el.addEventListener('click', () => {
-      if (!why) onPick(entry);
+      if (!why) onPick(entry, from);
     });
     cards.set(entry.id, el);
     return el;
@@ -67,7 +67,7 @@ export function createLibrary(onPick: (entry: ZxEntry) => void): Library {
     heading.replaceChildren(textOf(m('From the shelf')));
     status.textContent = '';
     status.classList.remove('error');
-    grid.replaceChildren(...SHELF.map(card));
+    grid.replaceChildren(...SHELF.map((e) => card(e, 'shelf')));
     more.hidden = true;
   };
 
@@ -85,7 +85,7 @@ export function createLibrary(onPick: (entry: ZxEntry) => void): Library {
       // The games the archive may hand out; and, beside them, how many more the ZXDB knows that it may not.
       const [result, all] = await Promise.all([search(text, { offset, size: 24, signal }), append ? null : search(text, { size: 0, availableOnly: false, signal }).catch(() => null)]);
       if (!append) grid.replaceChildren();
-      grid.append(...result.entries.map(card));
+      grid.append(...result.entries.map((e) => card(e, 'search')));
       offset += result.entries.length;
       const hidden = all ? all.total - result.total : 0;
       status.classList.remove('error');

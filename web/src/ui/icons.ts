@@ -30,6 +30,7 @@ const PATHS: Readonly<Record<string, string>> = {
   share: 'M12 3.5v11M7.5 8 12 3.5 16.5 8M5 12.5v6a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-6',
   step: 'M6 5v14M10 5l9 7-9 7z',
   fullscreen: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
+  feedback: 'M4.5 5h15v10.5h-8.5L6.5 19.5v-4h-2z',
   help: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.5a2.6 2.6 0 1 1 3.6 2.4c-.7.3-1.1.9-1.1 1.6v.5M12 17h.01',
   shelf: 'M4 4.5h6v6H4zM14 4.5h6v6h-6zM4 13.5h6v6H4zM14 13.5h6v6h-6z',
   reader: 'M4 6h16M4 10h16M4 14h10M4 18h7',

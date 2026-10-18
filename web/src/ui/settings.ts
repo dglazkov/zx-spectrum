@@ -1,4 +1,4 @@
-// The settings: the language, the machine, the picture, the keyboard and joystick, the tape, the sound. Each change is
+// The settings: the language, the machine, the picture, the keyboard and joystick, the tape, the sound; and feedback. Each change is
 // applied at once and remembered (state/settings.ts). A sheet at the side, not a modal: the screen stays live and in view beside
 // it, so that the picture, its colours and the room's glow are chosen against the picture itself, and the inspector
 // shows the machine it stops. Escape or the close button puts it away.
@@ -9,7 +9,7 @@ import { FIRE_KEYS } from '../input/keymap';
 import type { KeyboardMapping, LoadingStyle, Settings } from '../state/settings';
 import { CROPS, type CropId, type DisplayMode } from '../video/fit';
 import { PALETTES } from '../video/palette';
-import { field, segmented, select, toggle } from './controls';
+import { button, field, segmented, select, toggle } from './controls';
 import { h } from './dom';
 import { icon } from './icons';
 
@@ -20,7 +20,7 @@ export interface SettingsPanel {
   sync(settings: Settings): void;
 }
 
-export function createSettings(initial: Settings, change: (patch: Partial<Settings>) => void, about: () => string, inspector: HTMLElement, lang: Lang): SettingsPanel {
+export function createSettings(initial: Settings, change: (patch: Partial<Settings>) => void, about: () => string, inspector: HTMLElement, lang: Lang, feedback: () => void): SettingsPanel {
   // Each language by its own name, whichever the page speaks: the one that can be read is found in either.
   const language = segmented<Lang>(
     'Language · Язык',
@@ -83,6 +83,7 @@ export function createSettings(initial: Settings, change: (patch: Partial<Settin
   volume.value = String(initial.volume);
   volume.addEventListener('input', () => change({ volume: Number(volume.value) }));
   const aboutText = h('p', { class: 'about' });
+  const sendFeedback = button({ icon: 'feedback', label: m('Send feedback'), onClick: feedback });
 
   const close = h('button', { type: 'button', class: 'btn btn-icon dialog-close', 'aria-label': m('Close') }, icon('close'));
   const el = h(
@@ -97,6 +98,7 @@ export function createSettings(initial: Settings, change: (patch: Partial<Settin
       h('section', {}, h('h3', {}, m('Tape')), field(m('Loading'), loading.el), field(m('Motor'), autoTape.el)),
       h('section', {}, h('h3', {}, m('Sound')), field(m('Volume'), volume), field(m('Level'), level.el, m('The 128’s music and beeper are quieter than a 48K’s beeper, as their circuits make them.'))),
       h('section', {}, h('h3', {}, m('Inside the machine')), inspector),
+      h('section', {}, h('h3', {}, m('Feedback')), field(m('Feedback'), sendFeedback, m('What you think of the page, what you expected and what happened: it goes to whoever makes it, with the last few things done and any errors. F7 opens it too.'))),
       h('section', {}, h('h3', {}, m('About')), aboutText),
     ),
   );

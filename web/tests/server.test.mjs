@@ -1,8 +1,9 @@
-// The server's pass-through: what it lets through and what it refuses, against an origin of the test's own.
+// The server's pass-through: what it lets through and what it refuses, against an origin of the test's own; what it
+// says when that goes wrong, and at which severity; and nerd's two paths, /nerd/event and /nerd/feedback.
 import { createServer, get } from 'node:http';
 import { gzipSync } from 'node:zlib';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { makeLimiter, makePassThrough, passTarget } from '../server.mjs';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { makeLimiter, makeNerdTelemetry, makePassThrough, passTarget } from '../server.mjs';
 
 describe('which paths are passed through', () => {
   it('passes the archive’s game files and the ZXDB’s own', () => {
@@ -162,6 +163,128 @@ describe('passing through', () => {
   it('refuses a path it does not pass, and leaves other paths to the page', async () => {
     expect((await fetch(`${base}/archive/pub/other/x`)).status).toBe(403);
     expect((await fetch(`${base}/index.html`)).status).toBe(418);
+  });
+});
+
+describe('what goes wrong in passing through, said once at its severity', () => {
+  let origin;
+  let front;
+  let base;
+  let said;
+  beforeAll(async () => {
+    origin = createServer((req, res) => {
+      if (req.url === '/pub/sinclair/away.tap') return res.writeHead(302, { Location: 'https://evil.example/x' }).end();
+      if (req.url === '/pub/sinclair/big.tap') return res.writeHead(200, { 'Content-Length': 5000 }).end(Buffer.alloc(5000));
+      res.writeHead(404).end();
+    });
+    await new Promise((r) => origin.listen(0, '127.0.0.1', r));
+    const host = `127.0.0.1:${origin.address().port}`;
+    // A port nothing listens on: an origin that cannot be reached.
+    const closed = createServer();
+    await new Promise((r) => closed.listen(0, '127.0.0.1', r));
+    const dead = `127.0.0.1:${closed.address().port}`;
+    await new Promise((r) => closed.close(r));
+    const pass = makePassThrough(
+      [
+        { prefix: '/archive', origin: `http://${host}`, hosts: [host], allow: /^\/pub\/sinclair\/[^?#]+$/, maxBytes: 4000, timeoutMs: 5000, query: false, cache: 'no-store' },
+        { prefix: '/dead', origin: `http://${dead}`, hosts: [dead], allow: /^\/pub\/sinclair\/[^?#]+$/, maxBytes: 4000, timeoutMs: 5000, query: false, cache: 'no-store' },
+      ],
+      null,
+    );
+    front = createServer(async (req, res) => {
+      if (!(await pass(req, res))) res.writeHead(418).end();
+    });
+    await new Promise((r) => front.listen(0, '127.0.0.1', r));
+    base = `http://127.0.0.1:${front.address().port}`;
+  });
+  afterAll(() => {
+    origin.close();
+    front.close();
+  });
+  const listen = () => {
+    said = { errors: [], lines: [] };
+    vi.spyOn(console, 'error').mockImplementation((...a) => said.errors.push(a));
+    vi.spyOn(console, 'log').mockImplementation((l) => said.lines.push(JSON.parse(l)));
+  };
+  afterEach(() => vi.restoreAllMocks());
+
+  it('an origin that cannot be reached is the server’s error: once, with its stack', async () => {
+    listen();
+    expect((await fetch(`${base}/dead/pub/sinclair/x.tap`)).status).toBe(502);
+    expect(said.errors).toHaveLength(1);
+    expect(said.errors[0][0]).toBeInstanceOf(Error);
+    expect(said.errors[0][0].stack).toMatch(/\n\s+at /);
+    expect(said.lines).toEqual([]);
+  });
+
+  it('a redirect elsewhere and a file too large are the archive’s, not the server’s: a warning each, no error', async () => {
+    listen();
+    expect((await fetch(`${base}/archive/pub/sinclair/away.tap`)).status).toBe(502);
+    expect((await fetch(`${base}/archive/pub/sinclair/big.tap`)).status).toBe(502);
+    expect(said.errors).toEqual([]);
+    expect(said.lines.map((l) => l.severity)).toEqual(['WARNING', 'WARNING']);
+  });
+
+  it('a missing file is said by its status alone', async () => {
+    listen();
+    expect((await fetch(`${base}/archive/pub/sinclair/missing.tap`)).status).toBe(404);
+    expect(said.errors).toEqual([]);
+    expect(said.lines).toEqual([]);
+  });
+});
+
+describe('nerd’s paths', () => {
+  let front;
+  let base;
+  let printed;
+  let allowed;
+  beforeAll(async () => {
+    const nerd = makeNerdTelemetry({ print: (line) => printed.push(line), limit: () => allowed });
+    front = createServer(async (req, res) => {
+      if (!(await nerd(req, res))) res.writeHead(418).end();
+    });
+    await new Promise((r) => front.listen(0, '127.0.0.1', r));
+    base = `http://127.0.0.1:${front.address().port}`;
+  });
+  afterAll(() => front.close());
+  const post = (path, body) => fetch(`${base}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: typeof body === 'string' ? body : JSON.stringify(body) });
+  const reset = () => {
+    printed = [];
+    allowed = true;
+  };
+
+  it('prints an event as one line of its own fields, and nothing else of the body', async () => {
+    reset();
+    const res = await post('/nerd/event', { nerd: 'event', name: 'game.loaded', kind: 'shelf', ms: 830, severity: 'ERROR', title: 'Saboteur', message: 'x' });
+    expect(res.status).toBe(204);
+    expect(printed).toEqual(['{"nerd":"event","name":"game.loaded","kind":"shelf","ms":830}']);
+  });
+
+  it('prints feedback as one line of its own fields: the words, the page, the events and the errors', async () => {
+    reset();
+    const body = { words: 'The tape loads too slowly.', page: '/', events: ['game.loaded', 'game.started'], errors: ['TypeError: x'], severity: 'ERROR', nerd: 'event', httpRequest: {} };
+    expect((await post('/nerd/feedback', body)).status).toBe(204);
+    expect(JSON.parse(printed[0])).toEqual({ nerd: 'feedback', words: 'The tape loads too slowly.', page: '/', events: ['game.loaded', 'game.started'], errors: ['TypeError: x'] });
+    expect(printed).toHaveLength(1);
+  });
+
+  it('refuses what is not a POST of a JSON object up to 64 KB, or past the client’s share, and prints nothing for it', async () => {
+    reset();
+    expect((await fetch(`${base}/nerd/event`)).status).toBe(405);
+    expect((await post('/nerd/event', 'not json')).status).toBe(400);
+    expect((await post('/nerd/event', '[1,2]')).status).toBe(400);
+    expect((await post('/nerd/event', 'null')).status).toBe(400);
+    const large = await post('/nerd/feedback', { words: 'a'.repeat(70 * 1024) }).catch((e) => e);
+    expect(large instanceof Error || large.status === 413).toBe(true);
+    allowed = false;
+    expect((await post('/nerd/event', { name: 'game.loaded' })).status).toBe(429);
+    expect(printed).toEqual([]);
+  });
+
+  it('leaves every other path to the page, its spellings with them', async () => {
+    reset();
+    for (const path of ['/nerd', '/nerd/', '/nerd/events', '/nerd/event/x', '/NERD/event', '/x/nerd/event']) expect((await post(path, { name: 'x' })).status, path).toBe(418);
+    expect((await post('/nerd/event?x=1', { name: 'game.loaded' })).status).toBe(204);
   });
 });
 

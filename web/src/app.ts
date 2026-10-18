@@ -44,6 +44,7 @@ import { CROPS, fit } from './video/fit';
 import { palette as paletteById } from './video/palette';
 import type { Renderer } from './video/renderer';
 import { STRIPE, WIDTH as KEYBOARD_WIDTH } from './keyboard/keyboard';
+import { emit, FEEDBACK_KEY, openFeedback } from './telemetry';
 
 /** What a loading tape is waiting for, when the page loads it by itself: the ROM to be ready for keys, then the keys typed. */
 type AutoLoad = { stage: 'boot'; since: number } | { stage: 'typing'; until: number } | null;
@@ -130,6 +131,8 @@ export class App {
   private playChoice: StartChoice = { joystick: true, skill: 1 };
   /** Whether the game's card says play is on the screen, as last looked (null: not looked since the machine jumped). */
   private inPlay: boolean | null = false;
+  /** The game in the machine for telemetry: when it went in, and when its play began (null until it has). */
+  private tally: { key: string; loaded: number; playing: number | null } | null = null;
   /** The frame the controls over the screen go at, when they showed by themselves (they stay while paused). */
   private controlsUntil = 0;
   /** The controls have shown by themselves for the game in the machine: once a game, unless its Start button is pressed. */
@@ -394,6 +397,10 @@ export class App {
   private playBegins(started = false): void {
     this.inPlay = true;
     const game = this.game;
+    if (game && this.tally?.key === game.key && this.tally.playing === null) {
+      this.tally.playing = Date.now();
+      emit('game.started', { kind: started ? 'button' : 'hand', ms: this.tally.playing - this.tally.loaded });
+    }
     if (!game || (this.controlsShown && !started)) return;
     this.controlsShown = true;
     if (wasDismissed(game.key)) {
@@ -480,6 +487,7 @@ export class App {
     this.emulator.loadState(m.state);
     this.history = m.frame;
     this.afterJump();
+    emit('rewind.used');
   }
 
   /** After the machine was put somewhere else in time (a moment, a save slot): nothing stale is played or pressed. */
@@ -783,6 +791,7 @@ export class App {
   private fail(e: unknown): void {
     console.error('The machine stopped:', e);
     if (this.broken) return;
+    emit('machine.stopped');
     const why = (e as Error)?.message || String(e);
     this.broken = why;
     this.scheduler.speed = 'pause';
@@ -837,7 +846,7 @@ export class App {
    * loaded since it was switched on) or `autoload` says so, the page switches it on afresh and types LOAD "". A file
    * the machine refuses changes nothing: the machine runs on as it was.
    */
-  loadFile(bytes: Uint8Array, name: string, options: { model?: Model; autoload?: boolean; title?: string; entry?: ZxEntry } = {}): LoadResult | null {
+  loadFile(bytes: Uint8Array, name: string, options: { model?: Model; autoload?: boolean; title?: string; entry?: ZxEntry; from?: 'shelf' | 'search' | 'link'; fetchMs?: number } = {}): LoadResult | null {
     if (this.broken) return null;
     if (bytes.length > MAX_FILE) {
       toast(m('{name} is {size} MB, larger than any Spectrum file: it is not one the machine can load.', { name, size: (bytes.length / 1048576).toFixed(0) }), 'error');
@@ -852,6 +861,7 @@ export class App {
         this.fail(e);
         return null;
       }
+      emit('game.failed', { kind: 'refused' });
       // The core's reason is its own, in English: said as it is, after the page's words for what happened.
       toast(e instanceof LoadError ? m('loaderror|{why}', { why: e.message }) : m('{name} could not be loaded: {why}', { name, why: (e as Error).message }), 'error', { action: { label: m('Open another file'), run: () => this.fileInput.click() } });
       return null;
@@ -860,6 +870,7 @@ export class App {
       // A tape with nothing on it to play (the stand-in takes one): out of the deck again, and the machine left alone.
       this.emulator.tape.eject();
       this.deck.inserted(null);
+      emit('game.failed', { kind: 'refused' });
       toast(m('{name} has nothing on it the deck can play: the machine was left as it was.', { name }), 'error', { action: { label: m('Open another file'), run: () => this.fileInput.click() } });
       return null;
     }
@@ -880,6 +891,7 @@ export class App {
       this.programLoaded = true;
       this.resize();
       this.setGame(game);
+      this.gameIn(options.from ?? 'snapshot', options.fetchMs);
       this.deck.inserted(this.emulator.tape.state().loaded ? title : null);
       toast(m('{title}: a snapshot of a {model}.', { title, model: MODELS[result.model ?? this.emulator.model].name }));
       // A snapshot this page saved of a game brings the game back with it (its panel, its keys, its slots).
@@ -890,6 +902,8 @@ export class App {
           .then((entry) => {
             if (this.game !== game) return;
             this.programName = fileName(known.title);
+            // The same game, counted once: the tally goes with it to its new key.
+            if (this.tally?.key === game.key) this.tally.key = `zxdb:${entry.id}`;
             this.setGame({ key: `zxdb:${entry.id}`, title: known.title, entry });
           })
           .catch(() => {});
@@ -902,6 +916,7 @@ export class App {
         // A new program: its tape is the game's, and the machine starts afresh for it.
         this.programName = fileName(title);
         this.setGame(game);
+        this.gameIn(options.from ?? 'file', options.fetchMs);
         this.tapeFile = { game: game.key, name: result.name, bytes: this.lastTape.bytes };
         if (!switched) this.reset();
         this.autoLoad = { stage: 'boot', since: this.emulator.frameCount };
@@ -922,7 +937,7 @@ export class App {
   }
 
   /** A game from the library: its best file fetched from the archive, and loaded on the machine it wants. */
-  async loadEntry(entry: ZxEntry): Promise<void> {
+  async loadEntry(entry: ZxEntry, from: 'shelf' | 'search' | 'link'): Promise<void> {
     let choice;
     try {
       choice = choose(entry);
@@ -940,6 +955,7 @@ export class App {
       this.library.progress(this.picking.id, null);
     }
     const picking = { id: entry.id, abort: new AbortController() };
+    const asked = Date.now();
     this.picking = picking;
     this.library.progress(entry.id, 0);
     // The cassette going in is seen: the side column back to its top, the deck and the game's panel.
@@ -952,19 +968,20 @@ export class App {
       const name = choice.file.path.split('/').pop() ?? entry.title;
       // On the machine its play card was proved on, where it has one (Bubble Bobble's 128K tune, say).
       const model = choice.kind === 'tape' ? (cardFor(entry.id)?.model ?? choice.model) : undefined;
-      const loaded = this.loadFile(bytes, name, { model, autoload: true, title: entry.title, entry: await full });
+      const loaded = this.loadFile(bytes, name, { model, autoload: true, title: entry.title, entry: await full, from, fetchMs: Date.now() - asked });
       if (loaded) this.setLink(entry.id);
       this.fetching?.dismiss();
       this.fetching = null;
       this.screenWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (e) {
       if ((e as Error).name === 'AbortError') return;
+      emit('game.failed', { kind: 'fetch' });
       this.fetching?.dismiss();
       this.fetching = null;
       this.library.progress(entry.id, (e as Error).message);
       const offline = /fetch|network/i.test((e as Error).message);
       const title = entry.title;
-      toast(offline ? m('{title} could not be fetched: the archive did not answer (the network seems to be down). Nothing in the machine was changed.', { title }) : m('{title} could not be fetched: {why}. Nothing in the machine was changed.', { title, why: (e as Error).message }), 'error', { action: { label: m('Try again'), run: () => void this.loadEntry(entry) } });
+      toast(offline ? m('{title} could not be fetched: the archive did not answer (the network seems to be down). Nothing in the machine was changed.', { title }) : m('{title} could not be fetched: {why}. Nothing in the machine was changed.', { title, why: (e as Error).message }), 'error', { action: { label: m('Try again'), run: () => void this.loadEntry(entry, from) } });
     } finally {
       if (this.picking === picking) this.picking = null;
     }
@@ -982,8 +999,9 @@ export class App {
     const shelf = SHELF.find((e) => e.id === padded);
     this.fetching = toast(m('{title}: fetching it from the archive…', { title: shelf?.title ?? `ZXDB ${Number(id)}` }), 'info', { seconds: 30 });
     (shelf ? Promise.resolve(shelf) : fetchEntry(padded))
-      .then((entry) => this.loadEntry(entry))
+      .then((entry) => this.loadEntry(entry, 'link'))
       .catch((e: Error) => {
+        emit('game.failed', { kind: 'fetch' });
         this.fetching?.dismiss();
         toast(`ZXDB ${Number(id)}: ${e.message}`, 'error');
       });
@@ -1029,7 +1047,23 @@ export class App {
 
   // --- The game in the machine -------------------------------------------------------------------------------------
 
+  /** A new game in the machine, counted: where it came from, and how long it took to fetch. */
+  private gameIn(kind: 'shelf' | 'search' | 'link' | 'file' | 'snapshot', fetchMs?: number): void {
+    const key = this.game?.key;
+    if (!key) return;
+    this.tally = { key, loaded: Date.now(), playing: null };
+    emit('game.loaded', { kind, ms: fetchMs });
+  }
+
+  /** How long the game was played, once the person goes on from it (another game, or the page left). */
+  private playEnds(): void {
+    const tally = this.tally;
+    this.tally = null;
+    if (tally?.playing != null) emit('game.played', { ms: Date.now() - tally.playing });
+  }
+
   private setGame(game: Game): void {
+    if (this.tally && this.tally.key !== game.key) this.playEnds();
     if (this.game?.key !== game.key) this.controlsShown = false;
     this.game = game;
     this.pilot = null;
@@ -1125,6 +1159,7 @@ export class App {
     const s: Slot = { id: `${key}:${slot}`, game: key, slot, title: this.game?.title ?? 'BASIC', savedAt: Date.now(), state, snapshot, picture: thumbnailOf(emu.frame()) };
     const tape = this.tapeFile?.game === key ? { game: key, name: this.tapeFile.name, bytes: this.tapeFile.bytes } : null;
     const kept = await this.saves.put(s, tape);
+    emit('slot.saved', { kind: slot === 0 ? 'quick' : 'slot' });
     toast(kept ? slotWords(slot, 'Saved in the quick slot.', 'Saved in slot {n}.') : slotWords(slot, 'Saved in the quick slot while this page is open: this browser is keeping no site data.', 'Saved in slot {n} while this page is open: this browser is keeping no site data.'));
     await this.showSlots();
   }
@@ -1168,6 +1203,7 @@ export class App {
     this.afterJump();
     this.resize();
     toast(slotWords(slot, 'Back to the quick slot.', 'Back to slot {n}.'));
+    emit('slot.restored', { kind: slot === 0 ? 'quick' : 'slot' });
   }
 
   saveSnapshot(format: SnapshotFormat): void {
@@ -1493,7 +1529,7 @@ export class App {
       () => this.downloadSaved(),
       () => fileInput.click(),
     );
-    this.library = createLibrary((entry) => void this.loadEntry(entry));
+    this.library = createLibrary((entry, from) => void this.loadEntry(entry, from));
     this.gamePanel = createGamePanel({
       save: (i) => void this.saveSlot(i),
       load: (i) => void this.loadSlot(i),
@@ -1509,7 +1545,10 @@ export class App {
       resume: () => this.setSpeed(1),
       step: () => this.stepOne(),
     });
-    this.settingsPanel = createSettings(this.settings, (patch) => this.change(patch), () => this.about(), this.inspector.el, language());
+    this.settingsPanel = createSettings(this.settings, (patch) => this.change(patch), () => this.about(), this.inspector.el, language(), () => {
+      this.settingsPanel.el.close();
+      openFeedback();
+    });
     this.help = createHelp();
 
     // On a phone, the way to a game from the first screen.
@@ -1573,10 +1612,13 @@ export class App {
 
   private listen(): void {
     // The page's own keys: F1 the keys, F2 and F4 the quick slot, F3 the game's controls over the screen, F8 the screen
-    // read aloud, F9 pause (not while typing into the page's own fields).
+    // read aloud, F9 pause (not while typing into the page's own fields, nerd's feedback card's among them); F7 nerd's
+    // feedback card, which listens for it itself.
+    window.nerdFeedback?.shortcut(FEEDBACK_KEY);
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
-      if (e.target instanceof Element && e.target.matches('input, textarea, select')) return;
+      const into = e.composedPath()[0] ?? e.target;
+      if (into instanceof Element && into.matches('input, textarea, select')) return;
       // From the machine, Shift+Tab goes to the page's controls, the first of them first.
       if (e.key === 'Tab' && e.shiftKey && (document.activeElement === document.body || document.activeElement === null)) {
         e.preventDefault();
@@ -1610,10 +1652,13 @@ export class App {
     window.addEventListener('click', (e) => {
       if (e.detail === 0) return;
       const active = document.activeElement;
-      if (active instanceof HTMLElement && active !== document.body && !active.closest('dialog') && !active.matches('input, select, textarea, summary')) active.blur();
+      // (Focus in a shadow tree, as in nerd's feedback card, is that tree's: its host is let be.)
+      if (active instanceof HTMLElement && active !== document.body && !active.shadowRoot && !active.closest('dialog') && !active.matches('input, select, textarea, summary')) active.blur();
     });
     document.addEventListener('focusin', () => this.keysTo());
     document.addEventListener('focusout', () => setTimeout(() => this.keysTo(), 0));
+    // The page left: how long its game was played is said as it goes.
+    window.addEventListener('pagehide', () => this.playEnds());
     // Closing the tab (Ctrl+W meant as SYMBOL SHIFT and W, say) asks first, once something would be lost.
     window.addEventListener('beforeunload', (e) => {
       if (!this.touched) return;
