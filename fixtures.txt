@@ -217,3 +217,4 @@ game-horace-goes-skiing.tzx dca33aadc5d95a3674c6720234ed8839e119631a38b77e116e1b
 game-deathchase.tzx 99bba6a69920f4e67f387adf1f43f6b47bc7fad979bbe9b894b7be91134dfd6a https://spectrumcomputing.co.uk/pub/sinclair/games/d/Deathchase.tzx.zip 3D Deathchase.tzx
 game-the-hobbit.tzx 970789c00e5685b2ac408eea5a334b915c2ce6ebcdbe09d564467c61fe3ede32 https://spectrumcomputing.co.uk/pub/sinclair/games/h/HobbitTheV1.2.tzx.zip The Hobbit v1.2.tzx
 game-the-lords-of-midnight.tzx 320d1a9d3469f688dab97fc5eb1fd0f4fa795ecd71f915245a51921e28d8972e https://spectrumcomputing.co.uk/pub/sinclair/games/l/LordsOfMidnightThe.tzx.zip The Lords Of Midnight - Side 1.tzx
+zxdb-mysql.sql.zip 6940a90091eb2f78700c4674a79c442bb480058cf09a757e85b860ff93068ee6 https://github.com/zxdb/ZXDB/raw/0a634a1165bd3690ea24e3c6b67bbbbb1b1ebd09/ZXDB_mysql.sql.zip

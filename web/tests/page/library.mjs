@@ -2,7 +2,7 @@
 // page.mjs on page/harness.mjs; each part covers this file too, so that a change here runs only these.
 
 import { readFileSync } from 'node:fs';
-import { parts, SABOTEUR_ZIP, SHARP, Skip, assert, base, borderColours, clean, open, openFile, ready, screen, until, wait } from './harness.mjs';
+import { parts, SABOTEUR_ZIP, SHARP, Skip, assert, base, borderColours, clean, open, openFile, ready, screen, until, wait, zxinfo } from './harness.mjs';
 
 const test = parts(import.meta.url);
 
@@ -97,6 +97,37 @@ test('Saboteur from the library: searched, fetched, loaded flat out to its £100
   clean(page);
   await page.context().close();
   return `REWARD ${frames} frames after the tape went in; keys ${after.keys.join(' ')}; the game ${started.frames - s0} frames after Start; the controls over it`;
+});
+
+test('with ZXInfo down (its nginx’s 502 for every path), Saboteur is found in the ZXDB’s own index and loads, and a link to a game not on the shelf (?game=2514) opens from it', ['web/server.mjs', 'web/zxdb.mjs', 'web/tools/zxdb-index.mjs', 'web/tests/fixtures/zxdb/', 'web/src/library/', 'web/src/ui/library.ts'], async () => {
+  // The page's ZXDB requests go to the server, as they do when deployed; its ZXInfo is the harness's stand-in.
+  const through = (page) => page.route('**/zxinfo/v3/**', (r) => r.continue());
+  const asked = zxinfo.asked.length;
+  const page = await open({ storage: { loading: 'accelerated' }, route: through });
+  await wait(page, 500);
+  const answers = [];
+  page.on('response', (r) => r.url().includes('/zxinfo/v3/') && answers.push(`${r.status()} ${r.headers()['x-answered-by'] ?? 'zxinfo'}`));
+  await page.fill('.search', 'Saboteur');
+  await page.press('.search', 'Enter');
+  await page.waitForFunction(() => /found|could not/.test(document.querySelector('.library-status')?.textContent ?? ''));
+  const found = await page.evaluate(() => ({ status: document.querySelector('.library-status').textContent, cards: [...document.querySelectorAll('.library .card .card-title')].map((c) => c.textContent) }));
+  assert(found.cards[0] === 'Saboteur!' && /^6 found/.test(found.status), `the search: ${JSON.stringify(found)}`);
+  const fetched = page.waitForRequest((r) => r.url().endsWith('.zip'));
+  await page.locator('.card', { hasText: 'Saboteur!' }).first().click();
+  const request = await fetched;
+  assert(request.url().endsWith('/archive/pub/sinclair/games/s/Saboteur.tzx.zip'), request.url());
+  assert(await until(page, () => window.zx.emulator.tape.state().playing && document.querySelector('.cs-title')?.textContent === 'Saboteur!', null, { step: 200, max: 10_000 }), `Saboteur did not start: ${await page.evaluate(() => document.querySelector('.toasts')?.textContent)}`);
+  assert(zxinfo.asked.length > asked, 'ZXInfo was not asked first');
+  assert(answers.length && answers.every((a) => a === '200 zxdb-index'), `the server's answers: ${answers}`);
+  clean(page);
+  await page.context().close();
+  const linked = await open({ query: '?game=2514', storage: { loading: 'accelerated' }, route: through });
+  assert(await until(linked, () => window.zx.emulator.tape.state().loaded && document.querySelector('.cs-title')?.textContent === 'International Match Day', null, { step: 200, max: 10_000 }), `?game=2514 did not open: ${await linked.evaluate(() => JSON.stringify([document.querySelector('.cs-title')?.textContent, document.querySelector('.toasts')?.textContent]))}`);
+  const model = await linked.evaluate(() => window.zx.emulator.model);
+  assert(model === '128k', `International Match Day on a ${model}`);
+  clean(linked);
+  await linked.context().close();
+  return `“Saboteur”: ${found.status.trim()}, ${found.cards.slice(0, 3).join(', ')}…; the server answered ${answers.length} from the index; ?game=2514 opened International Match Day on the 128K`;
 });
 
 test('a link to a game loads it straight away (?game=4293), and the share button gives that link', ['web/src/ui/game.ts', 'web/src/library/'], async () => {

@@ -3,12 +3,15 @@
 // helpers the parts share. page.mjs runs it, with the parts in page/*.mjs; a change here runs every part.
 
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, existsSync, readFileSync } from 'node:fs';
-import { relative } from 'node:path';
+import { appendFileSync, existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { createServer as createHttpServer } from 'node:http';
+import { tmpdir } from 'node:os';
+import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crc32, deflateRawSync } from 'node:zlib';
 import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
+import { buildFile } from '../../tools/zxdb-index.mjs';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const repository = fileURLToPath(new URL('../../..', import.meta.url));
@@ -114,6 +117,21 @@ const SABOTEUR_INLAY = fixtureFile('saboteur-inlay.jpg');
 const AMSTRAD = 'Amstrad have kindly given their permission for the redistribution of their copyrighted material but retain that copyright.';
 
 // --- The harness ---------------------------------------------------------------------------------------------------
+
+// ZXInfo as it was on Oct 18 2026, for a part that lets the page's ZXDB requests through to the server (the others
+// answer them in the page): every path its nginx's 502 page. The server answers from the ZXDB's own index in its
+// place, built here from the dump's excerpt (tests/fixtures/zxdb/).
+const zxinfo = { asked: [] };
+const zxinfoDown = createHttpServer((req, res) => {
+  zxinfo.asked.push(req.url);
+  res.writeHead(502, { Server: 'nginx', 'Content-Type': 'text/html' });
+  res.end('<html>\r\n<head><title>502 Bad Gateway</title></head>\r\n<body>\r\n<center><h1>502 Bad Gateway</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n');
+});
+await new Promise((r) => zxinfoDown.listen(0, '127.0.0.1', r));
+zxinfoDown.unref();
+process.env.ZXINFO_ORIGIN = `http://127.0.0.1:${zxinfoDown.address().port}/v3`;
+process.env.ZXDB_INDEX = join(mkdtempSync(join(tmpdir(), 'zx-page-zxdb-')), 'zxdb-index.txt.gz');
+await buildFile(fileURLToPath(new URL('../fixtures/zxdb/excerpt.sql', import.meta.url)), process.env.ZXDB_INDEX, 'the excerpt');
 
 // No file watching and no hot reload: a file saved while the test runs (another agent's) must not reload its pages.
 const server = await createServer({ root, server: { port: 0, strictPort: false, watch: null, hmr: false }, logLevel: 'error' });
@@ -352,4 +370,4 @@ const playing = (page) => page.evaluate(() => window.zx.emulator.tape.state().pl
 /** Puts a file in through the Open button's input. */
 const openFile = (page, name, buffer) => page.setInputFiles('input[type=file]', { name, mimeType: 'application/octet-stream', buffer });
 
-export { header, programTape, SABOTEUR_ZIP, AMSTRAD, server, base, browser, failed, ran, open, ready, pause, parts, Skip, waitReal, runAll, assert, wait, until, clean, pixel, borderColours, SHARP, keyLog, screen, playing, openFile };
+export { zxinfo, header, programTape, SABOTEUR_ZIP, AMSTRAD, server, base, browser, failed, ran, open, ready, pause, parts, Skip, waitReal, runAll, assert, wait, until, clean, pixel, borderColours, SHARP, keyLog, screen, playing, openFile };

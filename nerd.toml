@@ -84,18 +84,30 @@ limit = "1m"
 # The page's parts without a browser (Vitest): the key mappings and the ROM-paced typing (against a model of the
 # ROM's KEYBOARD routine), the frame scheduler on simulated clocks, the file chosen from ZXInfo's recorded answers,
 # a manual's keys, the keyboard's legends against roms/48.rom, the stand-in emulator, rewinding, settings, the
-# server's pass-through. A few seconds.
+# server's pass-through, and the ZXDB's own index it falls back to (built from a real excerpt of the dump, its entries
+# choosing the file ZXInfo's own answers do). A few seconds.
 [[test]]
 name = "web-unit"
 run = "cd web && npm run --silent test:unit"
-covers = ["web/src/**", "web/tests/*.test.mjs", "web/tests/fixtures/**", "web/server.mjs", "web/vite.config.ts", "web/package-lock.json", "roms/48.rom"]
+covers = ["web/src/**", "web/tests/*.test.mjs", "web/tests/fixtures/**", "web/server.mjs", "web/zxdb.mjs", "web/tools/zxdb-index.mjs", "web/vite.config.ts", "web/package-lock.json", "roms/48.rom"]
 limit = "1m"
+
+# The ZXDB's own index, which the server answers from where ZXInfo cannot, built from the real dump the image is built
+# from (the fixture cache; skipped without it): its size, every shelf game as ZXInfo listed it and loading the same
+# file, and Saboteur found. About 10 s.
+[[test]]
+name = "zxdb-dump"
+run = "cd web && npx vitest run -c vitest.zxdb.config.ts"
+covers = ["web/tools/zxdb-index.mjs", "web/zxdb.mjs", "web/tests/zxdb-dump.spec.mjs", "web/vitest.zxdb.config.ts", "web/src/library/choose.ts", "web/src/library/zxinfo.ts", "web/src/library/featured.json", "fixtures.txt"]
+limit = "2m"
 
 # The page in Chrome on the real machine (the WebAssembly build, built first), on the page's own clock
 # (Playwright's page.clock): power-on to the copyright read from the frame, keys (<> typed as two characters), a tape
 # from a file (LOAD "" typed when the ROM is ready, the stripes, the screen), the 128's Tape Loader, Saboteur from the
 # library to its REWARD screen flat out (from the fixture cache; skipped without it) with its inlay and manual, then
-# Start the mission; a game from a link, and its snapshot opened as the game again; save slots across a reload,
+# Start the mission; a game from a link, and its snapshot opened as the game again; with ZXInfo down (a stand-in
+# answering its nginx's 502), Saboteur searched and loaded and a game linked, from the ZXDB's own index through the
+# server; save slots across a reload,
 # snapshots, rewind and its preview, a SAVE as a TAP named for itself, a breakpoint, the Kempston across a power-on, a
 # frame that throws and the machine started again, files refused, the machine that will not start, the warm-up,
 # settings, sound, a phone upright and sideways; any console error fails a part. Four parts at a time, the slowest
@@ -107,7 +119,7 @@ limit = "1m"
 [[test]]
 name = "web-page"
 run = "cd web && node tests/page.mjs"
-covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/public/**", "web/tests/page.mjs", "web/tests/page/**", "web/tests/fixtures/**", "web/vite.config.ts", "web/server.mjs", "web/package-lock.json", "roms/**", "crates/wasm/src/**", "crates/wasm/Cargo.toml", "crates/spectrum/src/**", "crates/z80/src/**", "crates/audio/src/**", "crates/ay/src/**", "crates/tape/src/**", "crates/snapshot/src/**", "crates/unzip/src/**", "Cargo.toml", "Cargo.lock", "scripts/build-wasm.sh", "fixtures.txt", "!web/src/how/**", "!web/src/fonts/plex-mono-*", "!web/src/fonts/*.txt", "!crates/**/tests.rs"]
+covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/public/**", "web/tests/page.mjs", "web/tests/page/**", "web/tests/fixtures/**", "web/vite.config.ts", "web/server.mjs", "web/zxdb.mjs", "web/tools/zxdb-index.mjs", "web/package-lock.json", "roms/**", "crates/wasm/src/**", "crates/wasm/Cargo.toml", "crates/spectrum/src/**", "crates/z80/src/**", "crates/audio/src/**", "crates/ay/src/**", "crates/tape/src/**", "crates/snapshot/src/**", "crates/unzip/src/**", "Cargo.toml", "Cargo.lock", "scripts/build-wasm.sh", "fixtures.txt", "!web/src/how/**", "!web/src/fonts/plex-mono-*", "!web/src/fonts/*.txt", "!crates/**/tests.rs"]
 inputs = ["web/src/emulator/zx.wasm"]
 limit = "3m"
 
@@ -117,7 +129,7 @@ limit = "3m"
 [[test]]
 name = "web-build"
 run = "cd web && node tests/build.mjs"
-covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/how.html", "web/public/**", "web/vite.config.ts", "web/server.mjs", "web/package.json", "web/package-lock.json", "web/tests/build.mjs", "web/tests/smoke.mjs", "roms/**", "scripts/build-wasm.sh"]
+covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/how.html", "web/public/**", "web/vite.config.ts", "web/server.mjs", "web/zxdb.mjs", "web/tools/zxdb-index.mjs", "web/package.json", "web/package-lock.json", "web/tests/build.mjs", "web/tests/smoke.mjs", "roms/**", "scripts/build-wasm.sh"]
 inputs = ["web/src/emulator/zx.wasm"]
 limit = "2m"
 

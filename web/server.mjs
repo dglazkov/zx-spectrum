@@ -7,7 +7,10 @@
 //                      the whole of it; nothing is kept on disk.
 //   /zxinfo/v3/<path>  https://api.zxinfo.dk/v3/<path>, for /search, /games/<id> and /suggest/<term> only: the API's
 //                      answers carry Access-Control-Allow-Origin twice, which browsers refuse (docs/web.md), and it
-//                      asks its clients to say who they are, which a browser cannot.
+//                      asks its clients to say who they are, which a browser cannot. Where the API answers 5xx, or
+//                      not within 5 s, /search and /games/<id> are answered from the ZXDB's own index instead
+//                      (zxdb.mjs, built from the ZXDB's dump into the image), and for a minute after without asking
+//                      the API; the API stays the first choice.
 //
 // And nerd's two (nerd guide telemetry), which print what the page says of its use as one line each, for nerd to read
 // from Cloud Logging:
@@ -30,6 +33,7 @@ import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { brotliCompressSync, constants, gzipSync } from 'node:zlib';
+import { makeZxdb } from './zxdb.mjs';
 
 const AGENT = 'zx-spectrum (https://zx-spectrum.lab.glazkov.ai)';
 
@@ -117,13 +121,18 @@ export const ROUTES = [
   },
   {
     prefix: '/zxinfo/v3',
-    origin: 'https://api.zxinfo.dk/v3',
-    hosts: ['api.zxinfo.dk', 'internal.zxinfo.dk'],
+    // ZXINFO_ORIGIN puts a stand-in in its place, for a test (web/tests/page/harness.mjs).
+    origin: process.env.ZXINFO_ORIGIN ?? 'https://api.zxinfo.dk/v3',
+    hosts: process.env.ZXINFO_ORIGIN ? [new URL(process.env.ZXINFO_ORIGIN).host] : ['api.zxinfo.dk', 'internal.zxinfo.dk'],
     allow: /^\/(search|games\/[0-9]{1,7}|suggest\/[^/]{1,80})$/,
     maxBytes: 4 * 1024 * 1024,
     timeoutMs: 15_000,
     query: true,
     cache: 'public, max-age=600',
+    // The index beside the server (the image puts it there; ZXDB_INDEX says another), read when first needed.
+    fallback: makeZxdb(process.env.ZXDB_INDEX ?? fileURLToPath(new URL('./zxdb-index.txt.gz', import.meta.url))),
+    fallbackMs: 5_000,
+    fallbackFor: 60_000,
   },
 ];
 
@@ -146,7 +155,7 @@ export function passTarget(rawPath, rawQuery = '', routes = ROUTES) {
     if (segments.some((s, i) => (i > 0 && s === '') || s === '.' || s === '..')) return null;
     if (!route.allow.test(path)) return null;
     const url = `${route.origin}${segments.map(encodeURIComponent).join('/')}${route.query && rawQuery ? `?${rawQuery}` : ''}`;
-    return { route, url };
+    return { route, url, path, query: route.query ? rawQuery : '' };
   }
   return null;
 }
@@ -154,10 +163,13 @@ export function passTarget(rawPath, rawQuery = '', routes = ROUTES) {
 /**
  * A handler that passes a request through if it is one to pass (see passTarget), answering it, and says whether it
  * was. Redirects are followed only to the route's own hosts, three at most; the body is streamed, and cut off past the
- * route's size. (Tests make one with routes to a server of their own.)
+ * route's size. A route with a `fallback` (an object whose `answer(path, query)` gives {status, json} or null) is
+ * answered from it where its origin answers 5xx, cannot be reached, or has not answered in `fallbackMs`; and then for
+ * `fallbackFor` ms without asking the origin. (Tests make one with routes to a server of their own, and their clock.)
  */
-export function makePassThrough(routes = ROUTES, limit = makeLimiter()) {
-  return (req, res) => pass(req, res, routes, limit);
+export function makePassThrough(routes = ROUTES, limit = makeLimiter(), now = () => Date.now()) {
+  const downUntil = new Map();
+  return (req, res) => pass(req, res, routes, limit, { downUntil, now });
 }
 
 /** The pass-through, to the archive and the ZXInfo API. */
@@ -190,7 +202,25 @@ export function makeLimiter({ perMinute = 120, burst = 60, now = () => Date.now(
   };
 }
 
-async function pass(req, res, routes, limit) {
+/** Answers from the route's fallback, if it has one and it answers the path; says whether it did. */
+function answerFromFallback(req, res, route, target) {
+  const answer = route.fallback?.answer(target.path, target.query);
+  if (!answer) return false;
+  const body = answer.json;
+  res.writeHead(answer.status, {
+    'Content-Type': 'application/json',
+    'Content-Length': body.length,
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Security-Policy': "default-src 'none'; sandbox",
+    'Cross-Origin-Resource-Policy': 'same-origin',
+    'X-Answered-By': 'zxdb-index',
+  });
+  res.end(req.method === 'HEAD' ? undefined : body);
+  return true;
+}
+
+async function pass(req, res, routes, limit, state) {
   const raw = req.url ?? '/';
   const q = raw.indexOf('?');
   const target = passTarget(q < 0 ? raw : raw.slice(0, q), q < 0 ? '' : raw.slice(q + 1), routes);
@@ -213,14 +243,26 @@ async function pass(req, res, routes, limit) {
     res.end('Too many requests: try again in a little while\n');
     return true;
   }
+  // The origin lately down: the fallback answers, without waiting on the origin again for a while.
+  if (route.fallback && (state.downUntil.get(route) ?? 0) > state.now() && answerFromFallback(req, res, route, target)) return true;
   // The whole exchange, the body's streaming to the client included, within the route's time: a client that stops
-  // reading is let go of then, and the archive's connection with it.
+  // reading is let go of then, and the archive's connection with it. Where there is a fallback, the origin has
+  // `fallbackMs` to begin its answer.
   const signal = AbortSignal.timeout(route.timeoutMs);
+  const slow = new AbortController();
+  const waiting = route.fallback ? setTimeout(() => slow.abort(new Error(`no answer in ${route.fallbackMs} ms`)), route.fallbackMs) : null;
+  const down = (why) => {
+    if (!route.fallback || res.headersSent) return false;
+    state.downUntil.set(route, state.now() + route.fallbackFor);
+    if (!answerFromFallback(req, res, route, target)) return false;
+    logWarning(`${route.prefix}: ${why}; answered from the ZXDB index for ${route.fallbackFor / 1000} s`);
+    return true;
+  };
   try {
     let url = target.url;
     let upstream;
     for (let hops = 0; ; hops++) {
-      upstream = await fetch(url, { method: req.method, redirect: 'manual', signal, headers: { 'User-Agent': AGENT, Accept: route.query ? 'application/json' : '*/*' } });
+      upstream = await fetch(url, { method: req.method, redirect: 'manual', signal: AbortSignal.any([signal, slow.signal]), headers: { 'User-Agent': AGENT, Accept: route.query ? 'application/json' : '*/*' } });
       if (upstream.status < 300 || upstream.status >= 400) break;
       const next = upstream.headers.get('location');
       const to = next ? new URL(next, url) : null;
@@ -234,10 +276,12 @@ async function pass(req, res, routes, limit) {
     }
     // The origin up but failing behind its front (ZXInfo's nginx answering 502 for every path, on Oct 18) is the origin
     // not reached, as a refused connection is: said once, with its host and status, rather than passed on as its page.
+    clearTimeout(waiting);
     if (upstream.status >= 500) {
       upstream.body?.cancel();
       const host = new URL(url).host;
       logError(new Error(`${route.prefix}: ${host} answered ${upstream.status}`));
+      if (down(`${host} answered ${upstream.status}`)) return true;
       res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
       res.end(`${host} answered ${upstream.status}: try again in a little while\n`);
       return true;
@@ -280,12 +324,16 @@ async function pass(req, res, routes, limit) {
     });
     await pipeline(Readable.fromWeb(upstream.body), cap, res, { signal });
   } catch (e) {
+    clearTimeout(waiting);
+    // The origin slow to begin, or not reached at all, where there is a fallback: it answers, and that is said.
+    if (slow.signal.aborted && down(`${new URL(target.url).host} gave no answer in ${route.fallbackMs} ms`)) return true;
     // Said once, here, where it is caught: the archive slow, a file too large, or the client gone are not the server's
     // failure; anything else is, with its stack.
     const timedOut = e?.name === 'TimeoutError' || signal.aborted;
     if (timedOut) logWarning(`${route.prefix}: the origin took longer than ${route.timeoutMs} ms`);
     else if (e?.message === 'too large to pass through') logWarning(`${route.prefix}: too large to pass through, cut off`);
     else if (!(res.destroyed && (e?.code === 'ERR_STREAM_PREMATURE_CLOSE' || e?.code === 'ECONNRESET'))) logError(e);
+    if (!timedOut && !res.destroyed && down(`${new URL(target.url).host} could not be reached (${e?.cause?.code ?? e?.cause?.message ?? e?.message ?? e})`)) return true;
     if (!res.headersSent) {
       res.writeHead(timedOut ? 504 : 502, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end(`The archive could not be reached: ${e?.message ?? e}\n`);

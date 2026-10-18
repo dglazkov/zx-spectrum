@@ -11,11 +11,15 @@ export interface Route {
   timeoutMs: number;
   query: boolean;
   cache: string;
+  /** What answers in the origin's place where it is down (zxdb.mjs's makeZxdb), and how soon and for how long. */
+  fallback?: { answer(path: string, query?: string): { status: number; json: Buffer } | null };
+  fallbackMs?: number;
+  fallbackFor?: number;
 }
 
 export const ROUTES: Route[];
-export function passTarget(rawPath: string, rawQuery?: string, routes?: Route[]): { route: Route; url: string } | null;
-export function makePassThrough(routes?: Route[]): (req: IncomingMessage, res: ServerResponse) => Promise<boolean>;
+export function passTarget(rawPath: string, rawQuery?: string, routes?: Route[]): { route: Route; url: string; path: string; query: string } | null;
+export function makePassThrough(routes?: Route[], limit?: ((req: IncomingMessage) => boolean) | null, now?: () => number): (req: IncomingMessage, res: ServerResponse) => Promise<boolean>;
 export function passThrough(req: IncomingMessage, res: ServerResponse): Promise<boolean>;
 export function logError(e: unknown): void;
 export function logWarning(message: string): void;

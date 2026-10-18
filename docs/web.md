@@ -70,6 +70,8 @@ web/
   vite.config.ts               the dev server, with the same pass-through
   vitest.wasm.config.ts        the WebAssembly build's own tests (tests/wasm/)
   tools/featured.mjs           records the shelf and the test fixtures from the ZXInfo API
+  tools/zxdb-index.mjs         builds the ZXDB's own index from its dump, for zxdb.mjs (the Dockerfile runs it)
+  zxdb.mjs                     the server's answers from that index where ZXInfo cannot answer
   tools/bench.mjs              frames a second of the wasm build in Chrome, by model and loading a tape flat out
   tools/pictures.mjs           the pictures (below)
   tests/page.mjs               the page test in Chrome;  shot.mjs a picture;  smoke.mjs a running server
@@ -80,6 +82,8 @@ web/
   tests/wasm/games/            each card held to its game on the module (helpers.ts; saboteur.spec.ts, ...): its route
                                to play, by the keys and by the joystick, and every control it names moving the player
   tests/server.test.mjs        the pass-through;  tests/fixtures/zxinfo/ recorded API answers
+  tests/zxdb.test.mjs          the index and the fallback to it;  tests/fixtures/zxdb/ an excerpt of the dump
+  tests/zxdb-dump.spec.mjs     the index of the real dump (vitest.zxdb.config.ts)
 ```
 
 Commands (in `web/`, after `npm install`): `npm run dev` (builds the module if it is missing or stale, then Vite at
@@ -697,7 +701,24 @@ for the whole exchange: a client that stops reading is let go of when the time i
 with it (before, the timeout covered only the fetch, and a stalled client held the handler, and leaked a listener
 at each wait, until it left). A client is allowed 120 requests a minute through (a burst of 60; by the first address of
 X-Forwarded-For), then 429. Other paths under those prefixes are 403; methods other than GET and HEAD 405; upstream
-failures 502, timeouts 504. No cross-origin isolation headers. The dev server (`vite.config.ts`) uses the same `passThrough`. `startServer(root, port)` runs
+failures 502, timeouts 504. No cross-origin isolation headers.
+
+**Where ZXInfo cannot answer, the ZXDB's own index does** (`zxdb.mjs`; issue #7). On Oct 18 2026 api.zxinfo.dk
+answered 502 for every path for hours, its nginx up and what is behind it not, and the page's search and every
+`?game=` link of a game not on the shelf failed. The image now carries an index of the Spectrum's software built
+from the ZXDB's own MySQL dump (https://github.com/zxdb/ZXDB, the commit and the SHA-256 pinned in
+`tools/zxdb-index.mjs`): 36,539 entries, each its `_source` as the API's compact mode gives it (title, year, machine,
+availability, genre, publisher, each release's tapes, snapshots and disks with their type, format and origin; the
+inlay, the instructions and the screens), 2.4 MB gzipped. Where `/search` or `/games/<id>` answers 5xx, cannot be
+reached, or has not begun to answer in 5 s, the server answers from the index instead, in the API's shape (and with
+`X-Answered-By: zxdb-index`, `Cache-Control: no-store`), and goes on answering from it for a minute without asking the
+API; then it asks the API again, which stays the first choice. The origin's failure is still logged at ERROR, and the
+fallback once at WARNING. The index is read the first time it is needed (0.3 s; 20 MB of heap and 28 MB of bytes,
+its answers kept as the UTF-8 they are sent as: parsed into objects it took 76 MB). Its search is by title, other
+titles and publisher, accents and punctuation aside: the title the query, then a title beginning with it, then every
+word the start of a title's word, then of the publisher's; within each, the one with more releases first. `/suggest`
+is not answered from it (the page does not ask). Every shelf game in it is as ZXInfo lists it and loads the same
+file (`nerd test zxdb-dump`). The dev server (`vite.config.ts`) uses the same `passThrough`. `startServer(root, port)` runs
 when the file is run (`node server.mjs`, PORT or 8080), and stops on SIGTERM after what is in flight. For an image:
 `npm ci && npm run build` in `web/`, then `node server.mjs` beside `dist/`.
 
