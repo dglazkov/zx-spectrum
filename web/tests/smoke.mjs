@@ -73,8 +73,10 @@ export async function smoke(url, { network = true, log = console.log } = {}) {
 
   if (network) await check('the ZXDB comes through /zxinfo', async () => {
     const res = await fetch(`${url}/zxinfo/v3/search?query=saboteur&mode=tiny&size=1&availability=Available`);
+    // Not ok, the server says why in a line (ZXInfo down: "api.zxinfo.dk answered 502").
+    assert(res.ok, `${res.status}: ${(await res.text()).trim().slice(0, 200)}`);
     const body = await res.json();
-    assert(res.ok && body.hits?.hits?.[0]?._source?.title, `${res.status}`);
+    assert(body.hits?.hits?.[0]?._source?.title, `${res.status}, and no title`);
     return `  — ${body.hits.hits[0]._source.title}`;
   });
 
