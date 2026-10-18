@@ -73,11 +73,14 @@ export async function smoke(url, { network = true, log = console.log } = {}) {
 
   if (network) await check('the ZXDB comes through /zxinfo', async () => {
     const res = await fetch(`${url}/zxinfo/v3/search?query=saboteur&mode=tiny&size=1&availability=Available`);
-    // Not ok, the server says why in a line (ZXInfo down: "api.zxinfo.dk answered 502").
-    assert(res.ok, `${res.status}: ${(await res.text()).trim().slice(0, 200)}`);
+    // Not ok, the server says why in a line (ZXInfo down: "api.zxinfo.dk answered 502"). Read only then: the body is
+    // read once.
+    if (!res.ok) assert(false, `${res.status}: ${(await res.text()).trim().slice(0, 200)}`);
     const body = await res.json();
     assert(body.hits?.hits?.[0]?._source?.title, `${res.status}, and no title`);
-    return `  — ${body.hits.hits[0]._source.title}`;
+    // ZXInfo down, the server's own index answers (web/zxdb.mjs): said, as it is not ZXInfo.
+    const by = res.headers.get('x-answered-by');
+    return `  — ${body.hits.hits[0]._source.title}${by ? `, from ${by} (${body.source})` : ', from ZXInfo'}`;
   });
 
   await check('the page starts the real machine in Chrome, with no errors, and it is the machine the tests passed', async () => {
