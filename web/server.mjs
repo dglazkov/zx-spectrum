@@ -275,13 +275,14 @@ async function pass(req, res, routes, limit, state) {
       url = to.href;
     }
     // The origin up but failing behind its front (ZXInfo's nginx answering 502 for every path, on Oct 18) is the origin
-    // not reached, as a refused connection is: said once, with its host and status, rather than passed on as its page.
+    // not reached, as a refused connection is: answered from the fallback where there is one, which is a warning, as
+    // the visitor is answered; and otherwise said once, with its host and status, rather than passed on as its page.
     clearTimeout(waiting);
     if (upstream.status >= 500) {
       upstream.body?.cancel();
       const host = new URL(url).host;
-      logError(new Error(`${route.prefix}: ${host} answered ${upstream.status}`));
       if (down(`${host} answered ${upstream.status}`)) return true;
+      logError(new Error(`${route.prefix}: ${host} answered ${upstream.status}`));
       res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
       res.end(`${host} answered ${upstream.status}: try again in a little while\n`);
       return true;
@@ -327,13 +328,13 @@ async function pass(req, res, routes, limit, state) {
     clearTimeout(waiting);
     // The origin slow to begin, or not reached at all, where there is a fallback: it answers, and that is said.
     if (slow.signal.aborted && down(`${new URL(target.url).host} gave no answer in ${route.fallbackMs} ms`)) return true;
+    const timedOut = e?.name === 'TimeoutError' || signal.aborted;
+    if (!timedOut && !res.destroyed && down(`${new URL(target.url).host} could not be reached (${e?.cause?.code ?? e?.cause?.message ?? e?.message ?? e})`)) return true;
     // Said once, here, where it is caught: the archive slow, a file too large, or the client gone are not the server's
     // failure; anything else is, with its stack.
-    const timedOut = e?.name === 'TimeoutError' || signal.aborted;
     if (timedOut) logWarning(`${route.prefix}: the origin took longer than ${route.timeoutMs} ms`);
     else if (e?.message === 'too large to pass through') logWarning(`${route.prefix}: too large to pass through, cut off`);
     else if (!(res.destroyed && (e?.code === 'ERR_STREAM_PREMATURE_CLOSE' || e?.code === 'ECONNRESET'))) logError(e);
-    if (!timedOut && !res.destroyed && down(`${new URL(target.url).host} could not be reached (${e?.cause?.code ?? e?.cause?.message ?? e?.message ?? e})`)) return true;
     if (!res.headersSent) {
       res.writeHead(timedOut ? 504 : 502, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end(`The archive could not be reached: ${e?.message ?? e}\n`);

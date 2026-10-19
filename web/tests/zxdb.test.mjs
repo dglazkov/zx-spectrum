@@ -175,7 +175,7 @@ describe('the server, with ZXInfo down', () => {
   afterEach(() => vi.restoreAllMocks());
   const searchFor = (prefix = '/zxinfo/v3') => fetch(`${base}${prefix}/search?query=Saboteur&mode=compact&size=24&offset=0&sort=rel_desc&contenttype=SOFTWARE&machinetype=ZXSPECTRUM&availability=Available`);
 
-  it('answers a search from the index where ZXInfo answers 502, and says so once, at ERROR and WARNING', async () => {
+  it('answers a search from the index where ZXInfo answers 502, and says so once, as a warning: the visitor is answered', async () => {
     listen();
     clock = 0;
     mode = 'down';
@@ -187,8 +187,8 @@ describe('the server, with ZXInfo down', () => {
     const body = await res.json();
     expect(body.hits.hits[0]._source.title).toBe('Saboteur!');
     expect(asked).toBe(1);
-    expect(said.errors).toEqual([expect.stringMatching(/^\/zxinfo\/v3: 127\.0\.0\.1:\d+ answered 502$/)]);
-    expect(said.warnings).toEqual([expect.stringMatching(/answered 502; answered from the ZXDB index for 60 s$/)]);
+    expect(said.errors).toEqual([]);
+    expect(said.warnings).toEqual([expect.stringMatching(/^\/zxinfo\/v3: 127\.0\.0\.1:\d+ answered 502; answered from the ZXDB index for 60 s$/)]);
   });
 
   it('then answers from the index for a minute without asking ZXInfo, an entry by its id among it; then asks again', async () => {
@@ -226,17 +226,19 @@ describe('the server, with ZXInfo down', () => {
     const res = await searchFor('/dead/v3');
     expect(res.headers.get('x-answered-by')).toBe('zxdb-index');
     expect((await res.json()).hits.hits[0]._id).toBe('0004293');
-    expect(said.errors).toHaveLength(1);
+    expect(said.errors).toEqual([]);
     expect(said.warnings).toEqual([expect.stringMatching(/could not be reached .*; answered from the ZXDB index/)]);
   });
 
-  it('says ZXInfo is down where the index has no answer for the path', async () => {
+  it('says ZXInfo is down where the index has no answer for the path: the server’s error, once, with its stack', async () => {
     listen();
     clock = 600_000;
     mode = 'down';
     const res = await fetch(`${base}/zxinfo/v3/suggest/sabot`);
     expect(res.status).toBe(502);
     expect(await res.text()).toMatch(/answered 502/);
+    expect(said.errors).toEqual([expect.stringMatching(/^\/zxinfo\/v3: 127\.0\.0\.1:\d+ answered 502$/)]);
+    expect(said.warnings).toEqual([]);
     mode = 'up';
   });
 });
