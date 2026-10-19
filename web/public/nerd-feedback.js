@@ -217,14 +217,16 @@
     };
     send.addEventListener("click", submit);
     panel.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        close();
-      } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      if (e.key === "Escape") close();
+      else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         submit();
       }
     });
+    // The keys pressed in it are its own. Out of the shadow root, a key's target is the panel's host, not its textarea,
+    // and a product's own shortcuts, which leave alone what is typed in a field, took a letter for theirs: grocery-run
+    // opened its notes on "m" (nerd#203).
+    for (const type of ["keydown", "keypress", "keyup"]) panel.addEventListener(type, (e) => e.stopPropagation());
 
     panel.append(head, words, with_, foot);
     root.append(panel);
