@@ -41,8 +41,9 @@ again on a new connection after the first failed.
 
 Each weight is measured once, after the times, in Chrome ($CHROME, or google-chrome), headless, a
 profile of its own, as a phone (412 CSS pixels wide, 915 high, 2x, touch), its cache off, each page
-a first visit, on connections of its own: the page loaded, scrolled to its end a screen at a time,
-and weighed once nothing has been fetched for two seconds. The headers whose value changes from one
+a first visit, on connections of its own: the page loaded, its frames from then on running none of
+its script (a page that draws every frame holds Chrome for seconds a frame), scrolled to its end a
+screen at a time, and weighed once nothing has been fetched for two seconds. The headers whose value changes from one
 answer to the next whatever the product sends, the time and Cloud Run's x-cloud-trace-context, are
 counted as though each were sent with a value fixed for it; and each body over HTTP/2 as though it
 came in frames of 16384 B, however many its front end split it into.
@@ -394,6 +395,17 @@ function bodyLength(headers: Record<string, string> | undefined): number | undef
 
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Once the page has loaded, its frames run none of its script (crux#40). A page that draws every frame, as a WebGL
+// simulation in Chrome's software GL, holds its main thread for seconds a frame, and every Runtime.evaluate waits
+// behind one: so did a command to freeze it. Chrome still lays out and paints a frame, so a lazy picture scrolled to
+// is fetched, and timers and what the page's script fetches run as they would.
+const STILL = `{
+  const frame = requestAnimationFrame.bind(window);
+  let loaded = false;
+  addEventListener('load', () => { loaded = true; }, { once: true });
+  window.requestAnimationFrame = (callback) => frame((t) => { if (!loaded) callback(t); });
+}`;
+
 async function weighOne(chrome: Chrome, href: string, quiet: number, stop: { now: boolean }): Promise<Weighed> {
   const wait = async () => {
     if (stop.now) throw new Error(`${href} was given up`);
@@ -462,6 +474,7 @@ async function weighOne(chrome: Chrome, href: string, quiet: number, stop: { now
     await s('Page.enable');
     await s('Emulation.setDeviceMetricsOverride', { width: 412, height: 915, deviceScaleFactor: 2, mobile: true });
     await s('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+    await s('Page.addScriptToEvaluateOnNewDocument', { source: STILL });
     const nav = await s('Page.navigate', { url: href });
     if (nav.errorText) throw new Error(`${href}: ${nav.errorText}`);
     while (!loaded) await wait();

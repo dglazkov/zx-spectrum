@@ -404,6 +404,50 @@ test('a page that starts a Worker is weighed with the worker\'s script and what 
   }
 });
 
+test('a page that draws every frame is weighed though each frame holds its main thread longer than Chrome is waited for', async () => {
+  // As reynolds-number's WebGL simulation, in Chrome's software GL, holds its main thread for seconds a frame: every
+  // Runtime.evaluate waited behind a frame, and gave up at 30000 ms (crux#40). Here a frame after the load spins for a
+  // minute, and one before it for 50 ms; the picture far down is lazy, and fetched only as it is scrolled to.
+  const files: Record<string, [string, string | Buffer]> = {
+    '/': ['text/html', `<!doctype html><meta name="viewport" content="width=device-width">${icon}
+      <div style="height: 3000px"></div><img src="/far.png" loading="lazy" width="300" height="200">
+      <script>
+        function frame() {
+          const t = performance.now();
+          while (performance.now() - t < (document.readyState === 'complete' ? 60000 : 50));
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      </script>`],
+    '/far.png': ['image/png', png(20000)],
+  };
+  const wrote = new Map<string, number>();
+  const server = http.createServer((req, res) => {
+    const path = req.url ?? '/';
+    const before = req.socket.bytesWritten;
+    res.on('finish', () => wrote.set(path, (wrote.get(path) ?? 0) + req.socket.bytesWritten - before));
+    const [type, body] = files[path] ?? ['text/plain', 'not here'];
+    res.writeHead(files[path] ? 200 : 404, { 'content-type': type, 'content-length': Buffer.byteLength(body) });
+    res.end(body);
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  try {
+    // Past the 30000 ms a command is waited for, so that a weighing that waits on a frame fails at its evaluate.
+    const weighed = await weigh(`http://127.0.0.1:${port}`, [{ name: 'home', path: '/' }], { quiet: 300, deadline: 45000 })
+      .catch((e: Error) => e);
+    assert.ok(!(weighed instanceof Error), `the page was not weighed: ${weighed instanceof Error ? weighed.message : ''}`);
+    const [w] = weighed;
+    assert.deepEqual([...wrote.keys()].sort(), ['/', '/far.png']);
+    assert.deepEqual(w.fetched.map((f) => new URL(f.url).pathname).sort(), ['/', '/far.png']);
+    for (const f of w.fetched) assert.equal(f.bytes, wrote.get(new URL(f.url).pathname), f.url);
+    assert.equal(w.bytes, [...wrote.values()].reduce((a, b) => a + b, 0));
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test('each page is weighed as a first visit, on connections of its own: none the page before opened carries over', async () => {
   // A connection kept from the page before is where HTTP/2 sends a page's headers as references to its table, and so
   // where its weight hangs on what came before it (crux#26). Here, over HTTP/1.1, whatever socket serves a page's
