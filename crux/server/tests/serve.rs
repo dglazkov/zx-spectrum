@@ -67,9 +67,12 @@ fn server() -> (String, Arc<Site>, Arc<std::sync::atomic::AtomicUsize>) {
         runtime.block_on(async move {
             let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
             tx.send(listener.local_addr().unwrap().to_string()).unwrap();
-            server::serve_on(listener, server::router(served))
-                .await
-                .unwrap();
+            // The address a request came from, as a route of the product's would take it.
+            let from = |axum::extract::ConnectInfo(from): axum::extract::ConnectInfo<
+                std::net::SocketAddr,
+            >| async move { from.ip().to_string() };
+            let app = server::router(served).route("/from", axum::routing::get(from));
+            server::serve_on(listener, app).await.unwrap();
         });
     });
     (rx.recv().unwrap(), site, reads)
@@ -256,6 +259,13 @@ fn each_kind_of_file() {
         Some("default-src 'self'")
     );
     assert_eq!(home.header("cache-control"), Some(server::CACHE));
+}
+
+#[test]
+fn each_request_carries_the_address_it_came_from() {
+    let (addr, _, _) = server();
+    let r = get(&addr, "/from", "");
+    assert_eq!((r.status, r.text().as_str()), (200, "127.0.0.1"));
 }
 
 #[test]

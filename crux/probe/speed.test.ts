@@ -370,6 +370,40 @@ test('a page\'s weight is every byte a phone fetched to show it whole, scrolled 
   }
 });
 
+test('a page that starts a Worker is weighed with the worker\'s script and what the worker fetched, each once', async () => {
+  // Chrome tells of a worker's script on the page's session as it is asked for, and of its end, and of all the worker
+  // fetches, on the worker's own: a weighing that heard only the page's waited for the script to the deadline (crux#39).
+  const files: Record<string, [string, string]> = {
+    '/': ['text/html', `<!doctype html>${icon}<script>new Worker('/worker.js')</script>`],
+    '/worker.js': ['text/javascript', `fetch('/more.txt').then((r) => r.text()).then((t) => postMessage(t))`],
+    '/more.txt': ['text/plain', 'x'.repeat(5000)],
+  };
+  const wrote = new Map<string, number>();
+  const server = http.createServer((req, res) => {
+    const path = req.url ?? '/';
+    const before = req.socket.bytesWritten;
+    res.on('finish', () => wrote.set(path, (wrote.get(path) ?? 0) + req.socket.bytesWritten - before));
+    const [type, body] = files[path] ?? ['text/plain', 'not here'];
+    res.writeHead(files[path] ? 200 : 404, { 'content-type': type, 'content-length': Buffer.byteLength(body) });
+    res.end(body);
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  try {
+    const weighed = await weigh(`http://127.0.0.1:${port}`, [{ name: 'home', path: '/' }], { quiet: 300, deadline: 20000 })
+      .catch((e: Error) => e);
+    assert.ok(!(weighed instanceof Error), `the page was not weighed: ${weighed instanceof Error ? weighed.message : ''}`);
+    const [w] = weighed;
+    assert.deepEqual([...wrote.keys()].sort(), ['/', '/more.txt', '/worker.js']);
+    assert.deepEqual(w.fetched.map((f) => new URL(f.url).pathname).sort(), ['/', '/more.txt', '/worker.js']);
+    for (const f of w.fetched) assert.equal(f.bytes, wrote.get(new URL(f.url).pathname), f.url);
+    assert.equal(w.bytes, [...wrote.values()].reduce((a, b) => a + b, 0));
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test('each page is weighed as a first visit, on connections of its own: none the page before opened carries over', async () => {
   // A connection kept from the page before is where HTTP/2 sends a page's headers as references to its table, and so
   // where its weight hangs on what came before it (crux#26). Here, over HTTP/1.1, whatever socket serves a page's

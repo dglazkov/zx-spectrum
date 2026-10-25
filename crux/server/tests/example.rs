@@ -201,6 +201,26 @@ fn serves_a_built_directory_with_the_parts_a_product_starts_with() {
         r#"{"name":"played"}"#,
     );
     assert_eq!(r.status, 204);
+    // A client posting past its burst, here the test's own socket, is refused; another, as Cloud Run forwards it,
+    // is not. The share fills again a post a second, so the count of those let in is not fixed by the clock.
+    let post = |forwarded: &[(&str, &str)]| {
+        request(
+            &addr,
+            "POST",
+            "/nerd/event",
+            forwarded,
+            r#"{"name":"played"}"#,
+        )
+        .status
+    };
+    let mut let_in = 1;
+    while post(&[]) == 204 {
+        let_in += 1;
+        assert!(let_in <= 200, "a client let in {let_in} times");
+    }
+    assert!(let_in >= telemetry::BURST, "{let_in}");
+    assert_eq!(post(&[]), 429);
+    assert_eq!(post(&[("X-Forwarded-For", "198.51.100.2, 10.0.0.1")]), 204);
     // What is not the build's, nor named, is not found.
     for path in [
         "/missing.js",

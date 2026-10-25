@@ -848,9 +848,11 @@ pub async fn serve(app: axum::Router) -> Result<(), String> {
 }
 
 /// Answers with `app` on `listener`, until the process is told to stop (an interrupt, or Cloud
-/// Run's SIGTERM).
+/// Run's SIGTERM). Each request carries the address it came from, as `ConnectInfo<SocketAddr>`,
+/// as the part telemetry's limit asks for where no load balancer said it (crux#38).
 pub async fn serve_on(listener: tokio::net::TcpListener, app: axum::Router) -> std::io::Result<()> {
     let mut term = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+    let app = app.into_make_service_with_connect_info::<std::net::SocketAddr>();
     axum::serve(listener, app)
         .with_graceful_shutdown(async move {
             tokio::select! {

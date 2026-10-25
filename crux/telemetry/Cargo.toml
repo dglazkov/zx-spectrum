@@ -8,7 +8,8 @@ publish = false
 description = "What a product's server records of its use, as nerd reads it (nerd guide telemetry): its events, its errors with their stacks, and the paths /nerd/event and /nerd/feedback."
 
 [dependencies]
-axum = { version = "0.8", default-features = false }
+# tokio, for the socket's address (ConnectInfo), which the part server already builds with.
+axum = { version = "0.8", default-features = false, features = ["tokio"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

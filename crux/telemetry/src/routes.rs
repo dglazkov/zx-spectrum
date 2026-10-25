@@ -1,10 +1,15 @@
 //! `/nerd/event` and `/nerd/feedback`: what a product's pages send, printed as one line made of its own fields alone.
 
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::net::SocketAddr;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use axum::body::Bytes;
-use axum::extract::DefaultBodyLimit;
+use axum::extract::{ConnectInfo, DefaultBodyLimit, Request};
 use axum::http::{header, HeaderMap, StatusCode};
+use axum::middleware::{from_fn, Next};
+use axum::response::IntoResponse;
 use axum::routing::post;
 use axum::Router;
 use serde::Serialize;
@@ -19,8 +24,17 @@ pub const LIMIT: usize = 64 * 1024;
 /// refused, 400, and nothing of it printed.
 pub const EVENTS: usize = 16;
 
+/// How many posts a minute one client may send to the two paths, together: a page sends a few a visit.
+pub const RATE: u32 = 60;
+
+/// How many posts one client may send at once, before it waits on `RATE`.
+pub const BURST: u32 = 30;
+
 /// Where a line goes: standard output, but in the tests.
 type Print = Arc<dyn Fn(&str) + Send + Sync>;
+
+/// What time it is: the machine's, but in the tests.
+type Clock = Arc<dyn Fn() -> Instant + Send + Sync>;
 
 /// The two paths, for a product's router to take (`app.merge(telemetry::routes())`): each a POST of a JSON object,
 /// up to `LIMIT`, printed on standard output as one line built again from its own fields, never the body as it came,
@@ -28,22 +42,36 @@ type Print = Arc<dyn Fn(&str) + Send + Sync>;
 /// list of up to `EVENTS` too, each its own line, so that what a page sends as it is torn down arrives whole or not at
 /// all, as the part `load` sends a load's (crux#8). A body that is neither is answered 400, and nothing of it printed.
 /// A load sent by a browser a probe drives, its user agent `HeadlessChrome`, is answered 204 and printed not at all,
-/// so that a load nerd counts is a reader's (crux#23).
+/// so that a load nerd counts is a reader's (crux#23). A client posting more than `RATE` a minute, past a burst of
+/// `BURST`, is answered 429, before its body is read, and printed not at all (crux#38).
 pub fn routes<S: Clone + Send + Sync + 'static>() -> Router<S> {
-    routes_to(Arc::new(|line| {
-        crate::write(std::io::stdout().lock(), line)
-    }))
+    routes_to(
+        Arc::new(|line| crate::write(std::io::stdout().lock(), line)),
+        Arc::new(Instant::now),
+    )
 }
 
-fn routes_to<S: Clone + Send + Sync + 'static>(print: Print) -> Router<S> {
+fn routes_to<S: Clone + Send + Sync + 'static>(print: Print, clock: Clock) -> Router<S> {
     let to = print.clone();
+    let limit = Arc::new(Limit::new(clock));
+    let limited = from_fn(move |request: Request, next: Next| {
+        let limit = limit.clone();
+        async move {
+            if limit.allows(&client(&request)) {
+                next.run(request).await
+            } else {
+                StatusCode::TOO_MANY_REQUESTS.into_response()
+            }
+        }
+    });
     Router::new()
         .route(
             "/nerd/event",
             post(move |headers: HeaderMap, body: Bytes| async move {
                 let probe = driven(&headers);
                 answer(&body, |body| events(body, probe), &to)
-            }),
+            })
+            .route_layer(limited.clone()),
         )
         .route(
             "/nerd/feedback",
@@ -56,9 +84,91 @@ fn routes_to<S: Clone + Send + Sync + 'static>(print: Print) -> Router<S> {
                     },
                     &print,
                 )
-            }),
+            })
+            .route_layer(limited),
         )
         .layer(DefaultBodyLimit::max(LIMIT))
+}
+
+/// Who sent a request: the first address of X-Forwarded-For, where Cloud Run's load balancer puts the client's, or
+/// else the socket's, where the server was served with it (as the part `server` serves); "?" where neither is known.
+fn client(request: &Request) -> String {
+    let forwarded = request
+        .headers()
+        .get("x-forwarded-for")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.split(',').next())
+        .map(str::trim)
+        .filter(|first| !first.is_empty());
+    if let Some(first) = forwarded {
+        return first.to_string();
+    }
+    match request.extensions().get::<ConnectInfo<SocketAddr>>() {
+        Some(ConnectInfo(socket)) => socket.ip().to_string(),
+        None => "?".to_string(),
+    }
+}
+
+/// Each client's share of the two paths, as a token bucket: `BURST` at most, refilled at `RATE` a minute.
+struct Limit {
+    clock: Clock,
+    buckets: Mutex<Buckets>,
+}
+
+struct Buckets {
+    by_client: HashMap<String, Bucket>,
+    swept: Instant,
+}
+
+struct Bucket {
+    tokens: f64,
+    at: Instant,
+}
+
+impl Limit {
+    fn new(clock: Clock) -> Self {
+        let swept = clock();
+        Limit {
+            clock,
+            buckets: Mutex::new(Buckets {
+                by_client: HashMap::new(),
+                swept,
+            }),
+        }
+    }
+
+    /// Whether `client` may post now, taking one from its share where it may.
+    fn allows(&self, client: &str) -> bool {
+        let now = (self.clock)();
+        let mut buckets = self
+            .buckets
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        // A client whose bucket has filled again is as one never heard from: forgotten, once a minute, so that
+        // clients come and gone do not pile up.
+        let full = Duration::from_secs_f64(f64::from(BURST) * 60.0 / f64::from(RATE));
+        if now.saturating_duration_since(buckets.swept) >= Duration::from_secs(60) {
+            buckets.swept = now;
+            buckets
+                .by_client
+                .retain(|_, bucket| now.saturating_duration_since(bucket.at) < full);
+        }
+        let bucket = buckets
+            .by_client
+            .entry(client.to_string())
+            .or_insert(Bucket {
+                tokens: f64::from(BURST),
+                at: now,
+            });
+        let since = now.saturating_duration_since(bucket.at).as_secs_f64();
+        bucket.tokens = (bucket.tokens + since * f64::from(RATE) / 60.0).min(f64::from(BURST));
+        bucket.at = now;
+        if bucket.tokens < 1.0 {
+            return false;
+        }
+        bucket.tokens -= 1.0;
+        true
+    }
 }
 
 /// Prints the lines of a body, or answers 400 where `lines` finds it not of its shape.
@@ -174,9 +284,10 @@ mod tests {
     ) -> (StatusCode, Vec<String>) {
         let printed = Arc::new(Mutex::new(Vec::new()));
         let to = printed.clone();
-        let app: Router = routes_to(Arc::new(move |line: &str| {
-            to.lock().unwrap().push(line.to_string())
-        }));
+        let app: Router = routes_to(
+            Arc::new(move |line: &str| to.lock().unwrap().push(line.to_string())),
+            Arc::new(Instant::now),
+        );
         let mut request = Request::builder()
             .method(method)
             .uri(path)
@@ -277,9 +388,10 @@ mod tests {
             .unwrap();
         let printed = Arc::new(Mutex::new(Vec::new()));
         let to = printed.clone();
-        let app: Router = routes_to(Arc::new(move |line: &str| {
-            to.lock().unwrap().push(line.to_string())
-        }));
+        let app: Router = routes_to(
+            Arc::new(move |line: &str| to.lock().unwrap().push(line.to_string())),
+            Arc::new(Instant::now),
+        );
         assert_eq!(
             app.oneshot(request).await.unwrap().status(),
             StatusCode::NO_CONTENT
@@ -483,6 +595,210 @@ mod tests {
             send(Method::POST, "/nerd/event", stream).await,
             (StatusCode::PAYLOAD_TOO_LARGE, vec![])
         );
+    }
+
+    /// The routes on a clock of the test's, which moves only as it says, and the lines they printed.
+    struct Clocked {
+        app: Router,
+        now: Arc<Mutex<Instant>>,
+        printed: Arc<Mutex<Vec<String>>>,
+    }
+
+    impl Clocked {
+        fn new() -> Self {
+            let now = Arc::new(Mutex::new(Instant::now()));
+            let printed = Arc::new(Mutex::new(Vec::new()));
+            let (to, at) = (printed.clone(), now.clone());
+            let app = routes_to(
+                Arc::new(move |line: &str| to.lock().unwrap().push(line.to_string())),
+                Arc::new(move || *at.lock().unwrap()),
+            );
+            Clocked { app, now, printed }
+        }
+
+        fn wait(&self, seconds: u64) {
+            *self.now.lock().unwrap() += Duration::from_secs(seconds);
+        }
+
+        /// What a client answers to: `forwarded` as X-Forwarded-For, `socket` as the address it connected from.
+        async fn send(
+            &self,
+            forwarded: Option<&str>,
+            socket: Option<&str>,
+            method: Method,
+            path: &str,
+            body: impl Into<Body>,
+        ) -> (StatusCode, Vec<String>) {
+            let before = self.printed.lock().unwrap().len();
+            let mut request = Request::builder().method(method).uri(path);
+            if let Some(forwarded) = forwarded {
+                request = request.header("x-forwarded-for", forwarded);
+            }
+            let mut request = request.body(body.into()).unwrap();
+            if let Some(socket) = socket {
+                let socket: SocketAddr = socket.parse().unwrap();
+                request.extensions_mut().insert(ConnectInfo(socket));
+            }
+            let status = self.app.clone().oneshot(request).await.unwrap().status();
+            let printed = self.printed.lock().unwrap()[before..].to_vec();
+            (status, printed)
+        }
+
+        async fn post(&self, forwarded: &str, path: &str) -> (StatusCode, Vec<String>) {
+            let body = match path {
+                "/nerd/event" => r#"{"name":"song.made"}"#,
+                _ => r#"{"words":"Slow."}"#,
+            };
+            self.send(Some(forwarded), None, Method::POST, path, body)
+                .await
+        }
+
+        /// How many of `n` posts in an instant, from `forwarded`, were answered 204 and printed.
+        async fn let_in(&self, forwarded: &str, n: usize) -> usize {
+            let mut answered = 0;
+            for i in 0..n {
+                let path = ["/nerd/event", "/nerd/feedback"][i % 2];
+                match self.post(forwarded, path).await {
+                    (StatusCode::NO_CONTENT, printed) if printed.len() == 1 => answered += 1,
+                    (StatusCode::TOO_MANY_REQUESTS, printed) if printed.is_empty() => {}
+                    other => panic!("{forwarded} {path}: {other:?}"),
+                }
+            }
+            answered
+        }
+    }
+
+    const EVENT: &str = r#"{"name":"song.made"}"#;
+    const LINE: &str = r#"{"nerd":"event","name":"song.made"}"#;
+
+    #[tokio::test]
+    async fn a_client_posting_too_often_is_refused_and_let_back_in_as_its_minute_goes_on() {
+        assert_eq!((RATE, BURST), (60, 30));
+        let routes = Clocked::new();
+        // The client is the first address Cloud Run's load balancer forwards; both paths are one share.
+        let anna = "203.0.113.7, 10.0.0.1";
+        assert_eq!(routes.let_in(anna, BURST as usize).await, 30);
+        for path in ["/nerd/event", "/nerd/feedback"] {
+            assert_eq!(
+                routes.post(anna, path).await,
+                (StatusCode::TOO_MANY_REQUESTS, vec![]),
+                "{path}"
+            );
+        }
+        // Refused before its body is read: one over the limit is 429, not 413.
+        assert_eq!(
+            routes
+                .send(
+                    Some(anna),
+                    None,
+                    Method::POST,
+                    "/nerd/event",
+                    sized(LIMIT + 1)
+                )
+                .await,
+            (StatusCode::TOO_MANY_REQUESTS, vec![])
+        );
+        // The same client by another way through the balancer; what is not a post is still answered 405.
+        assert_eq!(
+            routes.post("203.0.113.7", "/nerd/event").await,
+            (StatusCode::TOO_MANY_REQUESTS, vec![])
+        );
+        assert_eq!(
+            routes
+                .send(Some(anna), None, Method::GET, "/nerd/event", Body::empty())
+                .await,
+            (StatusCode::METHOD_NOT_ALLOWED, vec![])
+        );
+
+        // Another client is its own, whatever the address of the balancer's socket.
+        let ben = "198.51.100.2, 10.0.0.1";
+        assert_eq!(
+            routes
+                .send(
+                    Some(ben),
+                    Some("10.0.0.1:41000"),
+                    Method::POST,
+                    "/nerd/event",
+                    EVENT
+                )
+                .await,
+            (StatusCode::NO_CONTENT, vec![LINE.to_string()])
+        );
+
+        // A second later, one more; five seconds later, five; half a minute later, the whole burst again.
+        routes.wait(1);
+        assert_eq!(routes.let_in(anna, 3).await, 1);
+        routes.wait(5);
+        assert_eq!(routes.let_in(anna, 8).await, 5);
+        routes.wait(30);
+        assert_eq!(routes.let_in(anna, 40).await, 30);
+        routes.wait(600);
+        assert_eq!(routes.let_in(anna, 40).await, 30);
+        assert_eq!(routes.let_in(ben, 40).await, 30);
+    }
+
+    #[tokio::test]
+    async fn a_client_not_forwarded_is_its_socket_address() {
+        let routes = Clocked::new();
+        let post = |socket| routes.send(None, socket, Method::POST, "/nerd/event", EVENT);
+        for _ in 0..BURST {
+            assert_eq!(post(Some("192.0.2.9:5000")).await.0, StatusCode::NO_CONTENT);
+        }
+        // Another connection from the same address is the same client; another address is another.
+        assert_eq!(
+            post(Some("192.0.2.9:5001")).await,
+            (StatusCode::TOO_MANY_REQUESTS, vec![])
+        );
+        assert_eq!(
+            post(Some("[2001:db8::1]:5000")).await,
+            (StatusCode::NO_CONTENT, vec![LINE.to_string()])
+        );
+        // An empty X-Forwarded-For says no one: the socket is the client.
+        assert_eq!(
+            routes
+                .send(
+                    Some(" "),
+                    Some("192.0.2.9:5002"),
+                    Method::POST,
+                    "/nerd/event",
+                    EVENT
+                )
+                .await,
+            (StatusCode::TOO_MANY_REQUESTS, vec![])
+        );
+        // Where neither is known, every such request is the one client.
+        for _ in 0..BURST {
+            assert_eq!(post(None).await.0, StatusCode::NO_CONTENT);
+        }
+        assert_eq!(post(None).await, (StatusCode::TOO_MANY_REQUESTS, vec![]));
+    }
+
+    #[test]
+    fn a_client_whose_share_is_whole_again_is_forgotten() {
+        let now = Arc::new(Mutex::new(Instant::now()));
+        let at = now.clone();
+        let limit = Limit::new(Arc::new(move || *at.lock().unwrap()));
+        let wait = |seconds| *now.lock().unwrap() += Duration::from_secs(seconds);
+        for client in 0..1000 {
+            assert!(limit.allows(&format!("198.51.100.{client}")));
+        }
+        assert!(limit.allows("anna"));
+        wait(40);
+        assert!(limit.allows("ben"));
+        assert_eq!(limit.buckets.lock().unwrap().by_client.len(), 1002);
+        // A minute on, those last heard from more than half a minute ago are full again, and forgotten.
+        wait(20);
+        assert!(limit.allows("ben"));
+        assert_eq!(limit.buckets.lock().unwrap().by_client.len(), 1);
+        // One refused is not forgotten while its share fills.
+        for _ in 0..BURST {
+            limit.allows("anna");
+        }
+        assert!(!limit.allows("anna"));
+        wait(60);
+        for _ in 0..BURST - 1 {
+            assert!(limit.allows("anna"));
+        }
     }
 
     #[tokio::test]

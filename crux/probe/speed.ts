@@ -412,10 +412,23 @@ async function weighOne(chrome: Chrome, href: string, quiet: number, stop: { now
   let last = Date.now();
   let loaded = false;
   let status = 0;
+  // The page's session and each a worker or a frame of another process has (crux#39): Chrome tells of a worker's
+  // script on the page's session as it is asked for but of its end on the worker's, and of all the worker fetches there.
+  const sessions = new Set([sessionId]);
+  const attach = async (session: string) => {
+    const t = (method: string, params = {}) => chrome.send(method, params, session);
+    await t('Network.enable');
+    await t('Network.setCacheDisabled', { cacheDisabled: true });
+    await t('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: true, flatten: true });
+  };
   const listen = (m: any) => {
-    if (m.sessionId !== sessionId) return;
+    if (!sessions.has(m.sessionId)) return;
     const p = m.params;
-    if (m.method === 'Network.requestWillBeSent') {
+    if (m.method === 'Target.attachedToTarget') {
+      // Held before it runs, so that none of what it fetches is asked for before it is heard; and let go however that went.
+      sessions.add(p.sessionId);
+      attach(p.sessionId).catch(() => {}).finally(() => chrome.send('Runtime.runIfWaitingForDebugger', {}, p.sessionId).catch(() => {}));
+    } else if (m.method === 'Network.requestWillBeSent') {
       const before = requests.get(p.requestId);
       if (before && p.redirectResponse) {
         const r = p.redirectResponse;
@@ -445,8 +458,7 @@ async function weighOne(chrome: Chrome, href: string, quiet: number, stop: { now
   };
   chrome.listeners.add(listen);
   try {
-    await s('Network.enable');
-    await s('Network.setCacheDisabled', { cacheDisabled: true });
+    await attach(sessionId);
     await s('Page.enable');
     await s('Emulation.setDeviceMetricsOverride', { width: 412, height: 915, deviceScaleFactor: 2, mobile: true });
     await s('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
@@ -483,8 +495,11 @@ async function weighOne(chrome: Chrome, href: string, quiet: number, stop: { now
         if (r.body === undefined && known?.size === 1 && !known.has(0)) r.body = [...known][0];
       }
     }
+    // A dedicated worker's script Chrome counts as its head alone, where it tells of its end on the worker's session:
+    // its body is as long as its headers say, where they say.
+    const whole = (bytes: number, head: number, body?: number) => body !== undefined && head > 0 && bytes <= head ? head + body : bytes;
     const fetched = [...redirected, ...[...requests.values()].map(({ done, by, head, body, protocol, ...r }) =>
-      ({ ...r, bytes: r.failed ? r.bytes : framed(r.bytes, head, body, protocol) + by }))];
+      ({ ...r, bytes: r.failed ? r.bytes : framed(whole(r.bytes, head, body), head, body, protocol) + by }))];
     return { bytes: fetched.reduce((a, r) => a + r.bytes, 0), fetched };
   } finally {
     chrome.listeners.delete(listen);

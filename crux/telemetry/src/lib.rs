@@ -13,7 +13,7 @@ mod routes;
 
 pub use error::{error, Error};
 pub use event::Event;
-pub use routes::{routes, EVENTS, LIMIT};
+pub use routes::{routes, BURST, EVENTS, LIMIT, RATE};
 
 use std::io::Write;
 
