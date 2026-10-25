@@ -231,7 +231,7 @@ fn the_builds_own_compression_sent_as_it_is() {
             ("deflate", None, &js),
             ("", None, &js),
         ] {
-            let a = get(&t, HASHED, accept);
+            let a = get(t, HASHED, accept);
             assert_eq!(a.header(header::CONTENT_ENCODING), coding, "{accept}");
             assert_eq!(&a.body, body, "{accept}");
             assert_eq!(
@@ -241,33 +241,33 @@ fn the_builds_own_compression_sent_as_it_is() {
         }
         // Its brotli and gzip are its, not files of their own.
         for packed in [format!("{HASHED}.br"), format!("{HASHED}.gz")] {
-            assert_eq!(get(&t, &packed, "br").status, 404, "{packed}");
+            assert_eq!(get(t, &packed, "br").status, 404, "{packed}");
             assert!(!t.entries.contains_key(&packed), "{packed}");
         }
         // Brotli the build's, and gzip, which it did not make, the table's.
         let style = "/assets/style-Ck2_x9Qa.css";
         let css = read(&dist, &style[1..]);
-        let a = get(&t, style, "br");
+        let a = get(t, style, "br");
         assert_eq!(a.body, read(&dist, &format!("{}.br", &style[1..])));
-        let a = get(&t, style, "gzip");
+        let a = get(t, style, "gzip");
         assert_eq!(a.header(header::CONTENT_ENCODING), Some("gzip"));
         assert_eq!(ungzip(&a.body), css);
         // A file with none beside it, compressed by the table, at its best.
         let about = read(&dist, "about.html");
-        let a = get(&t, "/about.html", "br");
+        let a = get(t, "/about.html", "br");
         assert_eq!(a.header(header::CONTENT_ENCODING), Some("br"));
         assert_eq!(a.body, brotli(&about, 11));
-        let a = get(&t, "/about.html", "gzip");
+        let a = get(t, "/about.html", "gzip");
         assert_eq!(ungzip(&a.body), about);
         // Each body has a tag of its own, and is told not modified by it.
-        let tagged = get(&t, HASHED, "br");
+        let tagged = get(t, HASHED, "br");
         let tag = tagged.header(header::ETAG).unwrap();
         let mut h = HeaderMap::new();
         h.insert(header::ACCEPT_ENCODING, "br".parse().unwrap());
         h.insert(header::IF_NONE_MATCH, tag.parse().unwrap());
         let again = t.respond(&Method::GET, HASHED, None, &h);
         assert_eq!(again.status, 304);
-        assert_ne!(get(&t, HASHED, "gzip").header(header::ETAG), Some(tag));
+        assert_ne!(get(t, HASHED, "gzip").header(header::ETAG), Some(tag));
     }
     // The same file has the same tag, read first or late.
     assert_eq!(
