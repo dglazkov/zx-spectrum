@@ -17,7 +17,9 @@
 //! server's failure (the archive slow, a redirect elsewhere, a file too large) a line at WARNING.
 
 use std::collections::HashMap;
+use std::future::Future;
 use std::io;
+use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -26,6 +28,7 @@ use axum::extract::connect_info::ConnectInfo;
 use axum::extract::{Request, State};
 use axum::http::{header, HeaderMap, HeaderValue, Method, Response, StatusCode};
 use axum::middleware::{self, Next};
+use futures_util::future::{FutureExt, Shared};
 use regex::Regex;
 use reqwest::Url;
 
@@ -215,6 +218,15 @@ pub fn wall() -> Clock {
     Arc::new(move || start.elapsed().as_millis() as u64)
 }
 
+/// What ends once so long has gone by, as the pass-through keeps its times (a route's, and its fallback's wait): a
+/// test gives its own, which ends when the test says.
+pub type Timer = Arc<dyn Fn(Duration) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
+
+/// So long on the wall clock.
+pub fn sleep() -> Timer {
+    Arc::new(|d| Box::pin(tokio::time::sleep(d)))
+}
+
 /// Requests passed through, a client at a time: so many a minute, as a token bucket refilled steadily. The page asks
 /// for a few a game (its tape, its manual, its inlay, a search or two); a client asking for hundreds a minute is not
 /// the page.
@@ -262,30 +274,31 @@ pub fn client(headers: &HeaderMap, peer: Option<&Peer>) -> String {
     }
 }
 
-/// The pass-through: its routes, its limit on each client, its clock, and where it says what goes wrong.
+/// The pass-through: its routes, its limit on each client, its clock and its timer, and where it says what goes wrong.
 pub struct Pass {
     routes: Vec<Route>,
     limit: Option<Limiter>,
     now: Clock,
+    after: Timer,
     down_until: Mutex<HashMap<usize, u64>>,
     client: reqwest::Client,
     say: Say,
 }
 
 impl Pass {
-    pub fn new(routes: Vec<Route>, limit: Option<Limiter>, now: Clock, say: Say) -> Pass {
+    pub fn new(routes: Vec<Route>, limit: Option<Limiter>, now: Clock, after: Timer, say: Say) -> Pass {
         let client = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
             .user_agent(AGENT)
             .build()
             .expect("an HTTP client");
-        Pass { routes, limit, now, down_until: Mutex::new(HashMap::new()), client, say }
+        Pass { routes, limit, now, after, down_until: Mutex::new(HashMap::new()), client, say }
     }
 
-    /// The routes, the limit and the clock the deployed server has: 120 a minute a client, a burst of 60.
+    /// The routes, the limit, the clock and the timer the deployed server has: 120 a minute a client, a burst of 60.
     pub fn deployed(routes: Vec<Route>) -> Pass {
         let now = wall();
-        Pass::new(routes, Some(Limiter::new(120.0, 60.0, now.clone())), now, say_out())
+        Pass::new(routes, Some(Limiter::new(120.0, 60.0, now.clone())), now, sleep(), say_out())
     }
 
     /// The answer to a request, where it is one to pass through or to refuse; the request back where it is not.
@@ -391,16 +404,17 @@ impl Pass {
                 return res;
             }
         }
-        let deadline = tokio::time::Instant::now() + route.timeout;
+        let time_up = (self.after)(route.timeout).shared();
         let wait = route.fallback.as_ref().map(|f| f.wait);
         let slow = async {
             match wait {
-                Some(wait) => tokio::time::sleep(wait).await,
+                Some(wait) => (self.after)(wait).await,
                 None => std::future::pending().await,
             }
         };
         let begun = tokio::select! {
-            begun = tokio::time::timeout_at(deadline, self.begin(route, &target, &method)) => begun.unwrap_or(Begun::TimedOut),
+            begun = self.begin(route, &target, &method) => begun,
+            _ = time_up.clone() => Begun::TimedOut,
             _ = slow => Begun::Slow,
         };
         let origin = Url::parse(&target.url).map(|u| host(&u)).unwrap_or_default();
@@ -477,16 +491,16 @@ impl Pass {
         if head {
             return answer.body(Body::empty()).unwrap();
         }
-        answer.body(self.stream(res, route, deadline, peer)).unwrap()
+        answer.body(self.stream(res, route, time_up, peer)).unwrap()
     }
 
     /// The origin's body, as the client takes it, cut off past the route's size; on the time running out, the client
     /// going, or the cap, every part of it torn down, and what it was said once.
-    fn stream(&self, mut res: reqwest::Response, route: &Route, deadline: tokio::time::Instant, peer: Option<Peer>) -> Body {
+    fn stream(&self, mut res: reqwest::Response, route: &Route, time_up: Shared<Pin<Box<dyn Future<Output = ()> + Send>>>, peer: Option<Peer>) -> Body {
         let (tx, rx) = tokio::sync::mpsc::channel::<io::Result<axum::body::Bytes>>(2);
         let (prefix, max, timeout, say) = (route.prefix.clone(), route.max_bytes, route.timeout, self.say.clone());
         tokio::spawn(async move {
-            let pumped = tokio::time::timeout_at(deadline, async {
+            let pump = async {
                 let mut sent = 0u64;
                 loop {
                     match res.chunk().await {
@@ -507,18 +521,21 @@ impl Pass {
                         }
                     }
                 }
-            })
-            .await;
+            };
+            let pumped = tokio::select! {
+                pumped = pump => Some(pumped),
+                _ = time_up => None,
+            };
             match pumped {
-                Err(_) => {
+                None => {
                     say(Said::Warning(format!("{prefix}: the origin took longer than {} ms", timeout.as_millis())));
                     if let Some(peer) = peer {
                         peer.let_go();
                     }
                 }
-                Ok(Pumped::TooLarge) => say(Said::Warning(format!("{prefix}: too large to pass through, cut off"))),
-                Ok(Pumped::Failed(e)) => say(Said::Error(telemetry::Error::from(e).line())),
-                Ok(Pumped::Done | Pumped::Gone) => {}
+                Some(Pumped::TooLarge) => say(Said::Warning(format!("{prefix}: too large to pass through, cut off"))),
+                Some(Pumped::Failed(e)) => say(Said::Error(telemetry::Error::from(e).line())),
+                Some(Pumped::Done | Pumped::Gone) => {}
             }
             // The origin's connection goes with `res`, here, whatever became of the exchange.
         });

@@ -10,7 +10,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use app::pass::{self, Clock, Limiter, Pass, Route, Said, Say};
+use app::pass::{self, Clock, Limiter, Pass, Route, Said, Say, Timer};
 use app::zxdb::Zxdb;
 use axum::body::{Body, Bytes};
 use axum::http::{HeaderMap, StatusCode, Uri};
@@ -204,9 +204,49 @@ impl Heard {
     }
 }
 
+/// The pass-through's timers, in the test's hands: none ends but by `due`, however busy the machine, so that an origin
+/// is late, or a client too slow, only where the test makes it so. (On Oct 24, a machine kept busy made the stand-in's
+/// 502 later than the fallback's 300 ms on the wall clock, and the test read "gave no answer" for "answered 502": #10.)
+#[derive(Clone, Default)]
+struct Timers(Arc<Mutex<Vec<(Duration, tokio::sync::oneshot::Sender<()>)>>>);
+
+impl Timers {
+    fn timer(&self) -> Timer {
+        let timers = self.0.clone();
+        Arc::new(move |d| {
+            let (tx, rx) = tokio::sync::oneshot::channel();
+            timers.lock().unwrap().push((d, tx));
+            Box::pin(async move {
+                if rx.await.is_err() {
+                    std::future::pending::<()>().await;
+                }
+            })
+        })
+    }
+
+    /// Ends the waits of `d` begun so far, once there is one: the exchange has begun.
+    async fn due(&self, d: Duration) {
+        loop {
+            let ended: Vec<_> = {
+                let mut timers = self.0.lock().unwrap();
+                let (ended, kept) = std::mem::take(&mut *timers).into_iter().partition(|(at, _)| *at == d);
+                *timers = kept;
+                ended
+            };
+            if !ended.is_empty() {
+                for (_, tx) in ended {
+                    let _ = tx.send(());
+                }
+                return;
+            }
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
 /// The pass-through in front of a page that answers 418 to whatever it does not take.
-async fn front(routes: Vec<Route>, limit: Option<Limiter>, now: Clock, say: Say) -> String {
-    let pass = Arc::new(Pass::new(routes, limit, now, say));
+async fn front(routes: Vec<Route>, limit: Option<Limiter>, now: Clock, after: Timer, say: Say) -> String {
+    let pass = Arc::new(Pass::new(routes, limit, now, after, say));
     let app = pass::layer(Router::new().fallback(|| async { StatusCode::IM_A_TEAPOT }), pass);
     format!("http://{}", listen(app).await)
 }
@@ -225,7 +265,7 @@ async fn get(url: String) -> reqwest::Response {
 
 /// The pass-through of "passing through": the archive's route, and one of its own for the stalled client (a large
 /// cap, and a short time for the whole exchange).
-async fn passing() -> (String, Arc<Origin>) {
+async fn passing() -> (String, Arc<Origin>, Timers) {
     let state = Arc::new(Origin::default());
     let at = origin(state.clone()).await.to_string();
     let routes = vec![
@@ -233,13 +273,14 @@ async fn passing() -> (String, Arc<Origin>) {
         route("/slow", &at, r"^/pub/sinclair/huge\.tap$", 1 << 30, Duration::from_millis(300), "no-store"),
     ];
     let now = pass::wall();
-    let base = front(routes, Some(Limiter::new(120.0, 60.0, now.clone())), now, Heard::default().say()).await;
-    (base, state)
+    let timers = Timers::default();
+    let base = front(routes, Some(Limiter::new(120.0, 60.0, now.clone())), now, timers.timer(), Heard::default().say()).await;
+    (base, state, timers)
 }
 
 #[tokio::test]
 async fn hands_the_file_over_as_it_is_with_a_cache_header() {
-    let (base, _) = passing().await;
+    let (base, _, _) = passing().await;
     let res = get(format!("{base}/archive/pub/sinclair/ok.tap")).await;
     assert_eq!(res.status(), 200);
     assert_eq!(res.headers()["cache-control"], "public, max-age=60");
@@ -248,7 +289,7 @@ async fn hands_the_file_over_as_it_is_with_a_cache_header() {
 
 #[tokio::test]
 async fn follows_a_redirect_on_the_same_host_and_no_other() {
-    let (base, _) = passing().await;
+    let (base, _, _) = passing().await;
     assert_eq!(get(format!("{base}/archive/pub/sinclair/moved.tap")).await.text().await.unwrap(), "TAPE");
     assert_eq!(get(format!("{base}/archive/pub/sinclair/away.tap")).await.status(), 502);
     assert_eq!(get(format!("{base}/archive/pub/sinclair/aside.tap")).await.status(), 502);
@@ -256,13 +297,13 @@ async fn follows_a_redirect_on_the_same_host_and_no_other() {
 
 #[tokio::test]
 async fn passes_on_a_missing_file_as_missing() {
-    let (base, _) = passing().await;
+    let (base, _, _) = passing().await;
     assert_eq!(get(format!("{base}/archive/pub/sinclair/missing.tap")).await.status(), 404);
 }
 
 #[tokio::test]
 async fn refuses_a_file_over_its_size_whether_it_says_so_or_not() {
-    let (base, _) = passing().await;
+    let (base, _, _) = passing().await;
     assert_eq!(get(format!("{base}/archive/pub/sinclair/big.tap")).await.status(), 502);
     let chunked = match client().get(format!("{base}/archive/pub/sinclair/chunked.tap")).send().await {
         Ok(res) => res.bytes().await.map(|b| b.len()),
@@ -273,7 +314,7 @@ async fn refuses_a_file_over_its_size_whether_it_says_so_or_not() {
 
 #[tokio::test]
 async fn hands_over_a_body_the_origin_compressed_whole_with_no_length_that_is_not_its_own() {
-    let (base, _) = passing().await;
+    let (base, _, _) = passing().await;
     let res = get(format!("{base}/archive/pub/sinclair/gzipped.json")).await;
     assert_eq!(res.status(), 200);
     let body: serde_json::Value = serde_json::from_str(&res.text().await.unwrap()).unwrap();
@@ -282,7 +323,7 @@ async fn hands_over_a_body_the_origin_compressed_whole_with_no_length_that_is_no
 
 #[tokio::test]
 async fn lets_nothing_it_passes_through_run_as_the_page_no_script_no_frame_no_sniffing() {
-    let (base, _) = passing().await;
+    let (base, _, _) = passing().await;
     let res = get(format!("{base}/archive/pub/sinclair/error.html")).await;
     assert_eq!(res.status(), 404);
     let policy = res.headers()["content-security-policy"].to_str().unwrap();
@@ -293,7 +334,7 @@ async fn lets_nothing_it_passes_through_run_as_the_page_no_script_no_frame_no_sn
 
 #[tokio::test]
 async fn lets_go_of_a_client_that_stops_reading_once_the_time_is_up_the_archives_connection_with_it() {
-    let (base, state) = passing().await;
+    let (base, state, timers) = passing().await;
     // Read the first bytes, then read no more: the server's writes back up, and it must not wait for ever. Its time
     // up, it tears the exchange down, the archive's connection with it (which the origin sees close), and lets go of
     // the client.
@@ -302,13 +343,13 @@ async fn lets_go_of_a_client_that_stops_reading_once_the_time_is_up_the_archives
     client.write_all(format!("GET /slow/pub/sinclair/huge.tap HTTP/1.1\r\nHost: {addr}\r\n\r\n").as_bytes()).await.unwrap();
     let mut first = [0u8; 1024];
     assert!(client.read(&mut first).await.unwrap() > 0);
-    for _ in 0..250 {
-        if state.huge_closed.load(Ordering::SeqCst) {
-            break;
+    timers.due(Duration::from_millis(300)).await;
+    let closed = tokio::time::timeout(Duration::from_secs(20), async {
+        while !state.huge_closed.load(Ordering::SeqCst) {
+            tokio::time::sleep(Duration::from_millis(5)).await;
         }
-        tokio::time::sleep(Duration::from_millis(20)).await;
-    }
-    assert!(state.huge_closed.load(Ordering::SeqCst), "the archive's connection is still open");
+    });
+    assert!(closed.await.is_ok(), "the archive's connection is still open");
     // What the sockets held, then the end: the connection let go of, not waiting on the client.
     let mut rest = vec![0u8; 1 << 20];
     let ended = tokio::time::timeout(Duration::from_secs(20), async {
@@ -324,13 +365,13 @@ async fn lets_go_of_a_client_that_stops_reading_once_the_time_is_up_the_archives
 
 #[tokio::test]
 async fn marks_what_it_passes_through_as_the_pages_own_no_other_site_may_take_it() {
-    let (base, _) = passing().await;
+    let (base, _, _) = passing().await;
     assert_eq!(get(format!("{base}/archive/pub/sinclair/ok.tap")).await.headers()["cross-origin-resource-policy"], "same-origin");
 }
 
 #[tokio::test]
 async fn refuses_a_path_it_does_not_pass_and_leaves_other_paths_to_the_page() {
-    let (base, _) = passing().await;
+    let (base, _, _) = passing().await;
     assert_eq!(get(format!("{base}/archive/pub/other/x")).await.status(), 403);
     assert_eq!(get(format!("{base}/index.html")).await.status(), 418);
 }
@@ -346,7 +387,7 @@ async fn going_wrong() -> (String, Heard) {
         route("/archive", &at, r"^/pub/sinclair/[^?#]+$", 4000, Duration::from_secs(5), "no-store"),
         route("/dead", &dead, r"^/pub/sinclair/[^?#]+$", 4000, Duration::from_secs(5), "no-store"),
     ];
-    let base = front(routes, None, still(), heard.say()).await;
+    let base = front(routes, None, still(), Timers::default().timer(), heard.say()).await;
     (base, heard)
 }
 
@@ -428,7 +469,7 @@ async fn refuses_past_a_clients_share_by_the_first_address_it_was_forwarded_for_
     let state = Arc::new(Origin::default());
     let at = origin(state).await.to_string();
     let routes = vec![route("/archive", &at, r"^/pub/sinclair/[^?#]+$", 4000, Duration::from_secs(5), "no-store")];
-    let base = front(routes, Some(Limiter::new(60.0, 2.0, still())), still(), Heard::default().say()).await;
+    let base = front(routes, Some(Limiter::new(60.0, 2.0, still())), still(), Timers::default().timer(), Heard::default().say()).await;
     let ask = |ip: &'static str| client().get(format!("{base}/archive/pub/sinclair/ok.tap")).header("x-forwarded-for", format!("{ip}, 10.0.0.1")).send();
     assert_eq!(ask("1.2.3.4").await.unwrap().status(), 200);
     assert_eq!(ask("1.2.3.4").await.unwrap().status(), 200);
@@ -449,6 +490,7 @@ struct Down {
     state: Arc<Origin>,
     clock: Arc<AtomicU64>,
     heard: Heard,
+    timers: Timers,
 }
 
 async fn zxinfo_down() -> Down {
@@ -471,8 +513,9 @@ async fn zxinfo_down() -> Down {
     let now = clock.clone();
     let heard = Heard::default();
     let routes = vec![route("/zxinfo/v3", &at), route("/dead/v3", &dead)];
-    let base = front(routes, None, Arc::new(move || now.load(Ordering::SeqCst)), heard.say()).await;
-    Down { base, state, clock, heard }
+    let timers = Timers::default();
+    let base = front(routes, None, Arc::new(move || now.load(Ordering::SeqCst)), timers.timer(), heard.say()).await;
+    Down { base, state, clock, heard, timers }
 }
 
 impl Down {
@@ -534,7 +577,9 @@ async fn then_answers_from_the_index_for_a_minute_without_asking_zxinfo_an_entry
 async fn answers_from_the_index_where_zxinfo_gives_no_answer_in_time() {
     let down = zxinfo_down().await;
     down.state.mode.store(1, Ordering::SeqCst);
-    let res = down.search("/zxinfo/v3").await;
+    // ZXInfo hangs, and its 10 s never end: the 300 ms, ended here, are all that can answer, where the server keeps them.
+    let answered = tokio::time::timeout(Duration::from_secs(20), async { tokio::join!(down.search("/zxinfo/v3"), down.timers.due(Duration::from_millis(300))).0 });
+    let res = answered.await.expect("no answer once its 300 ms were up");
     assert_eq!(res.headers()["x-answered-by"], "zxdb-index");
     assert_eq!(json(res).await["hits"]["hits"][0]["_id"], "0004293");
     let warnings = down.warnings(&down.heard.take());

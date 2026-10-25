@@ -211,8 +211,15 @@ describe('its tapes and archives', () => {
     const text = new TextEncoder().encode('THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG. '.repeat(400));
     let seed = 1;
     const noise = Uint8Array.from({ length: 50_000 }, () => ((seed = (seed * 1103515245 + 12345) >>> 0), seed >>> 24));
+    // Compared as buffers: toEqual walks the bytes one at a time, 270 ms for 70,000 of them and 3.5 s for the test,
+    // where inflating them takes 4 ms (#10). Where they differ, it says the first byte that does.
+    const firstDifference = (a: Uint8Array, b: Uint8Array) => (Buffer.compare(a, b) === 0 ? -1 : a.findIndex((x, i) => x !== b[i]));
     for (const data of [text, noise, new Uint8Array(0), new Uint8Array(70_000)]) {
-      for (const level of [0, 1, 9]) expect(inflate(deflateRawSync(data, { level }))).toEqual(data);
+      for (const level of [0, 1, 9]) {
+        const out = inflate(deflateRawSync(data, { level }));
+        expect(out.length, `${data.length} bytes at level ${level}`).toBe(data.length);
+        expect(firstDifference(out, data), `${data.length} bytes at level ${level}`).toBe(-1);
+      }
     }
   });
 
