@@ -18,7 +18,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HELP = `speed.ts [--url URL] [--page NAME=PATH]... [--pages FILE] [--baseline FILE] [--tries N]
-         [--json] [--write-baseline]
+         [--mark [PAGE:]NAME[=SELECTOR]]... [--ready SELECTOR] [--loads N]
+         [--ideal NUMBER=VALUE]... [--main NUMBER] [--json] [--write-baseline]
 
 Measures, against the product at --url (or $NERD_URL), for each page it is given:
 
@@ -31,6 +32,9 @@ Measures, against the product at --url (or $NERD_URL), for each page it is given
   NAME_weight    bytes on the wire, headers with them, of every request a phone makes to show the
                  page whole, scrolled to its end: pictures as Chrome picks them from a srcset, lazy
                  ones as they come into view, and what its scripts fetch
+  NAME_MARK_ms   for each --mark, the page's own moment after its load, from navigation: when
+                 the page calls performance.mark(MARK), or, given a SELECTOR, when the page
+                 first has an element it matches (--ready SELECTOR is --mark ready=SELECTOR)
 
 The pages are each --page NAME=PATH, in the order given, or else those --pages FILE names, a JSON
 object of NAME to PATH ({"home": "/", "post": "/a/long/post/"}): the product's own. The first
@@ -46,7 +50,19 @@ its script (a page that draws every frame holds Chrome for seconds a frame), scr
 screen at a time, and weighed once nothing has been fetched for two seconds. The headers whose value changes from one
 answer to the next whatever the product sends, the time and Cloud Run's x-cloud-trace-context, are
 counted as though each were sent with a value fixed for it; and each body over HTTP/2 as though it
-came in frames of 16384 B, however many its front end split it into.
+came in frames of 16384 B, however many its front end split it into, and without the padding it
+added. A third party's answer over HTTP/2 (another host's, as Google Fonts') is counted with its
+headers as an encoder that indexes all it sends would code them, after those of its connection's
+answers before it by URL, its times and age at values fixed for them too: whether its server sent
+a header as a reference to the answer before, or whole, is its own.
+
+Each mark is timed after the times and before the weights, in Chrome as the weights are, but as a
+desktop (1280 CSS pixels wide, 800 high), and as the page runs, its frames and all: each page that
+has a mark loaded --loads (10) times, each a first visit, in a context of its own, until it has
+each of its marks, a minute at the most. A mark is on every page, or on PAGE's alone; a load
+slower than three times the median and 200 ms beyond it is noise, as the times' are. A mark's
+ideal is a second, unless --ideal home_ready_ms=800 says another, as it may of any number; --main
+names the main number, where the first page's time is not it.
 
 --json prints what nerd reads (nerd guide intuition); --write-baseline writes it, with the address
 and pages, to --baseline FILE (probe/speed.json), whose baselines each number is otherwise judged
@@ -59,6 +75,16 @@ const IDEAL: Record<string, number> = { bytes: 14000, requests: 1, ms: 50, weigh
 export interface Page {
   name: string;
   path: string;
+}
+
+/**
+ * A moment of a page's own after its load: when it calls performance.mark(name), or, with a selector, when it
+ * first has an element the selector matches. On every page, or on the page named alone.
+ */
+export interface Mark {
+  name: string;
+  page?: string;
+  selector?: string;
 }
 
 /** Where times come from, in milliseconds: the process's own, or a test's. */
@@ -77,9 +103,11 @@ export interface Measured {
   better: 'lower' | 'higher';
   worst: number;
   noise: number;
+  /** Its ideal, where it is not the one its kind has (a mark's, a second). */
+  ideal?: number;
 }
 
-export interface Reported extends Omit<Measured, 'worst'> {
+export interface Reported extends Omit<Measured, 'worst' | 'ideal'> {
   baseline: { value: number; worst: number };
   ideal: number;
 }
@@ -98,6 +126,12 @@ export interface ProbeOptions {
   deadline?: number;
   /** What weighs the pages, in their order: Chrome, as weigh() does, unless a test gives its own. */
   weigh?: (url: string, pages: Page[]) => Promise<Weighed[]>;
+  /** The pages' own moments, timed after the times and before the weights. */
+  marks?: Mark[];
+  /** How many times each page that has a mark is loaded to time it. */
+  loads?: number;
+  /** What times the marks: Chrome, as timeMarks() does, unless a test gives its own. */
+  time?: (url: string, pages: Page[], marks: Mark[]) => Promise<Record<string, number[]>[]>;
 }
 
 /** What a phone fetched to show a page whole: each request, and their bytes on the wire. */
@@ -115,6 +149,19 @@ export interface WeighOptions {
   quiet?: number;
   /** More of Chrome's flags, as a test's own certificate wants. */
   flags?: string[];
+}
+
+export interface MarkOptions {
+  /** Chrome's binary: $CHROME, or google-chrome. */
+  chrome?: string;
+  /** How many times each page is loaded. */
+  loads?: number;
+  /** How long Chrome may take to start, and each load to have its marks, in milliseconds. */
+  deadline?: number;
+  /** More of Chrome's flags. */
+  flags?: string[];
+  /** What each load's deadline is counted on, in milliseconds: the wall clock, unless a test gives its own. */
+  clock?: () => number;
 }
 
 /** What a browser fetches to show the page, besides the page: each address once. */
@@ -284,6 +331,10 @@ async function measure(fetcher: Fetcher, page: Page, tries: number): Promise<Mea
  */
 export async function probe(options: ProbeOptions): Promise<Measured[]> {
   if (!options.pages.length) throw new Error('no pages to measure');
+  const marks = options.marks ?? [];
+  for (const m of marks) {
+    if (m.page !== undefined && !options.pages.some((p) => p.name === m.page)) throw new Error(`--mark ${m.page}:${m.name}: there is no page ${m.page}`);
+  }
   const fetcher = new Fetcher(options.url, options.clock ?? realClock, options.deadline ?? 10000);
   const measured: Measured[][] = [];
   try {
@@ -291,16 +342,152 @@ export async function probe(options: ProbeOptions): Promise<Measured[]> {
   } finally {
     fetcher.close();
   }
+  const timed = marks.length
+    ? await (options.time ?? ((url, pages, marks) => timeMarks(url, pages, marks, { loads: options.loads })))(options.url, options.pages, marks)
+    : options.pages.map(() => ({}));
   const weighed = await (options.weigh ?? ((url, pages) => weigh(url, pages)))(options.url, options.pages);
   return options.pages.flatMap((page, i) => [...measured[i], {
     name: `${page.name}_weight`, unit: 'B', value: weighed[i].bytes, spread: [weighed[i].bytes, weighed[i].bytes] as [number, number],
     better: 'lower' as const, worst: weighed[i].bytes, noise: 0,
-  }]);
+  }, ...marksOf(marks, page).map((m): Measured => {
+    const times = timed[i][m.name];
+    const kept = withoutNoise(times);
+    return {
+      name: `${page.name}_${m.name}_ms`, unit: 'ms', value: round(median(kept)), spread: quartiles(kept).map(round) as [number, number],
+      better: 'lower', worst: round(Math.max(...kept)), noise: times.length - kept.length, ideal: 1000,
+    };
+  })]);
 }
+
+/** The marks a page has: those on every page, and its own. */
+const marksOf = (marks: Mark[], page: Page) => marks.filter((m) => m.page === undefined || m.page === page.name);
+
+/**
+ * Each page's marks, timed in one Chrome, as a desktop, the page running as it does: each page that has a mark
+ * loaded options.loads times, one after another, each a first visit in a context of its own, until it has every mark.
+ * For each page, each of its marks' times from navigation, in milliseconds, a load each.
+ */
+export async function timeMarks(url: string, pages: Page[], marks: Mark[], options: MarkOptions = {}): Promise<Record<string, number[]>[]> {
+  const loads = options.loads ?? 10;
+  const deadline = options.deadline ?? 60000;
+  const timed: Record<string, number[]>[] = pages.map((page) => Object.fromEntries(marksOf(marks, page).map((m) => [m.name, []])));
+  if (!pages.some((page) => marksOf(marks, page).length)) return timed;
+  const chrome = await Chrome.start(options.chrome ?? process.env.CHROME ?? 'google-chrome', deadline, options.flags ?? []);
+  try {
+    for (const [i, page] of pages.entries()) {
+      const own = marksOf(marks, page);
+      if (!own.length) continue;
+      for (let n = 0; n < loads; n++) {
+        const at = await timeOne(chrome, new URL(page.path, url).href, own, deadline, options.clock ?? Date.now);
+        for (const m of own) timed[i][m.name].push(at[m.name]);
+      }
+    }
+    return timed;
+  } finally {
+    await chrome.end();
+  }
+}
+
+// Before the page's own script: each of its marks told to the probe as it is set, by a binding, which Chrome hears
+// at once whatever the page's main thread does after, as a frame that holds it for seconds.
+const MARKING = (named: string[], selected: [string, string][]) => `if (window === top) {
+  const tell = window.__cruxMark;
+  const want = new Set(${JSON.stringify(named)});
+  const mark = performance.mark.bind(performance);
+  performance.mark = (name, ...rest) => {
+    const entry = mark(name, ...rest);
+    if (want.delete(String(name))) tell(JSON.stringify([String(name), entry.startTime]));
+    return entry;
+  };
+  for (const [name, selector] of ${JSON.stringify(selected)}) {
+    const observer = new MutationObserver(() => look());
+    const look = () => {
+      try {
+        if (!document.querySelector(selector)) return false;
+      } catch (e) {
+        tell(JSON.stringify([name, null, String(e)]));
+        return true;
+      }
+      observer.disconnect();
+      tell(JSON.stringify([name, performance.now()]));
+      return true;
+    };
+    if (!look()) observer.observe(document, { childList: true, subtree: true, attributes: true });
+  }
+}`;
+
+/** One load of the page at href, in a context of its own, until it has each of its marks: when each came, from navigation. */
+async function timeOne(chrome: Chrome, href: string, marks: Mark[], deadline: number, clock: () => number): Promise<Record<string, number>> {
+  const started = clock();
+  const { browserContextId } = await chrome.send('Target.createBrowserContext', { disposeOnDetach: true });
+  const { targetId } = await chrome.send('Target.createTarget', { url: 'about:blank', browserContextId });
+  const { sessionId } = await chrome.send('Target.attachToTarget', { targetId, flatten: true });
+  const s = (method: string, params = {}) => chrome.send(method, params, sessionId);
+  const at: Record<string, number> = {};
+  const thrown: string[] = [];
+  let failed = '';
+  const listen = (m: any) => {
+    if (m.sessionId !== sessionId) return;
+    const p = m.params;
+    if (m.method === 'Runtime.bindingCalled' && p.name === '__cruxMark') {
+      const [name, ms, error] = JSON.parse(p.payload);
+      if (error) failed ||= `${href}: the selector of ${name}: ${error}`;
+      else if (!(name in at)) at[name] = ms;
+    } else if (m.method === 'Network.responseReceived' && p.type === 'Document' && p.frameId === targetId && p.response.status !== 200) {
+      failed ||= `${href} answered ${p.response.status} to Chrome`;
+    } else if (m.method === 'Runtime.exceptionThrown') {
+      thrown.push(p.exceptionDetails.exception?.description?.split('\n')[0] ?? p.exceptionDetails.text);
+    }
+  };
+  chrome.listeners.add(listen);
+  try {
+    await s('Network.enable');
+    await s('Network.setCacheDisabled', { cacheDisabled: true });
+    await s('Runtime.enable');
+    await s('Runtime.addBinding', { name: '__cruxMark' });
+    await s('Page.enable');
+    await s('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+    await s('Page.addScriptToEvaluateOnNewDocument', {
+      source: MARKING(marks.filter((m) => m.selector === undefined).map((m) => m.name), marks.filter((m) => m.selector !== undefined).map((m) => [m.name, m.selector!])),
+    });
+    const nav = await s('Page.navigate', { url: href });
+    if (nav.errorText) throw new Error(`${href}: ${nav.errorText}`);
+    while (!marks.every((m) => m.name in at)) {
+      if (failed) throw new Error(failed);
+      if (clock() - started > deadline) {
+        await settle(s, clock);
+        const missing = marks.filter((m) => !(m.name in at)).map((m) => m.name).join(', ');
+        throw new Error(`${href} had no ${missing} in ${deadline} ms${thrown.length ? ` (the page threw: ${thrown.join('; ')})` : ''}`);
+      }
+      await pause(10);
+    }
+    return at;
+  } finally {
+    chrome.listeners.delete(listen);
+    await chrome.send('Target.closeTarget', { targetId }).catch(() => {});
+    await chrome.send('Target.disposeBrowserContext', { browserContextId }).catch(() => {});
+  }
+}
+
+/**
+ * A round trip to the page, which Chrome answers after every event the page sent before it, so that what it threw by
+ * then has been heard; a page whose main thread is held is given SETTLE ms more on the clock, and no more.
+ */
+async function settle(s: (method: string, params?: object) => Promise<any>, clock: () => number) {
+  let answered = false;
+  s('Runtime.evaluate', { expression: '0' }).catch(() => {}).finally(() => { answered = true; });
+  const until = clock() + SETTLE;
+  while (!answered && clock() < until) await pause(10);
+}
+
+const SETTLE = 1000;
 
 /** Each page of the product at url weighed in one Chrome, as a phone, one after another, each in a context of its own. */
 export async function weigh(url: string, pages: Page[], options: WeighOptions = {}): Promise<Weighed[]> {
-  const chrome = await Chrome.start(options.chrome ?? process.env.CHROME ?? 'google-chrome', options.deadline ?? 60000, options.flags ?? []);
+  // None of Chrome's own fetches beside the page's, as its updates of what it has: its net log, traced for each page,
+  // took seconds to end with them in it (crux#47).
+  const quiet = ['--disable-background-networking', '--disable-component-update'];
+  const chrome = await Chrome.start(options.chrome ?? process.env.CHROME ?? 'google-chrome', options.deadline ?? 60000, [...quiet, ...options.flags ?? []]);
   try {
     const weighed: Weighed[] = [];
     for (const page of pages) {
@@ -324,6 +511,46 @@ export const FIXED: Record<string, string> = {
   'x-cloud-trace-context': '00000000000000000000000000000000/0000000000000000000;o=1',
   date: 'Thu, 01 Jan 1970 00:00:00 GMT',
 };
+
+// A third party's times too, and how old its cache's copy is (crux#52): Google Fonts' answers each give the time, when
+// it expires and when it was last changed, and its stylesheets have them all the same second as a page's two answers
+// come or not, which sends them as references to the first's or whole; its fonts say their age, of a length of its own.
+export const OTHERS: Record<string, string> = {
+  ...FIXED,
+  expires: FIXED.date,
+  'last-modified': FIXED.date,
+  age: '0',
+};
+
+// The names HPACK's static table has (RFC 7541, Appendix A), which an encoder sends as an index of a byte.
+const NAMED = new Set(['accept-charset', 'accept-encoding', 'accept-language', 'accept-ranges', 'accept', 'access-control-allow-origin',
+  'age', 'allow', 'authorization', 'cache-control', 'content-disposition', 'content-encoding', 'content-language', 'content-length',
+  'content-location', 'content-range', 'content-type', 'cookie', 'date', 'etag', 'expect', 'expires', 'from', 'host', 'if-match',
+  'if-modified-since', 'if-none-match', 'if-range', 'if-unmodified-since', 'last-modified', 'link', 'location', 'max-forwards',
+  'proxy-authenticate', 'proxy-authorization', 'range', 'referer', 'refresh', 'retry-after', 'server', 'set-cookie',
+  'strict-transport-security', 'transfer-encoding', 'user-agent', 'vary', 'via', 'www-authenticate']);
+
+/**
+ * An answer's HEADERS frame over HTTP/2, in bytes, as an encoder that indexes all it sends would code it, sent after
+ * what it sent before on the connection (sent, which it adds to): its frame's own header; its status, an index of a
+ * byte where HPACK's static table has it; and each header, OTHERS' value for those it has, as an index of a byte where
+ * it sent the same before, and otherwise its value whole after its name, as an index where the static table or what it
+ * sent before has it. A third party's answers are counted so (crux#52): whether its encoder sent a header as a
+ * reference to the one before, or whole, is its own, and Chrome counts what it sent.
+ */
+export function headerBlock(status: number, headers: Record<string, string>, sent: Set<string>): number {
+  let bytes = FRAME_HEAD + ([200, 204, 206, 304, 400, 404, 500].includes(status) ? 1 : 1 + valueBytes(String(status), 'h2'));
+  for (const [header, values] of Object.entries(headers ?? {})) {
+    const name = header.toLowerCase();
+    for (const one of String(values).split('\n')) {
+      const value = OTHERS[name] ?? one;
+      if (sent.has(`${name}: ${value}`)) bytes += 1;
+      else bytes += 1 + (NAMED.has(name) || sent.has(name) ? 0 : valueBytes(name, 'h2')) + valueBytes(value, 'h2');
+      sent.add(name).add(`${name}: ${value}`);
+    }
+  }
+  return bytes;
+}
 
 // Each byte's length, in bits, in the Huffman code HTTP/2 and HTTP/3 send headers in (RFC 7541, Appendix B).
 const HUFFMAN = [
@@ -375,14 +602,101 @@ export const FRAME = 16384;
 export const FRAME_HEAD = 9;
 
 /**
- * An answer's bytes, as Chrome counted them (total, of which head its headers), but over HTTP/2 with its body of
- * body bytes counted as though it came in frames of FRAME, as few as hold it. Cloud Run's front end splits the same
- * body into frames of lengths of its own from one answer to the next, 9 B a frame, and Chrome counts each (crux#29).
- * Where the body's length is not known, or is more than Chrome had of frames (an answer cut off), it is as counted.
+ * An answer's bytes, as Chrome counted them (total), but over HTTP/2 with its body counted as though it came in
+ * frames of FRAME, as few as hold it, where frames are the lengths of the DATA frames Chrome had of it. Cloud Run's
+ * front end splits the same body into frames of lengths of its own from one answer to the next, 9 B a frame, and
+ * Chrome counts each (crux#29). They are taken from the total, not added to its headers: what Chrome says its
+ * headers came to is what it had of the answer when it told of them, a frame of the body or more with them where
+ * its network service read on before it told (crux#47). Where the frames are not known, or are more than Chrome
+ * counted, it is as counted.
  */
-export function framed(total: number, head: number, body: number | undefined, protocol: string): number {
-  if (!/^h2$/i.test(protocol) || body === undefined || !Number.isInteger(body) || body < 0 || total - head < body) return total;
-  return head + body + FRAME_HEAD * Math.ceil(body / FRAME);
+export function framed(total: number, frames: number[] | undefined, protocol: string): number {
+  if (!/^h2$/i.test(protocol) || frames === undefined) return total;
+  const body = frames.reduce((a, b) => a + b, 0);
+  if (total < body + FRAME_HEAD * frames.length) return total;
+  return total - FRAME_HEAD * frames.length + FRAME_HEAD * Math.ceil(body / FRAME);
+}
+
+/** An HTTP/2 stream's DATA frames, their lengths, and how many of them Chrome had when it told of its answer. */
+export type Stream = { frames: number[]; told: number };
+
+/**
+ * The DATA frames of each HTTP/2 stream in Chrome's net log, as a trace of its category netlog gives its events: the
+ * lengths of each, by the socket its session is on (a response's connectionId) and the authority and path it asked
+ * for, a list for each time they were asked for there, in the order they were. A session's id is used again once it
+ * is gone: its socket is the one it was given last; and so is a request's, its URL the one it was given last.
+ *
+ * Each frame's length is its data's, without the padding a server may add to it, as Google's front end does to each of
+ * its stylesheets' frames, a length of its own each time, which Chrome counts none of (crux#52): Chrome tells of a padded
+ * frame's padding, its length's byte first, as it takes it from the session's window and gives it back at once.
+ *
+ * With them, how many Chrome had when it told of the answer: those it had before its request began to tell of it
+ * (URL_REQUEST_DELEGATE_RESPONSE_STARTED), which it counted with the answer's headers. A request is told from the
+ * stream it was answered on by its URL and the stream's id, which it logs as it reads its body (crux#51). Where its
+ * request is not found, none.
+ */
+export function framesOf(events: any[]): Map<string, Stream[]> {
+  const sockets = new Map<string, number>();
+  // Of each stream: its frames, when each came, its URL and id, and when it was asked for.
+  type Asked = { frames: number[]; at: number[]; id: string; sent: number };
+  const streams = new Map<string, Asked>();
+  const asked = new Map<string, Asked[]>();
+  // Of each request: its URL and when it began to tell of its answer; and when the request of each URL and stream id did.
+  const requests = new Map<string, { url: string; told?: number }>();
+  const told = new Map<string, number[]>();
+  // Of each session, the frame it had last, and what it took from its window and gave back since.
+  const last = new Map<string, { s: Asked; i: number; window: number[] }>();
+  const unpad = ({ s, i, window }: { s: Asked; i: number; window: number[] }) => {
+    if (window[0] !== -1 || window[1] !== 1) return;
+    for (let j = 0; j + 1 < window.length; j++) if (window[j] < 0 && window[j + 1] === -window[j]) s.frames[i] += window[j++];
+  };
+  for (const e of [...events].sort((a, b) => a.ts - b.ts)) {
+    const session = e.id2?.local ?? e.id;
+    const p = e.args?.params ?? {};
+    if (e.name === 'REQUEST_ALIVE' && e.ph === 'b' && p.url) {
+      const url = URL.parse(p.url);
+      if (url) requests.set(session, { url: `${url.host}${url.pathname}${url.search}` });
+    } else if (e.name === 'URL_REQUEST_DELEGATE_RESPONSE_STARTED' && e.ph === 'b' && requests.has(session)) {
+      requests.get(session)!.told = e.ts;
+    } else if (e.name === 'HTTP2_STREAM_UPDATE_RECV_WINDOW' && requests.get(session)?.told !== undefined) {
+      const r = requests.get(session)!;
+      const key = `${r.url} ${p.stream_id}`;
+      told.set(key, [...(told.get(key) ?? []), r.told!]);
+      r.told = undefined;
+    }
+    if (e.name === 'HTTP2_SESSION_INITIALIZED') sockets.set(session, p.source_dependency?.id);
+    if (!sockets.has(session)) continue;
+    if (e.name === 'HTTP2_SESSION_UPDATE_RECV_WINDOW') {
+      last.get(session)?.window.push(p.delta);
+      continue;
+    }
+    if (last.has(session) && e.name.startsWith('HTTP2_SESSION')) {
+      unpad(last.get(session)!);
+      last.delete(session);
+    }
+    const stream = `${sockets.get(session)} ${p.stream_id}`;
+    if (e.name === 'HTTP2_SESSION_SEND_HEADERS') {
+      const pseudo = (name: string) => (p.headers ?? []).find((h: string) => h.startsWith(`:${name}: `))?.slice(name.length + 3) ?? '';
+      const at = `${pseudo('authority')}${pseudo('path')}`;
+      const s: Asked = { frames: [], at: [], id: `${at} ${p.stream_id}`, sent: e.ts };
+      streams.set(stream, s);
+      const key = `${sockets.get(session)} ${at}`;
+      asked.set(key, [...(asked.get(key) ?? []), s]);
+    } else if (e.name === 'HTTP2_SESSION_RECV_DATA' && streams.has(stream)) {
+      const s = streams.get(stream)!;
+      s.frames.push(p.size);
+      s.at.push(e.ts);
+      last.set(session, { s, i: s.frames.length - 1, window: [] });
+    }
+  }
+  for (const frame of last.values()) unpad(frame);
+  // Each stream's request is the first of its URL and stream id to tell of an answer after the stream was asked.
+  return new Map([...asked].map(([key, list]) => [key, list.map(({ frames, at, id, sent }) => {
+    const times = told.get(id) ?? [];
+    const i = times.findIndex((t) => t > sent);
+    const when = i < 0 ? -Infinity : times.splice(i, 1)[0];
+    return { frames, told: at.filter((t) => t < when).length };
+  })]));
 }
 
 /** A body's length, as its content-length says it, where it says one. */
@@ -417,8 +731,11 @@ async function weighOne(chrome: Chrome, href: string, quiet: number, stop: { now
   const { targetId } = await chrome.send('Target.createTarget', { url: 'about:blank', browserContextId });
   const { sessionId } = await chrome.send('Target.attachToTarget', { targetId, flatten: true });
   const s = (method: string, params = {}) => chrome.send(method, params, sessionId);
-  // Of each request: what steadies its headers (by), and over HTTP/2, what frames its body (head, body, protocol).
-  const requests = new Map<string, Weighed['fetched'][number] & { done: boolean; by: number; head: number; body?: number; protocol: string }>();
+  // Of each request: what steadies its headers (by), and over HTTP/2, what frames its body (head, body, protocol,
+  // and the connection whose frames in Chrome's net log are its); and whether Chrome told of its end on a session
+  // other than the one that asked for it (apart).
+  type Request = Weighed['fetched'][number] & { done: boolean; by: number; head: number; body?: number; protocol: string; connection?: string; asked?: string; apart?: boolean; status?: number; headers?: Record<string, string> };
+  const requests = new Map<string, Request>();
   // A redirect's answer is given the same id as where it leads: its bytes are kept here as it is followed.
   const redirected: Weighed['fetched'] = [];
   let last = Date.now();
@@ -433,7 +750,15 @@ async function weighOne(chrome: Chrome, href: string, quiet: number, stop: { now
     await t('Network.setCacheDisabled', { cacheDisabled: true });
     await t('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: true, flatten: true });
   };
+  // Chrome's net log of the visit, as a trace: the one place Chrome tells of each HTTP/2 frame it had (crux#47).
+  const traced: any[] = [];
+  let complete: (p: { dataLossOccurred?: boolean }) => void = () => {};
+  const completed = new Promise<{ dataLossOccurred?: boolean }>((resolve) => { complete = resolve; });
+  let tracing = false;
   const listen = (m: any) => {
+    // The trace is the browser's, on no session.
+    if (m.method === 'Tracing.dataCollected') traced.push(...m.params.value);
+    else if (m.method === 'Tracing.tracingComplete') complete(m.params);
     if (!sessions.has(m.sessionId)) return;
     const p = m.params;
     if (m.method === 'Target.attachedToTarget') {
@@ -446,7 +771,7 @@ async function weighOne(chrome: Chrome, href: string, quiet: number, stop: { now
         const r = p.redirectResponse;
         redirected.push({ url: before.url, type: before.type, bytes: (r.encodedDataLength ?? 0) + steadied(r.headers, r.protocol ?? '') });
       }
-      requests.set(p.requestId, { url: p.request.url, type: p.type ?? 'Other', bytes: 0, done: false, by: 0, head: 0, protocol: '' });
+      requests.set(p.requestId, { url: p.request.url, type: p.type ?? 'Other', bytes: 0, done: false, by: 0, head: 0, protocol: '', asked: m.sessionId });
       last = Date.now();
     } else if (m.method === 'Network.responseReceived') {
       if (p.type === 'Document' && p.frameId === targetId) status = p.response.status;
@@ -456,13 +781,20 @@ async function weighOne(chrome: Chrome, href: string, quiet: number, stop: { now
         r.by = steadied(p.response.headers, p.response.protocol ?? '');
         r.head = p.response.encodedDataLength ?? 0;
         r.protocol = p.response.protocol ?? '';
+        // An answer from the network: one from a service worker or a cache came on no stream of the page's.
+        if (!p.response.fromServiceWorker && !p.response.fromDiskCache && !p.response.fromPrefetchCache) r.connection = String(p.response.connectionId);
         r.body = bodyLength(p.response.headers);
+        r.status = p.response.status;
+        r.headers = p.response.headers;
       }
     } else if (m.method === 'Network.loadingFinished' || m.method === 'Network.loadingFailed') {
       const r = requests.get(p.requestId);
       if (r) {
         r.done = true;
-        if (m.method === 'Network.loadingFinished') r.bytes = p.encodedDataLength ?? 0;
+        if (m.method === 'Network.loadingFinished') {
+          r.bytes = p.encodedDataLength ?? 0;
+          r.apart = m.sessionId !== r.asked;
+        }
         else r.failed = p.errorText;
       }
       last = Date.now();
@@ -470,6 +802,8 @@ async function weighOne(chrome: Chrome, href: string, quiet: number, stop: { now
   };
   chrome.listeners.add(listen);
   try {
+    await chrome.send('Tracing.start', { traceConfig: { includedCategories: ['netlog'], excludedCategories: ['*'] }, transferMode: 'ReportEvents' });
+    tracing = true;
     await attach(sessionId);
     await s('Page.enable');
     await s('Emulation.setDeviceMetricsOverride', { width: 412, height: 915, deviceScaleFactor: 2, mobile: true });
@@ -490,31 +824,55 @@ async function weighOne(chrome: Chrome, href: string, quiet: number, stop: { now
     }
     const pending = () => [...requests.values()].some((r) => !r.done);
     while (Date.now() - last < quiet || pending()) await wait();
-    // A body whose length its headers do not say, as one compressed as it is sent, is as long as the page's Resource
-    // Timing says, where it says one length for the address.
-    if ([...requests.values()].some((r) => r.body === undefined && r.protocol === 'h2')) {
-      const { result } = await s('Runtime.evaluate', {
-        expression: 'JSON.stringify(performance.getEntries().filter((e) => "encodedBodySize" in e).map((e) => [e.name, e.encodedBodySize]))',
-        returnByValue: true,
-      });
-      const sizes = new Map<string, Set<number>>();
-      for (const [name, size] of JSON.parse(result.value ?? '[]') as [string, number][]) {
-        if (!sizes.has(name)) sizes.set(name, new Set());
-        sizes.get(name)!.add(size);
-      }
-      for (const r of requests.values()) {
-        const known = sizes.get(r.url);
-        // A size of 0 is what Resource Timing says of another origin's answer that does not let it say more.
-        if (r.body === undefined && known?.size === 1 && !known.has(0)) r.body = [...known][0];
-      }
+    tracing = false;
+    await chrome.send('Tracing.end');
+    if ((await completed).dataLossOccurred) throw new Error(`Chrome's net log of ${href} lost some of its events`);
+    // Each request's stream, by its connection and what it asked for. A dedicated worker's script Chrome tells of on
+    // the worker's session with no connection (0), and its stream is the first not yet taken of any connection's that
+    // asked for it (crux#51): taken after those whose connection is known, so as to take none of theirs. Where none is
+    // found, its bytes are as Chrome counted them, so that the page is weighed all the same.
+    const streams = framesOf(traced);
+    const streamOf = new Map<Request, Stream | undefined>();
+    const h2 = [...requests.values()].filter((r) => r.protocol === 'h2' && r.connection !== undefined && !r.failed);
+    for (const r of [...h2.filter((r) => r.connection !== '0'), ...h2.filter((r) => r.connection === '0')]) {
+      const url = new URL(r.url);
+      const at = ` ${url.host}${url.pathname}${url.search}`;
+      const key = r.connection !== '0' ? `${r.connection}${at}` : [...streams.keys()].find((k) => k.endsWith(at) && streams.get(k)!.length > 0);
+      streamOf.set(r, key === undefined ? undefined : streams.get(key)?.shift());
     }
-    // A dedicated worker's script Chrome counts as its head alone, where it tells of its end on the worker's session:
-    // its body is as long as its headers say, where they say.
-    const whole = (bytes: number, head: number, body?: number) => body !== undefined && head > 0 && bytes <= head ? head + body : bytes;
-    const fetched = [...redirected, ...[...requests.values()].map(({ done, by, head, body, protocol, ...r }) =>
-      ({ ...r, bytes: r.failed ? r.bytes : framed(whole(r.bytes, head, body), head, body, protocol) + by }))];
+    // A dedicated worker's script Chrome counts as its head alone, where it tells of its end on the worker's session
+    // (apart): its head, and the frames of its stream Chrome had not yet had when it told of its answer, which it
+    // counted with its head (crux#51), or as long as its headers say, where its stream is not known. Only there: an
+    // answer whose head Chrome counted its whole body with, as it may (crux#47), is as long as Chrome counted it.
+    const whole = (r: Request, stream?: Stream) => {
+      if (!r.apart || r.head <= 0 || r.bytes > r.head) return r.bytes;
+      if (stream === undefined) return r.body === undefined ? r.bytes : r.head + r.body;
+      const rest = stream.frames.slice(stream.told);
+      return r.head + rest.reduce((a, b) => a + b, 0) + FRAME_HEAD * rest.length;
+    };
+    // A third party's answer over HTTP/2, whose stream is known, is its header block as headerBlock counts it, after
+    // those before it on its connection in the order of their URLs, and its body's data in frames of FRAME (crux#52).
+    const own = new URL(href).host;
+    const sent = new Map<string, Set<string>>();
+    const others = new Map<Request, number>();
+    for (const r of [...streamOf.keys()].filter((r) => new URL(r.url).host !== own).sort((a, b) => (a.url < b.url ? -1 : a.url > b.url ? 1 : 0))) {
+      const stream = streamOf.get(r);
+      if (stream === undefined || stream.frames.length === 0) continue;
+      if (!sent.has(r.connection!)) sent.set(r.connection!, new Set());
+      const data = stream.frames.reduce((a, b) => a + b, 0);
+      others.set(r, headerBlock(r.status ?? 0, r.headers ?? {}, sent.get(r.connection!)!) + data + FRAME_HEAD * Math.ceil(data / FRAME));
+    }
+    const fetched = [...redirected, ...[...requests.values()].map((request) => {
+      const { done, by, head, body, protocol, connection, asked, apart, status, headers, ...r } = request;
+      if (r.failed) return r;
+      if (others.has(request)) return { ...r, bytes: others.get(request)! };
+      const stream = streamOf.get(request);
+      return { ...r, bytes: framed(whole(request, stream), stream?.frames, protocol) + by };
+    })];
     return { bytes: fetched.reduce((a, r) => a + r.bytes, 0), fetched };
   } finally {
+    // Ended whole, so that the next page's trace can begin.
+    if (tracing) await chrome.send('Tracing.end').then(() => chrome.within(10000, 'Chrome\'s trace did not end', completed)).catch(() => {});
     chrome.listeners.delete(listen);
     await chrome.send('Target.closeTarget', { targetId }).catch(() => {});
     await chrome.send('Target.disposeBrowserContext', { browserContextId }).catch(() => {});
@@ -612,23 +970,67 @@ class Chrome {
   }
 }
 
+/** What the product says of its numbers: the ideal of any of them, and which is main. */
+export interface Judged {
+  ideals?: Record<string, number>;
+  main?: string;
+}
+
 /**
  * What nerd reads: each number with its baseline, the one the baseline file keeps for it (a JSON
  * report of its own), or, where there is none or it is written again, this run's.
  */
-export function report(numbers: Measured[], baselineFile: string | null, write: boolean): Report {
+export function report(numbers: Measured[], baselineFile: string | null, write: boolean, judged: Judged = {}): Report {
   const kept: Record<string, { value: number; worst: number }> = {};
   if (baselineFile && !write) {
     for (const n of JSON.parse(baselineFile).numbers ?? []) kept[n.name] = n.baseline;
   }
   return {
-    main: numbers.find((n) => n.name.endsWith('_ms'))?.name ?? numbers[0].name,
-    numbers: numbers.map(({ worst, ...n }) => ({
+    main: judged.main ?? numbers.find((n) => n.name.endsWith('_ms'))?.name ?? numbers[0].name,
+    numbers: numbers.map(({ worst, ideal, ...n }) => ({
       ...n,
       baseline: kept[n.name] ?? { value: n.value, worst },
-      ideal: IDEAL[n.name.slice(n.name.lastIndexOf('_') + 1)],
+      ideal: judged.ideals?.[n.name] ?? ideal ?? IDEAL[n.name.slice(n.name.lastIndexOf('_') + 1)],
     })),
   };
+}
+
+/** The names of the numbers probe() measures, in its order, which --ideal and --main may name and no others. */
+export function numberNames(pages: Page[], marks: Mark[]): string[] {
+  return pages.flatMap((p) => [...['bytes', 'requests', 'ms', 'weight'].map((k) => `${p.name}_${k}`), ...marksOf(marks, p).map((m) => `${p.name}_${m.name}_ms`)]);
+}
+
+/** The marks from each --mark [PAGE:]NAME[=SELECTOR], and --ready SELECTOR, in their order. */
+export function marksFrom(args: string[]): Mark[] {
+  const marks: Mark[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const given = args[i + 1] ?? '';
+    if (args[i] === '--ready') {
+      if (!given) throw new Error('--ready wants a SELECTOR');
+      marks.push({ name: 'ready', selector: given });
+    } else if (args[i] === '--mark') {
+      const m = given.match(/^(?:([^:=]+):)?([A-Za-z0-9_-]+)(?:=(.+))?$/);
+      if (!m) throw new Error(`--mark wants [PAGE:]NAME[=SELECTOR], NAME of letters, digits, _ and -, not "${given}"`);
+      marks.push({ name: m[2], ...(m[1] !== undefined && { page: m[1] }), ...(m[3] !== undefined && { selector: m[3] }) });
+    } else continue;
+    const last = marks[marks.length - 1];
+    if (marks.some((m) => m !== last && m.name === last.name && (m.page === undefined || last.page === undefined || m.page === last.page))) {
+      throw new Error(`the mark ${last.name} is given twice for a page`);
+    }
+  }
+  return marks;
+}
+
+/** Each --ideal NUMBER=VALUE. */
+export function idealsFrom(args: string[]): Record<string, number> {
+  const ideals: Record<string, number> = {};
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] !== '--ideal') continue;
+    const m = (args[i + 1] ?? '').match(/^([^=]+)=(\d+(?:\.\d+)?)$/);
+    if (!m) throw new Error(`--ideal wants NUMBER=VALUE, not "${args[i + 1] ?? ''}"`);
+    ideals[m[1]] = Number(m[2]);
+  }
+  return ideals;
 }
 
 /** The pages from --page NAME=PATH, in their order, or else from the JSON object --pages names. */
@@ -669,15 +1071,23 @@ async function main(args: string[]) {
   const pages = pagesFrom(args, (file) => readFileSync(file, 'utf8'));
   const tries = Number(valueOf(args, '--tries') ?? '15');
   if (!Number.isInteger(tries) || tries < 1) throw new Error(`--tries wants a whole number above 0`);
+  const marks = marksFrom(args);
+  const loads = Number(valueOf(args, '--loads') ?? '10');
+  if (!Number.isInteger(loads) || loads < 1) throw new Error(`--loads wants a whole number above 0`);
+  const judged = { ideals: idealsFrom(args), main: valueOf(args, '--main') };
+  const names = numberNames(pages, marks);
+  for (const name of [...Object.keys(judged.ideals), ...(judged.main ? [judged.main] : [])]) {
+    if (!names.includes(name)) throw new Error(`there is no number ${name}: there are ${names.join(', ')}`);
+  }
   const baselinePath = valueOf(args, '--baseline') ?? 'probe/speed.json';
   const write = args.includes('--write-baseline');
 
-  const numbers = await probe({ url, pages, tries });
+  const numbers = await probe({ url, pages, tries, marks, loads });
   let baselineFile: string | null = null;
   try {
     baselineFile = readFileSync(baselinePath, 'utf8');
   } catch {}
-  const out = report(numbers, baselineFile, write);
+  const out = report(numbers, baselineFile, write, judged);
 
   if (write) {
     const pagesKept = Object.fromEntries(pages.map((p) => [p.name, p.path]));
@@ -690,7 +1100,7 @@ async function main(args: string[]) {
     console.log(JSON.stringify(out));
   } else {
     for (const n of out.numbers) {
-      console.log(`${n.name.padEnd(14)} ${String(n.value).padStart(8)} ${n.unit.padEnd(9)} spread ${n.spread.join('–')}  baseline ${n.baseline.value} (worst ${n.baseline.worst})  ideal ${n.ideal}${n.noise ? `  noise ${n.noise}` : ''}`);
+      console.log(`${n.name.padEnd(20)} ${String(n.value).padStart(8)} ${n.unit.padEnd(9)} spread ${n.spread.join('–')}  baseline ${n.baseline.value} (worst ${n.baseline.worst})  ideal ${n.ideal}${n.noise ? `  noise ${n.noise}` : ''}`);
     }
   }
 }

@@ -12,8 +12,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AddressInfo } from 'node:net';
-import { framed, median, pagesFrom, probe, quartiles, report, steadied, subresources, valueBytes, weigh, withoutNoise } from './speed.ts';
-import type { Clock, Measured, Page } from './speed.ts';
+import { framed, framesOf, headerBlock, idealsFrom, marksFrom, median, numberNames, pagesFrom, probe, quartiles, report, steadied, subresources, timeMarks, valueBytes, weigh, withoutNoise } from './speed.ts';
+import type { Clock, Mark, Measured, Page } from './speed.ts';
 
 const icon = '<link rel="icon" href="data:image/svg+xml,x">';
 
@@ -512,18 +512,95 @@ test('an answer is counted as though its time and its trace were sent as the sam
   assert.equal(steadied({}, 'h2'), 0);
 });
 
-test('a body over HTTP/2 is counted as though it came in frames of 16384 B, and only there, and only when its length is known', () => {
+test('a third party\'s headers over HTTP/2 are counted as an encoder that indexes all it sends codes them, its times and its age at values fixed for them', () => {
+  const sent = new Set<string>();
+  const css = (date: string, age: string) => ({ 'content-type': 'text/css; charset=utf-8', date, expires: date, 'last-modified': date, age, 'x-xss-protection': '0' });
+  const first = headerBlock(200, css('Sun, 25 Oct 2026 04:23:20 GMT', '5'), sent);
+  // Its frame's header, its status, and each header whole: a name the static table has as an index, and one it has not whole.
+  const fixed = 'Thu, 01 Jan 1970 00:00:00 GMT';
+  assert.equal(first, 9 + 1 + (1 + valueBytes('text/css; charset=utf-8', 'h2')) + 3 * (1 + valueBytes(fixed, 'h2')) + (1 + valueBytes('0', 'h2'))
+    + (1 + valueBytes('x-xss-protection', 'h2') + valueBytes('0', 'h2')));
+  // The same headers again on the connection, whatever their times and age, are an index each; what changed is sent
+  // whole, its name an index of what was sent before.
+  assert.equal(headerBlock(200, css('Mon, 26 Oct 2026 14:00:01 GMT', '123456'), sent), 9 + 1 + 6);
+  assert.equal(headerBlock(200, { ...css(fixed, '0'), 'x-xss-protection': '1' }, sent), 9 + 1 + 5 + 1 + valueBytes('1', 'h2'));
+  // On a connection of its own, it is the first again; a status the static table does not have is sent whole.
+  assert.equal(headerBlock(200, css('Tue, 03 Nov 2026 01:02:03 GMT', '77'), new Set()), first);
+  assert.equal(headerBlock(302, {}, new Set()), 9 + 1 + valueBytes('302', 'h2'));
+});
+
+test('a body over HTTP/2 is counted as though it came in frames of 16384 B, and only there, and only when its frames are known', () => {
   // blog's image.738.webp on Cloud Run, Oct 24: 119 B of headers, 23706 B of body, in 7 frames one visit and 6 the next.
-  assert.equal(framed(119 + 23706 + 7 * 9, 119, 23706, 'h2'), 119 + 23706 + 2 * 9);
-  assert.equal(framed(119 + 23706 + 6 * 9, 119, 23706, 'h2'), 119 + 23706 + 2 * 9);
+  const seven = [4000, 4000, 4000, 4000, 4000, 3706, 0];
+  const six = [6000, 6000, 6000, 5706, 0, 0];
+  assert.equal(framed(119 + 23706 + 7 * 9, seven, 'h2'), 119 + 23706 + 2 * 9);
+  assert.equal(framed(119 + 23706 + 6 * 9, six, 'h2'), 119 + 23706 + 2 * 9);
   // A frame holds 16384 B at most: one more takes another frame, and no body takes none.
-  assert.equal(framed(100 + 16384 + 9 * 3, 100, 16384, 'h2'), 100 + 16384 + 9);
-  assert.equal(framed(100 + 16385 + 9 * 3, 100, 16385, 'h2'), 100 + 16385 + 18);
-  assert.equal(framed(100 + 9, 100, 0, 'h2'), 100);
-  // Over HTTP/1 and HTTP/3, with no length, or with a length longer than what came (an answer cut off), it is as counted.
-  for (const [body, protocol] of [[23706, 'http/1.1'], [23706, 'h3'], [undefined, 'h2'], [30000, 'h2']] as const) {
-    assert.equal(framed(119 + 23706 + 7 * 9, 119, body, protocol), 119 + 23706 + 7 * 9, `${body} ${protocol}`);
+  assert.equal(framed(100 + 16384 + 9 * 3, [8000, 8384, 0], 'h2'), 100 + 16384 + 9);
+  assert.equal(framed(100 + 16385 + 9 * 3, [8000, 8385, 0], 'h2'), 100 + 16385 + 18);
+  assert.equal(framed(100 + 9, [0], 'h2'), 100);
+  assert.equal(framed(100, [], 'h2'), 100);
+  // Whatever Chrome said its headers came to, as it may have had a frame of the body or more with them (crux#47): only
+  // its total and the frames are counted.
+  assert.equal(framed(119 + 23706 + 7 * 9, seven.slice(0, 6).concat([0]), 'h2'), framed(119 + 23706 + 6 * 9, six, 'h2'));
+  // Over HTTP/1 and HTTP/3, with no frames known, or with more frames than Chrome counted (an answer cut off), it is as counted.
+  for (const [frames, protocol] of [[seven, 'http/1.1'], [seven, 'h3'], [undefined, 'h2'], [[30000, 0], 'h2']] as const) {
+    assert.equal(framed(119 + 23706 + 7 * 9, frames as number[] | undefined, protocol), 119 + 23706 + 7 * 9, `${frames} ${protocol}`);
   }
+});
+
+test('each stream\'s frames are found in Chrome\'s net log by its socket, its authority and its path, each time it was asked, with how many Chrome had when it told of its answer', () => {
+  let ts = 0;
+  const event = (name: string, session: string, params: object, ph = 'n') => ({ name, cat: 'netlog', ph, id2: { local: session }, ts: ++ts, args: { params } });
+  // A request, by its own source: its URL, when it began to tell of its answer, and the stream it then read from.
+  const request = (source: string, url: string) => event('REQUEST_ALIVE', source, { url }, 'b');
+  const told = (source: string) => event('URL_REQUEST_DELEGATE_RESPONSE_STARTED', source, {}, 'b');
+  const read = (source: string, stream: number) => event('HTTP2_STREAM_UPDATE_RECV_WINDOW', source, { stream_id: stream, delta: -1 });
+  const started = (session: string, socket: number) => event('HTTP2_SESSION_INITIALIZED', session, { protocol: 'h2', source_dependency: { id: socket, type: 10 } });
+  const asked = (session: string, stream: number, authority: string, path: string) =>
+    event('HTTP2_SESSION_SEND_HEADERS', session, { stream_id: stream, headers: [':method: GET', `:authority: ${authority}`, ':scheme: https', `:path: ${path}`] });
+  const data = (session: string, stream: number, size: number) => event('HTTP2_SESSION_RECV_DATA', session, { stream_id: stream, size, fin: size === 0 });
+  const win = (session: string, delta: number) => event('HTTP2_SESSION_UPDATE_RECV_WINDOW', session, { delta });
+  const events = [
+    // A session of Chrome's own, before the page, whose id is used again once it is gone.
+    started('0x37', 232), asked('0x37', 1, 'accounts.google.com', '/ListAccounts'), data('0x37', 1, 0),
+    started('0x37', 384), asked('0x37', 1, 'a.run.app', '/?home'), data('0x37', 1, 1809), data('0x37', 1, 1356),
+    asked('0x37', 3, 'a.run.app', '/a.png'), asked('0x37', 5, 'cdn.example', '/a.png'),
+    data('0x37', 3, 5017), data('0x37', 5, 4013), data('0x37', 1, 0), data('0x37', 3, 0), data('0x37', 5, 0),
+    // The same picture asked again on the connection, and on another.
+    asked('0x37', 7, 'a.run.app', '/a.png'), data('0x37', 7, 5017), data('0x37', 7, 0),
+    started('0x40', 433), asked('0x40', 1, 'a.run.app', '/a.png'), data('0x40', 1, 16384), data('0x40', 1, 1),
+    // Of a session whose start the trace did not have: nobody's.
+    asked('0x99', 1, 'a.run.app', '/?home'), data('0x99', 1, 10),
+    // A worker's script, told of once two of its frames were there, as Chrome tells of one late; and the picture
+    // after it, told of at once, by a request whose source's id is the worker's again, once it is gone.
+    request('0x85', 'https://a.run.app/w.js'), asked('0x40', 3, 'a.run.app', '/w.js'),
+    data('0x40', 3, 894), data('0x40', 3, 766), told('0x85'), read('0x85', 3), data('0x40', 3, 1153), data('0x40', 3, 0),
+    request('0x85', 'https://a.run.app/b.png?x=1'), asked('0x40', 5, 'a.run.app', '/b.png?x=1'),
+    told('0x85'), data('0x40', 5, 2000), read('0x85', 5), data('0x40', 5, 0),
+    // A stylesheet padded as Google pads its frames (crux#52): of each frame, its padding's length's byte and its
+    // padding taken from the window and given back at once, its data taken until it is read; and one not padded,
+    // whose data was read at once, after it.
+    started('0x41', 458), asked('0x41', 1, 'fonts.googleapis.com', '/css2?family=x'),
+    data('0x41', 1, 742), win('0x41', -1), win('0x41', 1), win('0x41', -492), win('0x41', -249), win('0x41', 249),
+    data('0x41', 1, 245), win('0x41', -1), win('0x41', 1), win('0x41', -10), win('0x41', -234), win('0x41', 234),
+    data('0x41', 1, 0), win('0x41', 10), win('0x41', 492),
+    asked('0x41', 3, 'fonts.googleapis.com', '/css2?family=y'), data('0x41', 3, 300), win('0x41', -300), win('0x41', 300), data('0x41', 3, 0),
+  ];
+  // As Chrome's threads hand them in, not in order.
+  const streams = framesOf([...events].reverse());
+  const none = (frames: number[]) => ({ frames, told: 0 });
+  assert.deepEqual(Object.fromEntries(streams), {
+    '232 accounts.google.com/ListAccounts': [none([0])],
+    '384 a.run.app/?home': [none([1809, 1356, 0])],
+    '384 a.run.app/a.png': [none([5017, 0]), none([5017, 0])],
+    '384 cdn.example/a.png': [none([4013, 0])],
+    '433 a.run.app/a.png': [none([16384, 1])],
+    '433 a.run.app/w.js': [{ frames: [894, 766, 1153, 0], told: 2 }],
+    '433 a.run.app/b.png?x=1': [none([2000, 0])],
+    '458 fonts.googleapis.com/css2?family=x': [none([492, 10, 0])],
+    '458 fonts.googleapis.com/css2?family=y': [none([300, 0])],
+  });
 });
 
 /**
@@ -531,9 +608,12 @@ test('a body over HTTP/2 is counted as though it came in frames of 16384 B, and 
  * answer has an x-cloud-trace-context of its own, of a length of its own, now and then with ';o=1' after it, and a
  * date that changes from one answer to the next, as Google's front end sends them; and each body is sent in frames
  * of lengths of its own, as many as the answer's number says, as Cloud Run's front end split blog's pictures into 5
- * to 13 frames from one visit to the next (crux#29). The page, compressed as it is sent, says no content-length.
+ * to 13 frames from one visit to the next (crux#29). The page, compressed as it is sent, says no content-length. With
+ * early, each answer says Clear-Site-Data, which Chrome's network service asks its browser of before it tells of the
+ * answer, so that the first frames of the body are there by then, and counted with the headers it tells of (crux#47):
+ * as a busy machine had it now and then.
  */
-async function frontEnd(): Promise<{ url: string; answers: string[]; dates: string[]; close(): Promise<void> }> {
+async function frontEnd(early = false): Promise<{ url: string; answers: string[]; dates: string[]; worker: number; close(): Promise<void> }> {
   const dir = mkdtempSync(join(tmpdir(), 'crux-front-'));
   await new Promise<void>((resolve, reject) => execFile('openssl', ['req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1',
     '-nodes', '-keyout', join(dir, 'key.pem'), '-out', join(dir, 'cert.pem'), '-days', '1', '-subj', '/CN=127.0.0.1'],
@@ -549,7 +629,10 @@ async function frontEnd(): Promise<{ url: string; answers: string[]; dates: stri
   const picture = png(20000);
   // Words that brotli cannot make much smaller, so that the page too is long enough to split.
   const words = Array.from({ length: 1500 }, (_, i) => ((i * 2654435761) >>> 7).toString(36)).join(' ');
-  const page = zlib.brotliCompressSync(`<!doctype html>${icon}<p>the same page</p><img src="/a.png" width="10" height="10"><link rel="stylesheet" href="/a.css"><p>${words}</p>`);
+  const page = zlib.brotliCompressSync(`<!doctype html>${icon}<p>the same page</p><img src="/a.png" width="10" height="10"><link rel="stylesheet" href="/a.css"><p>${words}</p><script>new Worker('/w.js', { type: 'module' })</script>`);
+  // A dedicated worker's script, as Dawn's home page starts one, compressed as the page is: Chrome tells of its answer
+  // on the worker's session with no connection, so that its frames are known by what it asked for alone (crux#51).
+  const worker = zlib.brotliCompressSync(`postMessage(${JSON.stringify(words)});\n// ${words}`);
   /** body, in 2 + n % 5 frames, each sent once the one before has gone, so that none is joined to the next. */
   const inFrames = async (res: http2.Http2ServerResponse, body: Buffer, n: number) => {
     const count = 2 + (n % 5);
@@ -573,12 +656,15 @@ async function frontEnd(): Promise<{ url: string; answers: string[]; dates: stri
     do date = new Date(Date.UTC(2026, 9, 24) + 1000 * ++second).toUTCString();
     while (dates.length && (valueBytes(date, 'h2') === valueBytes(dates.at(-1)!, 'h2')));
     dates.push(date);
-    const head = { 'x-cloud-trace-context': trace, date, server: 'Google Frontend' };
+    const head = { 'x-cloud-trace-context': trace, date, server: 'Google Frontend', ...(early ? { 'clear-site-data': '"cache"' } : {}) };
     // The picture one Chrome reads whole, as Cloud Run's are: one it cannot read, as 2000 spaces, Chrome counts
     // its body alone of, over HTTP/2 (crux#28). The stylesheet is the same bytes, so that only its type tells them apart.
     if (path.startsWith('/a.png') || path.startsWith('/a.css')) {
       res.writeHead(200, { ...head, 'content-type': path.startsWith('/a.png') ? 'image/png' : 'text/css', 'content-length': String(picture.length) });
       void inFrames(res, picture, n);
+    } else if (path === '/w.js') {
+      res.writeHead(200, { ...head, 'content-type': 'text/javascript', 'content-encoding': 'br' });
+      void inFrames(res, worker, n);
     } else if (path.startsWith('/?')) {
       res.writeHead(200, { ...head, 'content-type': 'text/html', 'content-encoding': 'br' });
       void inFrames(res, page, n);
@@ -593,31 +679,105 @@ async function frontEnd(): Promise<{ url: string; answers: string[]; dates: stri
     url: `https://127.0.0.1:${port}`,
     answers,
     dates,
+    worker: worker.length,
     close: () => new Promise((resolve) => server.close(() => resolve())),
   };
 }
 
-test('a page weighs the same from one visit to the next over HTTP/2, though its front end\'s trace and time change their length, and its frames their number', async () => {
-  const s = await frontEnd();
+test('a page weighs the same from one visit to the next over HTTP/2, though its front end\'s trace and time change their length, and its frames their number, and Chrome tells of its headers late', async () => {
+  for (const early of [false, true]) await visits(early);
+});
+
+async function visits(early: boolean) {
+  const s = await frontEnd(early);
   try {
     // The same page, a name of the same length each time, so that only the trace and the time tell its answers apart.
     // The first warms Chrome: its first handshake can be slow enough that Chrome opens a second connection beside it,
     // whose own first frames it counts to whatever it asks there (30 B, now and then), which is no header's.
     const pages = ['wrm', 'one', 'two', 'six', 'ten'].map((name) => ({ name, path: `/?${name}` }));
     const weighed = (await weigh(s.url, pages, { quiet: 300, flags: ['--ignore-certificate-errors'] })).slice(1);
-    // Three answers a visit, the page, its picture and its stylesheet, each of a trace of its own, of lengths that are
-    // not all the same.
-    assert.equal(s.answers.length, 15);
+    // Four answers a visit, the page, its picture, its stylesheet and its worker's script, each of a trace of its own,
+    // of lengths that are not all the same.
+    assert.equal(s.answers.length, 20);
     assert.ok(new Set(s.answers.map((a) => valueBytes(a, 'h2'))).size > 3, s.answers.join(' '));
     assert.equal(new Set(s.dates.map((d) => valueBytes(d, 'h2'))).size, 2, s.dates.join(', '));
-    assert.ok(weighed.every((w) => w.fetched.length === 3 && w.fetched.every((f) => f.bytes > 0)));
-    assert.deepEqual(weighed.map((w) => w.bytes), weighed.map(() => weighed[0].bytes), weighed.map((w) => w.fetched.map((f) => f.bytes).join('+')).join(', '));
+    assert.ok(weighed.every((w) => w.fetched.length === 4 && w.fetched.every((f) => f.bytes > 0)));
+    // The worker's script with its body, which Chrome counts its head alone of (crux#39).
+    for (const w of weighed) assert.ok(w.fetched.find((f) => f.url.endsWith('/w.js'))!.bytes > s.worker, `early: ${early}`);
+    assert.deepEqual(weighed.map((w) => w.bytes), weighed.map(() => weighed[0].bytes), `early: ${early}: ${weighed.map((w) => w.fetched.map((f) => f.bytes).join('+')).join(', ')}`);
     // The picture is weighed as the stylesheet is, its headers and its frames with its body (crux#28): they differ by
     // their types alone.
     const kind = (w: (typeof weighed)[number], type: string) => w.fetched.find((f) => f.type === type)!.bytes;
-    for (const w of weighed) assert.equal(kind(w, 'Image') - kind(w, 'Stylesheet'), valueBytes('image/png', 'h2') - valueBytes('text/css', 'h2'));
+    for (const w of weighed) assert.equal(kind(w, 'Image') - kind(w, 'Stylesheet'), valueBytes('image/png', 'h2') - valueBytes('text/css', 'h2'), `early: ${early}`);
   } finally {
     await s.close();
+  }
+}
+
+/**
+ * A third party's answers, over HTTP/2, as Google Fonts sends its stylesheets (crux#52): each frame of a body padded,
+ * as Google's are, and each body in frames of a number of its own; and the times of the visit's two answers, its date,
+ * its expires and its last-modified, the same second on one visit, so that the second answer sends them as references
+ * to the first's, and seconds of their own on the next, so that it sends them whole, and its age of a length of its own.
+ */
+async function thirdParty(): Promise<{ url: string; asked: string[]; close(): Promise<void> }> {
+  const dir = mkdtempSync(join(tmpdir(), 'crux-third-'));
+  await new Promise<void>((resolve, reject) => execFile('openssl', ['req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1',
+    '-nodes', '-keyout', join(dir, 'key.pem'), '-out', join(dir, 'cert.pem'), '-days', '1', '-subj', '/CN=127.0.0.1'],
+  (e) => (e ? reject(e) : resolve())));
+  const key = readFileSync(join(dir, 'key.pem'));
+  const cert = readFileSync(join(dir, 'cert.pem'));
+  rmSync(dir, { recursive: true, force: true });
+  const asked: string[] = [];
+  const css = zlib.gzipSync(Array.from({ length: 400 }, (_, i) => `.c${((i * 2654435761) >>> 9).toString(36)}{color:#${(i * 77777).toString(16).slice(-6).padStart(6, '0')}}`).join('\n'));
+  let n = 0;
+  let second = 0;
+  const server = http2.createSecureServer({ key, cert, paddingStrategy: http2.constants.PADDING_STRATEGY_MAX }, (req, res) => {
+    const path = req.url ?? '/';
+    asked.push(path);
+    n++;
+    // Each visit asks for two: the second of an even visit has the first's second, and every other a second of its own.
+    if (n % 4 !== 2) second += 3601 + (n % 7) * 86400 * 11;
+    const at = (d: number) => new Date(Date.UTC(2026, 9, 24) + 1000 * (second + d)).toUTCString();
+    res.writeHead(200, {
+      'content-type': 'text/css; charset=utf-8', 'content-encoding': 'gzip', 'access-control-allow-origin': '*',
+      'cache-control': 'private, max-age=86400, stale-while-revalidate=604800', 'x-content-type-options': 'nosniff',
+      date: at(0), expires: at(86400), 'last-modified': at(0), age: String(7 ** (n % 9)), server: 'ESF',
+    });
+    void (async () => {
+      const count = 1 + (n % 4);
+      for (let i = 0, from = 0; i < count; i++) {
+        const end = i === count - 1 ? css.length : from + Math.floor(css.length / count);
+        await new Promise<void>((resolve) => res.write(css.subarray(from, end), () => setTimeout(resolve, 5)));
+        from = end;
+      }
+      res.end();
+    })();
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  return { url: `https://127.0.0.1:${port}`, asked, close: () => new Promise((resolve) => server.close(() => resolve())) };
+}
+
+test('a page weighs the same from one visit to the next though a third party pads its frames, splits its bodies its own way, and sends its times whole or as references', async () => {
+  const fonts = await thirdParty();
+  const page = `<!doctype html>${icon}<link rel="stylesheet" href="${fonts.url}/a.css"><link rel="stylesheet" href="${fonts.url}/b.css"><p>the same page</p>`;
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'content-type': 'text/html', 'content-length': Buffer.byteLength(page) });
+    res.end(page);
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  try {
+    const pages = ['wrm', 'one', 'two', 'six', 'ten'].map((name) => ({ name, path: `/?${name}` }));
+    const weighed = (await weigh(`http://127.0.0.1:${port}`, pages, { quiet: 300, flags: ['--ignore-certificate-errors'] })).slice(1);
+    assert.equal(fonts.asked.length, 10);
+    assert.ok(weighed.every((w) => w.fetched.length === 3 && w.fetched.every((f) => f.bytes > 0)));
+    assert.deepEqual(weighed.map((w) => w.bytes), weighed.map(() => weighed[0].bytes), weighed.map((w) => w.fetched.map((f) => f.bytes).join('+')).join(', '));
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+    await fonts.close();
   }
 });
 
@@ -641,5 +801,186 @@ test('a page that never answers is given up at the deadline, and Chrome with it'
   } finally {
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+// A page's own marks (crux#43): a stand-in for Chrome where Chrome is not the point, which gives each mark of each
+// page the times the test says, a load each.
+test('each mark is a number of its page\'s, after its weight: the median of its loads, their spread, and the noise left out', async () => {
+  clock = testClock();
+  const s = await stand(() => ({ ms: 10, html: '<p>hi</p>' }));
+  try {
+    const pages = [{ name: 'home', path: '/' }, { name: 'post', path: '/post' }];
+    const marks: Mark[] = [{ name: 'ready', selector: 'body[data-ready]' }, { name: 'instruments', page: 'home' }];
+    const timedWith: [Page[], Mark[]][] = [];
+    const time = async (_url: string, pages: Page[], marks: Mark[]) => {
+      timedWith.push([pages, marks]);
+      return [{ ready: [1700, 1600, 1800, 9000, 1650], instruments: [1500, 1400, 1550, 1450, 1500] }, { ready: [300, 310, 320] }];
+    };
+    const n = byName(await probe({ url: s.url, pages, tries: 2, clock, weigh: scales, marks, time }));
+    assert.deepEqual(Object.keys(n), ['home_bytes', 'home_requests', 'home_ms', 'home_weight', 'home_ready_ms', 'home_instruments_ms',
+      'post_bytes', 'post_requests', 'post_ms', 'post_weight', 'post_ready_ms']);
+    assert.deepEqual(n.home_ready_ms, { name: 'home_ready_ms', unit: 'ms', value: 1675, spread: [1650, 1700], better: 'lower', worst: 1800, noise: 1, ideal: 1000 });
+    assert.deepEqual([n.home_instruments_ms.value, n.home_instruments_ms.spread, n.home_instruments_ms.noise], [1500, [1450, 1500], 0]);
+    assert.deepEqual([n.post_ready_ms.value, n.post_ready_ms.worst], [310, 320]);
+    // Timed once, all the pages together, given every mark.
+    assert.deepEqual(timedWith, [[pages, marks]]);
+    // With no marks, nothing is timed, and the numbers are as they were.
+    const none = byName(await probe({ url: s.url, pages, tries: 2, clock, weigh: scales, time: () => assert.fail('timed') }));
+    assert.deepEqual(Object.keys(none), numberNames(pages, []));
+    assert.deepEqual(Object.keys(n), numberNames(pages, marks));
+    // A mark on a page there is not fails before anything is asked.
+    s.asked.length = 0;
+    await assert.rejects(probe({ url: s.url, pages, clock, weigh: scales, time, marks: [{ name: 'x', page: 'about' }] }), /there is no page about/);
+    assert.equal(s.asked.length, 0);
+  } finally {
+    await s.close();
+  }
+});
+
+test('a mark\'s ideal is a second, and any number\'s is what the product says, as main is', () => {
+  const marked: Measured[] = [...measured, { name: 'home_ready_ms', unit: 'ms', value: 1700, spread: [1650, 1750], better: 'lower', worst: 1800, noise: 0, ideal: 1000 }];
+  const out = report(marked, null, false);
+  assert.equal(out.main, 'home_ms');
+  assert.deepEqual(out.numbers[3], { name: 'home_ready_ms', unit: 'ms', value: 1700, spread: [1650, 1750], better: 'lower', noise: 0, baseline: { value: 1700, worst: 1800 }, ideal: 1000 });
+  const judged = report(marked, null, false, { ideals: { home_ready_ms: 800, home_ms: 40 }, main: 'home_ready_ms' });
+  assert.equal(judged.main, 'home_ready_ms');
+  assert.deepEqual(judged.numbers.map((n) => n.ideal), [14000, 40, 50, 800]);
+});
+
+test('the marks are the flags\', on every page or on one, a performance.mark or a selector', () => {
+  assert.deepEqual(marksFrom(['--mark', 'instruments', '--json', '--mark', 'home:shown=main > canvas:not(.x)', '--ready', 'body[data-ready]']), [
+    { name: 'instruments' },
+    { name: 'shown', page: 'home', selector: 'main > canvas:not(.x)' },
+    { name: 'ready', selector: 'body[data-ready]' },
+  ]);
+  assert.deepEqual(marksFrom(['--page', 'home=/']), []);
+  assert.deepEqual(marksFrom(['--mark', 'home:a', '--mark', 'post:a']), [{ name: 'a', page: 'home' }, { name: 'a', page: 'post' }]);
+  assert.throws(() => marksFrom(['--mark', 'a b']), /\[PAGE:\]NAME\[=SELECTOR\]/);
+  assert.throws(() => marksFrom(['--mark']), /\[PAGE:\]NAME\[=SELECTOR\]/);
+  assert.throws(() => marksFrom(['--ready']), /--ready wants a SELECTOR/);
+  assert.throws(() => marksFrom(['--mark', 'ready', '--ready', 'body']), /ready is given twice/);
+  assert.throws(() => marksFrom(['--mark', 'home:a', '--mark', 'a']), /a is given twice/);
+  assert.deepEqual(idealsFrom(['--ideal', 'home_ready_ms=800', '--ideal', 'home_ms=40.5']), { home_ready_ms: 800, home_ms: 40.5 });
+  assert.throws(() => idealsFrom(['--ideal', 'home_ms']), /NUMBER=VALUE/);
+});
+
+/**
+ * A page that does its work in the browser after its load, as Dawn loads its instruments: its script fetches /slow,
+ * which its server answers after the test's delay, marks `instruments` once it has it, and sets body[data-ready] a
+ * frame after; and from then on each frame holds its main thread for a minute, as a page that draws every frame may.
+ */
+async function workingPage(delay: number): Promise<{ url: string; asked: string[]; close(): Promise<void> }> {
+  const asked: string[] = [];
+  const html = `<!doctype html>${icon}<body><script>
+    addEventListener('load', async () => {
+      await (await fetch('/slow')).text();
+      performance.mark('instruments');
+      requestAnimationFrame(() => {
+        document.body.dataset.ready = 'yes';
+        const spin = () => { const t = performance.now(); while (performance.now() - t < 60000); requestAnimationFrame(spin); };
+        requestAnimationFrame(spin);
+      });
+    });
+  </script></body>`;
+  const server = http.createServer((req, res) => {
+    const path = req.url ?? '/';
+    asked.push(path);
+    const send = (status: number, type: string, body: string) => {
+      res.writeHead(status, { 'content-type': type, 'content-length': Buffer.byteLength(body) });
+      res.end(body);
+    };
+    if (path === '/' || path === '/again') send(200, 'text/html', html);
+    else if (path === '/slow') setTimeout(() => send(200, 'text/plain', 'instruments'), delay);
+    // It asks for /thrown, and only then, its main thread held a second, throws.
+    else if (path === '/bad') send(200, 'text/html', `<!doctype html>${icon}<script>fetch('/thrown'); const t = performance.now(); while (performance.now() - t < 1000); throw new Error('no instruments')</script>`);
+    else if (path === '/thrown') send(200, 'text/plain', 'heard');
+    else send(404, 'text/plain', 'not here');
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  return {
+    url: `http://127.0.0.1:${port}`,
+    asked,
+    close: async () => {
+      server.closeAllConnections();
+      await new Promise((resolve) => server.close(resolve));
+    },
+  };
+}
+
+test('a page\'s marks are timed in Chrome from navigation, a first visit each load, though its frames after hold its main thread', async () => {
+  const s = await workingPage(300);
+  try {
+    const pages = [{ name: 'home', path: '/' }, { name: 'plain', path: '/nothing' }, { name: 'again', path: '/again' }];
+    const marks: Mark[] = [{ name: 'instruments' }, { name: 'ready', selector: 'body[data-ready]' }];
+    const timed = await timeMarks(s.url, pages, marks.map((m) => ({ ...m, page: 'home' })).concat([{ name: 'ready', page: 'again', selector: 'body[data-ready]' }]), { loads: 3, deadline: 20000 });
+    assert.equal(timed.length, 3);
+    assert.deepEqual(timed[1], {});
+    for (const [i, own] of [[0, ['instruments', 'ready']], [2, ['ready']]] as const) {
+      assert.deepEqual(Object.keys(timed[i]), own);
+      for (const t of Object.values(timed[i])) assert.equal(t.length, 3);
+    }
+    for (let n = 0; n < 3; n++) {
+      // No sooner than the server's answer to what the page waits for, and not long after: Chrome running here.
+      const { instruments, ready } = { instruments: timed[0].instruments[n], ready: timed[0].ready[n] };
+      assert.ok(instruments >= 300 && instruments < 5000, `instruments at ${instruments}`);
+      assert.ok(ready >= instruments, `ready at ${ready}, before instruments at ${instruments}`);
+      assert.ok(timed[2].ready[n] >= 300, `again ready at ${timed[2].ready[n]}`);
+    }
+    // Each load asked for the page and what it fetched, nothing kept from the load before; a page with no marks never loaded.
+    assert.equal(s.asked.filter((p) => p === '/').length, 3);
+    assert.equal(s.asked.filter((p) => p === '/slow').length, 6);
+    assert.ok(!s.asked.includes('/nothing'));
+  } finally {
+    await s.close();
+  }
+});
+
+test('a page that never sets its mark is given up at the deadline, saying what it threw; and one not 200, and a selector that is not one, fail', async () => {
+  const s = await workingPage(0);
+  try {
+    // The deadline is the probe's clock's, and the test's runs out once the page has asked for /thrown: a busy machine
+    // slows the page, and not the deadline with it (crux#50). The page throws only after, so what it threw is heard
+    // only as the probe asks the page for what it did before it gives up.
+    let read = 0;
+    const clock = () => s.asked.includes('/thrown') ? (read++, 20001) : 0;
+    await assert.rejects(timeMarks(s.url, [{ name: 'bad', path: '/bad' }], [{ name: 'instruments' }], { loads: 1, deadline: 20000, clock }),
+      /\/bad had no instruments in 20000 ms \(the page threw: Error: no instruments\)/);
+    assert.ok(read > 0, 'the deadline was not counted on the clock given');
+    await assert.rejects(timeMarks(s.url, [{ name: 'gone', path: '/gone' }], [{ name: 'ready', selector: 'body' }], { loads: 1, deadline: 20000 }),
+      /\/gone answered 404 to Chrome/);
+    await assert.rejects(timeMarks(s.url, [{ name: 'home', path: '/' }], [{ name: 'ready', selector: 'body[' }], { loads: 1, deadline: 20000 }),
+      /the selector of ready: SyntaxError/);
+  } finally {
+    await s.close();
+  }
+});
+
+test('--mark, --ideal and --main as a product\'s intuition gives them: its marks among what nerd reads, judged as it says', async () => {
+  const s = await workingPage(100);
+  const dir = mkdtempSync(join(tmpdir(), 'crux-probe-'));
+  try {
+    const args = ['--url', s.url, '--page', 'home=/', '--tries', '2', '--loads', '2', '--mark', 'instruments', '--ready', 'body[data-ready]',
+      '--ideal', 'home_ready_ms=800', '--main', 'home_ready_ms', '--json'];
+    const run = await cli(dir, args);
+    assert.equal(run.code, 0, run.stderr);
+    const out = JSON.parse(run.stdout);
+    assert.equal(out.main, 'home_ready_ms');
+    assert.deepEqual(out.numbers.map((n: { name: string }) => n.name), ['home_bytes', 'home_requests', 'home_ms', 'home_weight', 'home_instruments_ms', 'home_ready_ms']);
+    const [instruments, ready] = out.numbers.slice(4);
+    assert.deepEqual([instruments.ideal, ready.ideal, ready.unit], [1000, 800, 'ms']);
+    assert.ok(instruments.value >= 100 && ready.value >= instruments.value, `instruments ${instruments.value}, ready ${ready.value}`);
+    for (const n of out.numbers) assert.deepEqual(Object.keys(n).sort(), ['baseline', 'better', 'ideal', 'name', 'noise', 'spread', 'unit', 'value']);
+
+    // A number there is not, to judge or as main, fails before anything is measured.
+    s.asked.length = 0;
+    const wrong = await cli(dir, ['--url', s.url, '--page', 'home=/', '--main', 'home_ready_ms', '--json']);
+    assert.equal(wrong.code, 1);
+    assert.match(wrong.stderr, /there is no number home_ready_ms: there are home_bytes, home_requests, home_ms, home_weight/);
+    assert.deepEqual(s.asked, []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    await s.close();
   }
 });

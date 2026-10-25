@@ -3,11 +3,13 @@
 //! reynolds-number each write in place of their Node server.
 //!
 //! - every file of `dist/` by [`Dir`]: the build's own `.br` and `.gz` sent as they are, its hashed assets kept a
-//!   year, its `index.html` the page of every route of the app, and the headers the product sends, here COOP and
-//!   COEP, which make the page cross-origin isolated, as polivoks and synth-exp need for their shared memory;
+//!   year, and its `index.html` the page of every route of the app;
 //! - nerd's feedback widget in the table (`widget`), loaded first in each page's `<head>`;
 //! - each load of a page measured (`load`), its tag at the end of each page's `<head>`, its view the page's name;
-//! - the paths the pages send their telemetry to (`telemetry`), merged into the router.
+//! - the paths the pages send their telemetry to (`telemetry`), merged into the router;
+//! - the headers the product sends with every answer, here COOP and COEP, which make the page cross-origin isolated,
+//!   as polivoks and synth-exp need for their shared memory, put over the whole router with [`server::headers`], so
+//!   that the widget, telemetry's answers, a 404 and a 405 have them as the build's files do (crux#44).
 //!
 //! `cargo run -p server --example dir -- DIR`, `dist` where no directory is given; it says where it listens. A page
 //! with a content security policy of its own allows the load's script by [`load::hash`], and the product's own
@@ -66,25 +68,13 @@ fn page(f: File) -> File {
 
 /// Every file the product serves: its build's, and the widget's.
 pub fn files(dist: &Path) -> std::io::Result<Vec<File>> {
-    let built = Dir::new(dist)
-        .fallback("/index.html")
-        .header(
-            "/",
-            HeaderName::from_static("cross-origin-opener-policy"),
-            "same-origin",
-        )
-        .header(
-            "/",
-            HeaderName::from_static("cross-origin-embedder-policy"),
-            "require-corp",
-        )
-        .files()?;
+    let built = Dir::new(dist).fallback("/index.html").files()?;
     let mut files: Vec<File> = built.into_iter().map(page).collect();
     files.push(widget::file());
     Ok(files)
 }
 
-/// The product's server: its files, and the paths its pages send their telemetry to.
+/// The product's server: its files, the paths its pages send their telemetry to, and its headers on every answer.
 pub fn app(dist: &Path) -> std::io::Result<server::Router> {
     let not_found = File::new(
         "",
@@ -92,7 +82,16 @@ pub fn app(dist: &Path) -> std::io::Result<server::Router> {
         Bytes::from_static(NOT_FOUND.as_bytes()),
     );
     let site = Arc::new(Site::new(Table::build(files(dist)?, not_found)));
-    Ok(server::router(site).merge(telemetry::routes()))
+    let app = server::router(site).merge(telemetry::routes());
+    // COOP and COEP, so that the pages are cross-origin isolated: on every answer, or they are not.
+    Ok(server::headers(
+        app,
+        [
+            ("cross-origin-opener-policy", "same-origin"),
+            ("cross-origin-embedder-policy", "require-corp"),
+        ]
+        .map(|(n, v)| (HeaderName::from_static(n), v)),
+    ))
 }
 
 #[tokio::main]

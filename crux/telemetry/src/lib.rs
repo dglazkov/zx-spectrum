@@ -6,12 +6,13 @@
 //! - An error the server cannot mend: a handler returns `Result<_, telemetry::Error>`, and `?` keeps the error and
 //!   its stack, logged once, at severity ERROR, as the request is answered 500; or `telemetry::error(&err)` where
 //!   it is caught outside a request, as in a job.
+//! - A panic: `telemetry::panics()` says each as an error is said, once, with its stack, in place of Rust's own words.
 
 mod error;
 mod event;
 mod routes;
 
-pub use error::{error, Error};
+pub use error::{error, panics, Error};
 pub use event::Event;
 pub use routes::{routes, BURST, EVENTS, LIMIT, RATE};
 

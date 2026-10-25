@@ -1,7 +1,8 @@
 //! The example, examples/dir.rs, a product's main.rs serving its built directory (crux#33): built with the
 //! rest, and run on a directory of the test's own, as a build writes it, answering over HTTP as a browser asks:
 //! each page with the widget and the load's tag in it, the build's brotli, a route of the app, the product's headers,
-//! the widget, the telemetry's paths, and nothing outside the directory, however it is asked for.
+//! the widget, the telemetry's paths, and nothing outside the directory, however it is asked for; COOP and COEP on
+//! every one of those answers (crux#44).
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
@@ -131,6 +132,12 @@ fn request(addr: &str, method: &str, path: &str, headers: &[(&str, &str)], body:
     }
 }
 
+/// Whether `r` has COOP and COEP, as every answer of the product's must for its pages to be cross-origin isolated.
+fn isolated(r: &Reply) -> bool {
+    r.header("cross-origin-opener-policy") == Some("same-origin")
+        && r.header("cross-origin-embedder-policy") == Some("require-corp")
+}
+
 fn get(addr: &str, path: &str, accept: &str) -> Reply {
     request(addr, "GET", path, &[("Accept-Encoding", accept)], "")
 }
@@ -161,11 +168,7 @@ fn serves_a_built_directory_with_the_parts_a_product_starts_with() {
             head.ends_with(&load::tag(view)),
             "{path}: the load's tag for {view}"
         );
-        assert_eq!(r.header("cross-origin-opener-policy"), Some("same-origin"));
-        assert_eq!(
-            r.header("cross-origin-embedder-policy"),
-            Some("require-corp")
-        );
+        assert!(isolated(&r), "{path}");
     }
     // A page changed so is compressed by the table, not sent as its build's brotli of the page before, which
     // is not served as a file of its own either.
@@ -185,14 +188,12 @@ fn serves_a_built_directory_with_the_parts_a_product_starts_with() {
         std::fs::read(dist.join(format!("{}.br", &HASHED[1..]))).unwrap()
     );
     assert_eq!(r.header("cache-control"), Some(server::IMMUTABLE));
-    assert_eq!(
-        r.header("cross-origin-embedder-policy"),
-        Some("require-corp")
-    );
+    assert!(isolated(&r));
     // The widget, and what the pages send.
     let r = get(&addr, "/nerd-feedback.js", "");
     assert_eq!(r.status, 200);
     assert_eq!(r.body, widget::SCRIPT);
+    assert!(isolated(&r));
     let r = request(
         &addr,
         "POST",
@@ -201,17 +202,19 @@ fn serves_a_built_directory_with_the_parts_a_product_starts_with() {
         r#"{"name":"played"}"#,
     );
     assert_eq!(r.status, 204);
+    assert!(isolated(&r));
     // A client posting past its burst, here the test's own socket, is refused; another, as Cloud Run forwards it,
     // is not. The share fills again a post a second, so the count of those let in is not fixed by the clock.
     let post = |forwarded: &[(&str, &str)]| {
-        request(
+        let r = request(
             &addr,
             "POST",
             "/nerd/event",
             forwarded,
             r#"{"name":"played"}"#,
-        )
-        .status
+        );
+        assert!(isolated(&r), "{}", r.status);
+        r.status
     };
     let mut let_in = 1;
     while post(&[]) == 204 {
@@ -236,7 +239,15 @@ fn serves_a_built_directory_with_the_parts_a_product_starts_with() {
         assert_eq!(r.status, 404, "{path}");
         assert!(r.text().contains("Not here"), "{path}");
         assert!(!r.text().contains(SECRET), "{path}");
+        assert!(isolated(&r), "{path}");
     }
+    // Nor are the ways it is asked that are not GET's.
+    let r = request(&addr, "POST", "/", &[], "");
+    assert_eq!(r.status, 405);
+    assert!(isolated(&r));
+    let r = get(&addr, "/nerd/event", "");
+    assert_eq!(r.status, 405);
+    assert!(isolated(&r));
 }
 
 #[test]

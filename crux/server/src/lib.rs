@@ -13,29 +13,49 @@
 //! table served, and swaps it whole when the product's files change; [`router`] answers from it
 //! with axum, and [`serve`] puts that on the port in `PORT`.
 //!
+//! A panic in answering a request, in the table's answer or in a route the product adds beside it, is that
+//! request's alone (crux#42): what [`serve`] answers with is [`guarded`], and a request whose answer panicked is
+//! answered 500, the server answering on; and [`serve`] has the part telemetry say each panic once, as an error is
+//! said, with its stack ([`telemetry::panics`]). A product whose release profile has `panic = "abort"`, as a
+//! workspace with an engine in wasm has, builds its server in a profile that unwinds, or a panic ends it.
+//!
+//! A client that stops reading what it is sent holds the server's write (crux#45): [`serve`] lets
+//! go of a connection whose write makes no headway for [`STALL`], and a route may let go of its own
+//! at once with its [`Peer`] ([`Peer::let_go`]), as a pass-through does once its time is up.
+//!
 //! A product whose pages are built into a directory, as Vite's `dist/`, gives the table that
 //! directory whole, with [`Dir`] (crux#33): each file at its path, typed by its extension, sent
 //! compressed as its build compressed it where it did, a hashed asset kept for a year, the
 //! product's headers on all of them or by prefix, and an app's page for any path with no extension
 //! that names no file.
+//!
+//! A header that must be on every answer the product makes, and not only on its files, as COOP and
+//! COEP must for a page to be cross-origin isolated, is named once, with [`headers`], over the
+//! whole router, its own routes and telemetry's merged in: the widget, a 404, a 405, a redirect
+//! and telemetry's answers have it too, which neither [`Dir::header`] nor [`File::with`] reach. Use
+//! those for what goes on some files and not others, as a page's content policy.
 
 use std::collections::HashMap;
 use std::future::Future;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::io::Write;
+use std::panic::AssertUnwindSafe;
 use std::pin::Pin;
 use std::sync::{Arc, OnceLock, RwLock};
+use std::task::Poll;
 use std::time::{Duration, Instant};
 
 use axum::body::Body;
-use axum::extract::State;
+use axum::extract::{ConnectInfo, Request, State};
 pub use axum::http::header;
 use axum::http::{HeaderMap, HeaderValue, Method, Response, StatusCode, Uri};
 /// What [`router`] makes, for a product's routes to be merged into without naming axum.
 pub use axum::Router;
 pub use bytes::Bytes;
 
+mod conn;
 mod dir;
+pub use conn::{Peer, STALL};
 pub use dir::{content_type, hashed, Dir, IMMUTABLE};
 
 /// How long a browser may keep a file that does not say: five minutes.
@@ -826,6 +846,71 @@ pub fn router(site: Arc<Site>) -> Router {
     axum::Router::new().fallback(handle).with_state(site)
 }
 
+/// The answer to `req`, or 500, not kept, where answering it panicked: the panic is said where it happened, by the
+/// process's hook.
+async fn caught(req: Request, next: axum::middleware::Next) -> axum::response::Response {
+    let mut answer = std::pin::pin!(next.run(req));
+    std::future::poll_fn(|cx| {
+        match std::panic::catch_unwind(AssertUnwindSafe(|| answer.as_mut().poll(cx))) {
+            Ok(polled) => polled,
+            Err(_) => Poll::Ready(
+                Response::builder()
+                    .status(StatusCode::INTERNAL_SERVER_ERROR)
+                    .header(header::CACHE_CONTROL, "no-store")
+                    .body(Body::empty())
+                    .unwrap(),
+            ),
+        }
+    })
+    .await
+}
+
+/// `app`, each request whose answer panics answered 500, not kept, and the server answering on: every route of it,
+/// the product's merged in or nested and its fallback among them. [`serve_on`] serves `app` so; a product that answers
+/// with `app` some other way, as in a test, guards it with this.
+pub fn guarded(app: Router) -> Router {
+    app.layer(axum::middleware::from_fn(caught))
+}
+
+/// `app`, every answer it makes sent with each of `headers` (crux#44): its files, a 304, a range
+/// and a redirect, the widget, the not-found page, a 405, and the answers of every route merged
+/// into it before, telemetry's 204, 400, 413 and 429 among them, and the 500 of one that panics,
+/// which it answers as [`guarded`] does. A product puts it over its whole
+/// router, last, and names there what must be on all of them, as COOP and COEP, which make a page
+/// cross-origin isolated only where every answer has them; [`Dir::header`] is for what goes by
+/// path. An answer that has a header of the same name keeps its own, as an asset kept a year its
+/// Cache-Control. A value HTTP does not allow in a header stops the product as it starts, and
+/// names the header, rather than be left off.
+pub fn headers<V: AsRef<str>>(
+    app: Router,
+    headers: impl IntoIterator<Item = (header::HeaderName, V)>,
+) -> Router {
+    let headers: Arc<Vec<(header::HeaderName, HeaderValue)>> = Arc::new(
+        headers
+            .into_iter()
+            .map(
+                |(name, value)| match HeaderValue::from_str(value.as_ref()) {
+                    Ok(v) => (name, v),
+                    Err(_) => panic!("{name}: {:?} is not a header's value", value.as_ref()),
+                },
+            )
+            .collect(),
+    );
+    guarded(app).layer(axum::middleware::map_response(
+        move |mut r: Response<Body>| {
+            let headers = headers.clone();
+            async move {
+                for (name, value) in headers.iter() {
+                    if !r.headers().contains_key(name) {
+                        r.headers_mut().insert(name.clone(), value.clone());
+                    }
+                }
+                r
+            }
+        },
+    ))
+}
+
 /// The port in `port`, as `PORT` says it: 8080 where it is not set, and 0 for any.
 pub fn port(port: Option<&str>) -> Result<u16, String> {
     match port {
@@ -836,8 +921,9 @@ pub fn port(port: Option<&str>) -> Result<u16, String> {
 
 /// Answers with `app` on the port in `PORT` (8080 where unset; 0 for any), on every address,
 /// printing "listening on http://ADDR" once it answers, until the process is told to stop (an
-/// interrupt, or Cloud Run's SIGTERM).
+/// interrupt, or Cloud Run's SIGTERM); each panic of the process said once, as an error, with its stack.
 pub async fn serve(app: axum::Router) -> Result<(), String> {
+    telemetry::panics();
     let port = port(std::env::var("PORT").ok().as_deref())?;
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", port))
         .await
@@ -849,10 +935,28 @@ pub async fn serve(app: axum::Router) -> Result<(), String> {
 
 /// Answers with `app` on `listener`, until the process is told to stop (an interrupt, or Cloud
 /// Run's SIGTERM). Each request carries the address it came from, as `ConnectInfo<SocketAddr>`,
-/// as the part telemetry's limit asks for where no load balancer said it (crux#38).
+/// as the part telemetry's limit asks for where no load balancer said it (crux#38), and its
+/// [`Peer`], as `ConnectInfo<Peer>`, for a route to let go of its connection; a connection whose
+/// write makes no headway for [`STALL`], as a client that stopped reading leaves it, is let go of
+/// (crux#45); and a request whose answer panics is answered 500 ([`guarded`]).
 pub async fn serve_on(listener: tokio::net::TcpListener, app: axum::Router) -> std::io::Result<()> {
+    serve_on_within(listener, app, STALL).await
+}
+
+/// As [`serve_on`], a connection let go of once its write makes no headway for `stall`.
+pub async fn serve_on_within(
+    listener: tokio::net::TcpListener,
+    app: axum::Router,
+    stall: Duration,
+) -> std::io::Result<()> {
     let mut term = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
-    let app = app.into_make_service_with_connect_info::<std::net::SocketAddr>();
+    let app = guarded(app)
+        .layer(axum::middleware::from_fn(addressed))
+        .into_make_service_with_connect_info::<Peer>();
+    let listener = conn::Listener {
+        tcp: listener,
+        stall,
+    };
     axum::serve(listener, app)
         .with_graceful_shutdown(async move {
             tokio::select! {
@@ -861,6 +965,18 @@ pub async fn serve_on(listener: tokio::net::TcpListener, app: axum::Router) -> s
             }
         })
         .await
+}
+
+/// `req`, carrying the address its [`Peer`] came from, as `ConnectInfo<SocketAddr>`.
+async fn addressed(mut req: Request, next: axum::middleware::Next) -> axum::response::Response {
+    let addr = req
+        .extensions()
+        .get::<ConnectInfo<Peer>>()
+        .map(|ConnectInfo(peer)| peer.addr);
+    if let Some(addr) = addr {
+        req.extensions_mut().insert(ConnectInfo(addr));
+    }
+    next.run(req).await
 }
 
 #[cfg(test)]

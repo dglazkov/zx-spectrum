@@ -37,11 +37,17 @@ COPY --from=wasm /wasm/engine.wasm web/src/engine.wasm
 RUN cd web && npm run build -- --sourcemap false
 
 # The server, on the engine's stage, which has the workspace: its dependencies and crux's parts first, against the
-# main that does nothing, so that a change to the product's own server builds only it.
+# main that does nothing, so that a change to the product's own server builds only it. PRODUCT: its own profile, in
+# the workspace's Cargo.toml, as the engine's release has `panic = "abort"`, which would end the server at a panic in
+# one request, where the part server answers it 500 (crux#42); a package's own profile cannot set `panic`:
+#
+#   [profile.server]
+#   inherits = "release"
+#   panic = "unwind"
 FROM wasm AS server
-RUN cargo build --release --locked -p app
+RUN cargo build --profile server --locked -p app
 COPY src src
-RUN touch src/main.rs && cargo build --release --locked -p app && cp target/release/app /app
+RUN touch src/main.rs && cargo build --profile server --locked -p app && cp target/server/app /app
 
 # What runs: the server, and the built directory it serves, on the port in PORT.
 FROM gcr.io/distroless/cc-debian12

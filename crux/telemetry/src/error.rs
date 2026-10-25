@@ -4,6 +4,7 @@
 use std::backtrace::Backtrace;
 use std::error::Error as StdError;
 use std::fmt;
+use std::panic::PanicHookInfo;
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -58,6 +59,20 @@ impl Error {
         self
     }
 
+    /// A panic, as the hook [`panics`] says it: its words, and where it was, then the stack of the panic.
+    pub fn panicked(info: &PanicHookInfo) -> Self {
+        let payload = info.payload();
+        let words = payload
+            .downcast_ref::<&str>()
+            .copied()
+            .or_else(|| payload.downcast_ref::<String>().map(String::as_str))
+            .unwrap_or("a panic with no words");
+        match info.location() {
+            Some(at) => Self::msg(format!("{words} (panicked at {at})")),
+            None => Self::msg(format!("{words} (panicked)")),
+        }
+    }
+
     /// The line it is logged as.
     pub fn line(&self) -> String {
         line(&*self.error, &self.stack)
@@ -94,6 +109,13 @@ pub fn error(error: &(dyn StdError + 'static)) {
         std::io::stderr().lock(),
         &line(error, &Backtrace::force_capture()),
     );
+}
+
+/// Says each panic of the process once, on standard error, as an error's line, with the stack of the panic, in place
+/// of Rust's own words for it, so that nerd files it as an error: in a request, where the part server answers it 500,
+/// a job, or the process's end. The part server's `serve` calls it.
+pub fn panics() {
+    std::panic::set_hook(Box::new(|info| Error::panicked(info).log()));
 }
 
 fn line(error: &(dyn StdError + 'static), stack: &Backtrace) -> String {
@@ -145,6 +167,8 @@ fn frames(stack: &str) -> Vec<String> {
             "telemetry::error::Error",
             "telemetry::error::Words",
             "telemetry::error::error",
+            "telemetry::error::panic",
+            "__rustc::",
         ]
         .iter()
         .any(|of| function.starts_with(of))

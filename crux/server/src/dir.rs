@@ -7,6 +7,11 @@
 //! every name that begins with a dot, a dotfile or a directory as `.git`, and what is in it. Where
 //! `NAME.br` or `NAME.gz` sits beside `NAME`, it is `NAME`'s, sent as the build made it, and not a
 //! file of its own. What the build named after its contents ([`hashed`]) is sent [`IMMUTABLE`].
+//!
+//! [`Dir::header`] reaches only the files it reads: not the widget, telemetry's answers, the
+//! not-found page nor a 405. A header every answer must have, as COOP and COEP, is named with
+//! [`super::headers`] over the product's whole router instead (crux#44); [`Dir::header`] is for
+//! what goes by path, as a policy on the pages or a Cache-Control on a directory.
 
 use std::collections::{BTreeMap, HashSet};
 use std::io;
@@ -49,7 +54,8 @@ impl Dir {
     /// The same, each file whose path begins with `prefix` sent with `name: value`: `/` for every
     /// file, `/assets/` for those under it. Given again for the same name, the one given later
     /// is sent where both apply; a Cache-Control is sent so, but on a file named after its
-    /// contents, which is always [`IMMUTABLE`].
+    /// contents, which is always [`IMMUTABLE`]. A header for every answer, and not only the
+    /// directory's files, is [`super::headers`]'s.
     pub fn header(
         mut self,
         prefix: impl Into<String>,
