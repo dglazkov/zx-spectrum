@@ -1,0 +1,6 @@
+# In the workspace's directory, and not a member of it (its exclude).
+[package]
+name = "tune"
+version = "0.1.0"
+edition = "2021"
+publish = false

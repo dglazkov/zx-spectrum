@@ -1,0 +1,52 @@
+# The image of a product with an engine in wasm (crux's part wasm, crux#34): the engine built to WebAssembly with the
+# part's tool, the pages built around it with Node, the product's Rust server built with crux's parts, and a last
+# stage on distroless with the server and the built directory alone. No Node at run time.
+#
+# A product copies this file to its root as its Dockerfile, and it is the product's then: the lines marked PRODUCT are
+# where it says what it has. As it is, it builds a product shaped as crux's own check of it has one (`cargo run -p
+# scaffold -- wasm`): its Cargo workspace at the root, the server its package `app` (src/main.rs, which serves `dist`
+# as crux's crates/server/examples/dir.rs does), crux's parts in crux/, one engine (the crate `engine`) and its pages
+# in web/, built by `npm run build` into web/dist with the module at web/src/engine.wasm.
+#
+# The tests are not run here: they are nerd's (nerd.toml), run for what changed before a deploy.
+
+# The engine. Its Rust is the version its tests ran with: the tool's build is the same bytes wherever it is built, so
+# this stage makes the module the tests ran, where the toolchain is the same.
+FROM docker.io/library/rust:1.98.1-slim-bookworm AS wasm
+RUN rustup target add wasm32-unknown-unknown
+WORKDIR /src
+COPY Cargo.toml Cargo.lock ./
+COPY crux crux
+# PRODUCT: every other member of the workspace, and what they read as they build (a .cargo/config.toml, ROMs).
+COPY engine engine
+# The server's main, which this stage does not build, there so that cargo finds its package.
+RUN mkdir -p src && echo 'fn main() {}' > src/main.rs
+# PRODUCT: each engine, and where the pages take it from. With --opt, wasm-opt (binaryen) is installed in this stage
+# first, on the PATH or named by WASM_OPT: without it, the build fails.
+RUN cargo run --locked -q -p wasm -- build engine --out /wasm/engine.wasm
+
+# The pages, built around the module: Node, for the build alone.
+FROM docker.io/library/node:24.21.0-slim AS web
+WORKDIR /src
+COPY web/package.json web/package-lock.json web/
+RUN cd web && npm ci --no-audit --no-fund
+COPY web web
+# PRODUCT: where the pages import each module from. Their build takes it as it is, and builds no wasm of its own.
+COPY --from=wasm /wasm/engine.wasm web/src/engine.wasm
+# No source maps: the service answers anyone.
+RUN cd web && npm run build -- --sourcemap false
+
+# The server, on the engine's stage, which has the workspace: its dependencies and crux's parts first, against the
+# main that does nothing, so that a change to the product's own server builds only it.
+FROM wasm AS server
+RUN cargo build --release --locked -p app
+COPY src src
+RUN touch src/main.rs && cargo build --release --locked -p app && cp target/release/app /app
+
+# What runs: the server, and the built directory it serves, on the port in PORT.
+FROM gcr.io/distroless/cc-debian12
+WORKDIR /srv
+COPY --from=server /app app
+# PRODUCT: the directory the pages' build writes.
+COPY --from=web /src/web/dist dist
+CMD ["/srv/app", "dist"]

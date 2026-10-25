@@ -1,0 +1,18 @@
+[package]
+name = "telemetry"
+version = "0.1.0"
+# Its own, not the workspace's: a part reaches nothing outside its directory, in crux or in a product that takes it.
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "What a product's server records of its use, as nerd reads it (nerd guide telemetry): its events, its errors with their stacks, and the paths /nerd/event and /nerd/feedback."
+
+[dependencies]
+axum = { version = "0.8", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "macros"] }
+tower = { version = "0.5", default-features = false, features = ["util"] }
+futures-util = { version = "0.3", default-features = false }

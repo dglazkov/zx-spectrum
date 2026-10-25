@@ -1,7 +1,7 @@
 // The ZXDB's own index built from the real dump: the one the image is built from (tools/zxdb-index.mjs pins it, and
 // fixtures.txt names the same), from the fixture cache. It is the size it was, every shelf game in it is as ZXInfo
 // listed it (src/library/featured.json, ZXInfo's own answers) and gives the page the same file to load, and searches
-// find what ZXInfo found. Skipped where the dump cannot be had.
+// find what ZXInfo found, as the server searches it (crates/app, `app zxdb`). Skipped where the dump cannot be had.
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -12,7 +12,8 @@ import featured from '../src/library/featured.json';
 import { choose } from '../src/library/choose';
 import { entryOf } from '../src/library/zxinfo';
 import { buildFile, ZXDB_SHA256, ZXDB_URL } from '../tools/zxdb-index.mjs';
-import { entry, readIndex, search } from '../zxdb.mjs';
+import { buildApp } from '../app.mjs';
+import { entry, readIndex } from '../zxdb.mjs';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const listed = readFileSync(join(root, 'fixtures.txt'), 'utf8').split('\n').find((l) => l.startsWith('zxdb-mysql.sql.zip '))?.split(' ');
@@ -36,7 +37,7 @@ describe.skipIf(!dump)('the index of the real dump', () => {
   });
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
   const get = (id) => JSON.parse(entry(index, id)?.toString() ?? 'null');
-  const find = (q) => JSON.parse(search(index, new URLSearchParams(q)).toString());
+  const find = (q) => JSON.parse(execFileSync(buildApp(), ['zxdb', join(dir, 'index.txt.gz'), `/search?${q}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }));
 
   it('has the Spectrum’s software, small enough to ship: 36,539 entries in 2.4 MB at commit 0a634a1', () => {
     console.log(`  ${JSON.stringify(made)}`);

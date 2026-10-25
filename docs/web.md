@@ -66,28 +66,28 @@ web/
                                under the screen), game, library, timeline (rewind), osd (words on the screen),
                                settings, help (the keys, F1), inspector, touch pad, toasts; howto (what to press,
                                worked out) and overlay (the controls over the screen)
-  server.mjs                   the production server and the pass-through (below); server.d.mts its types
-  vite.config.ts               the dev server, with the same pass-through
+  app.mjs                      builds and starts the server (crates/app, below) for the dev server and tests/build.mjs
+  vite.config.ts               the dev server, passing the server's paths to it
   vitest.wasm.config.ts        the WebAssembly build's own tests (tests/wasm/)
   tools/featured.mjs           records the shelf and the test fixtures from the ZXInfo API
-  tools/zxdb-index.mjs         builds the ZXDB's own index from its dump, for zxdb.mjs (the Dockerfile runs it)
-  zxdb.mjs                     the server's answers from that index where ZXInfo cannot answer
+  tools/zxdb-index.mjs         builds the ZXDB's own index from its dump, for the server (the Dockerfile runs it)
+  zxdb.mjs                     how the index's text is written, and an entry of it read, for the tool's tests
   tools/bench.mjs              frames a second of the wasm build in Chrome, by model and loading a tape flat out
   tools/pictures.mjs           the pictures (below)
   tests/page.mjs               the page test in Chrome;  shot.mjs a picture;  smoke.mjs a running server
   tests/page/                  its harness (harness.mjs) and its parts, a file an area: machine, keys, tapes, library,
                                state, phone; a change to one file runs its parts alone
-  tests/build.mjs              the production build, served by server.mjs, with the smoke test's checks
+  tests/build.mjs              the production build, served by the server, with the smoke test's checks
   tests/wasm/wasm.spec.ts      the module in Node, held to the native build;  nerd-reporter.mjs its parts to nerd
   tests/wasm/games/            each card held to its game on the module (helpers.ts; saboteur.spec.ts, ...): its route
                                to play, by the keys and by the joystick, and every control it names moving the player
-  tests/server.test.mjs        the pass-through;  tests/fixtures/zxinfo/ recorded API answers
-  tests/zxdb.test.mjs          the index and the fallback to it;  tests/fixtures/zxdb/ an excerpt of the dump
+  tests/fixtures/zxinfo/       recorded API answers
+  tests/zxdb.test.mjs          the index the tool builds;  tests/fixtures/zxdb/ an excerpt of the dump
   tests/zxdb-dump.spec.mjs     the index of the real dump (vitest.zxdb.config.ts)
 ```
 
 Commands (in `web/`, after `npm install`): `npm run dev` (builds the module if it is missing or stale, then Vite at
-:5173), `npm run build` (the same, into `dist/`), `npm start` (`node server.mjs`, PORT or 8080), `npm run test:unit`,
+:5173), `npm run build` (the same, into `dist/`), `npm start` (the server on `dist/`, PORT or 8080), `npm run test:unit`,
 `npm run test:wasm`, `node tests/page.mjs [words]`, `node tests/shot.mjs [--phone] [--dpr 2] [--file tape.tzx]
 [--frames N] [--eval js] [--settings json] [--full]` (a picture into `out/`), `node tools/pictures.mjs [desktop]
 [phone] [--sharp]`, `node tools/bench.mjs [--frames N] [--json]`, `node tests/smoke.mjs URL`, `node tools/featured.mjs
@@ -679,9 +679,13 @@ The ROM's own power-on (the RAM test, then the copyright) goes on beneath it.
 
 ## The server
 
-`web/server.mjs` hands out `dist/` from memory, read and compressed once at start (Brotli 9 and gzip 9; hashed
-`/assets/` immutable for a year, `/fonts/` a week, the rest `no-cache`), with no path from a URL to the disk, and
-passes two prefixes through, streamed, nothing kept on disk:
+`crates/app`, in Rust, on crux's parts (since #9; it was `web/server.mjs`, on Node): crux's `server` hands out
+`dist/` from memory as crux's `examples/dir.rs` serves a built directory (`Dir`: text compressed once with Brotli and
+gzip; hashed `/assets/` immutable for a year, `/fonts/` a week, the rest as `Dir` sends them, five minutes), with no
+path from a URL to the disk; nerd's widget at `/nerd-feedback.js` (`index.html` loads it itself, first in its
+`<head>`); each page's load measured (crux's `load`, its tag at the end of each page's `<head>`, views `home` and
+`how`); and `/nerd/event` and `/nerd/feedback` (crux's `telemetry`). In front of them, `src/pass.rs` passes two
+prefixes through, streamed, nothing kept on disk:
 
 | Prefix | To | Paths | Cap | Timeout | Cache |
 |---|---|---|---|---|---|
@@ -696,14 +700,12 @@ Content-Length is passed on only for a body sent as it is: fetch hands the body 
 compressed one would be wrong (the client then saw the connection cut: tested with a gzipping origin). What comes
 through carries `Content-Security-Policy: default-src 'none'; sandbox` and `nosniff`, so an HTML answer (the
 archive's 404 pages are HTML) opened on this origin runs nothing, and `Cross-Origin-Resource-Policy: same-origin`, so
-no other site's page takes it. The body streams through `pipeline` as the client takes it, under the route's timeout
-for the whole exchange: a client that stops reading is let go of when the time is up, and the archive's connection
-with it (before, the timeout covered only the fetch, and a stalled client held the handler, and leaked a listener
-at each wait, until it left). A client is allowed 120 requests a minute through (a burst of 60; by the first address of
+no other site's page takes it. The body streams as the client takes it, under the route's timeout for the whole exchange: a client that stops
+reading is let go of when the time is up, its connection closed (`src/conn.rs`), and the archive's connection with it. A client is allowed 120 requests a minute through (a burst of 60; by the first address of
 X-Forwarded-For), then 429. Other paths under those prefixes are 403; methods other than GET and HEAD 405; upstream
 failures 502, timeouts 504. No cross-origin isolation headers.
 
-**Where ZXInfo cannot answer, the ZXDB's own index does** (`zxdb.mjs`; issue #7). On Oct 18 2026 api.zxinfo.dk
+**Where ZXInfo cannot answer, the ZXDB's own index does** (`src/zxdb.rs`; issue #7). On Oct 18 2026 api.zxinfo.dk
 answered 502 for every path for hours, its nginx up and what is behind it not, and the page's search and every
 `?game=` link of a game not on the shelf failed. The image now carries an index of the Spectrum's software built
 from the ZXDB's own MySQL dump (https://github.com/zxdb/ZXDB, the commit and the SHA-256 pinned in
@@ -718,9 +720,12 @@ its answers kept as the UTF-8 they are sent as: parsed into objects it took 76 M
 titles and publisher, accents and punctuation aside: the title the query, then a title beginning with it, then every
 word the start of a title's word, then of the publisher's; within each, the one with more releases first. `/suggest`
 is not answered from it (the page does not ask). Every shelf game in it is as ZXInfo lists it and loads the same
-file (`nerd test zxdb-dump`). The dev server (`vite.config.ts`) uses the same `passThrough`. `startServer(root, port)` runs
-when the file is run (`node server.mjs`, PORT or 8080), and stops on SIGTERM after what is in flight. For an image:
-`npm ci && npm run build` in `web/`, then `node server.mjs` beside `dist/`.
+file (`nerd test zxdb-dump`, which asks the server's own search: `app zxdb INDEX PATH`). The dev server
+(`vite.config.ts`) starts the same server beside it (`app.mjs`) and passes it `/archive/`, `/zxinfo/`, `/nerd/` and
+`/nerd-feedback.js`, rather than keeping a copy of it in JavaScript: one pass-through, which the page test's part with
+ZXInfo down goes through. `cargo run -p app -- web/dist` serves a build (PORT or 8080), and stops on SIGTERM after
+what is in flight. The image (`Dockerfile`, from crux's `crux/wasm/Dockerfile.wasm`) runs it on distroless, the index
+beside it, with no Node. Its tests: `nerd test server` (`crates/app/tests/`).
 
 ## Rewind, snapshots, files, settings
 
@@ -801,10 +806,11 @@ code) is already the bar and the set with its tube dark, which the page then swi
 | Layer (nerd.toml) | What | How long |
 |---|---|---|
 | `wasm` | crates/wasm's 13 tests of its C interface, natively; then the module in Node (`tests/wasm/`: the module's parts, and each card's, `tests/wasm/games/`) | 30 s |
-| `web-types` | `tsc --noEmit` (TypeScript 7), strict, over src, vite.config.ts, server.d.mts | 1 s |
+| `server` | the server's Rust tests (`crates/app/tests/`): the pass-through against origins of their own, the ZXDB's index, the binary on a built directory | 2 s |
+| `web-types` | `tsc --noEmit` (TypeScript 7), strict, over src, vite.config.ts, app.d.mts | 1 s |
 | `web-unit` | Vitest, 148 tests in 20 files (below) | 6 s |
 | `web-page` | Chrome (playwright-core, `CHROME` with `CHROME_ARGS`, WebGL on the GPU) on the real machine, 34 parts, 4 at a time | 30 s |
-| `web-build` | the production build (vite build, the module as tested), served by `server.mjs` on a port of its own, with the smoke test's checks but those needing the network (`tests/build.mjs`) | 8 s |
+| `web-build` | the production build (vite build, the module as tested), served by the server on a port of its own, with the smoke test's checks but those needing the network (`tests/build.mjs`) | 8 s |
 
 **wasm**. Natively (`crates/wasm/src/tests.rs`): a model out of range is a null handle and a null handle is harmless;
 every model boots to its ROM, with its frame's samples; a tape lists its blocks as JSON and loads at once with the
@@ -831,7 +837,7 @@ held): Saboteur's route from the REWARD screen at once and after 37, 150, 400 an
 joystick, to the game, which then answers to what was chosen and not to the other, and every control it names moving
 the ninja, both ways.
 
-Unit (`web/src/**/*.test.ts`, `web/tests/server.test.mjs`): the play cards (`library/cards.test.ts`: the registry finds
+Unit (`web/src/**/*.test.ts`, `web/tests/*.test.mjs`): the play cards (`library/cards.test.ts`: the registry finds
 Saboteur's by its id, padded or not, and none for a game without one; every card in it is for a shelf game, its keys
 Spectrum keys, its joystick's directions and fire, a key map only where it takes no joystick, a route that does not
 throw on a blank screen, its sources addresses); what to press (`ui/howto.test.ts`: a card's controls by the joystick,

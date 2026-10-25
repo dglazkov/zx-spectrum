@@ -1,0 +1,12 @@
+[package]
+name = "fixture-shared"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+# Built against memory it is handed, shared between threads, as synth-exp's render-mix.
+[package.metadata.wasm]
+memory = "shared"

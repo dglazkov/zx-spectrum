@@ -1,0 +1,16 @@
+[package]
+name = "fixture-engine"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+kit = { path = "../../home/kit" }
+tune = { path = "../tune" }
+
+[features]
+# A feature that changes what the module computes, so that a build with it is not the bytes of one without.
+loud = []

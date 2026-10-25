@@ -1,4 +1,4 @@
-// The page as a visitor gets it, from a running server (the deployed one, or `node server.mjs`): it is handed out,
+// The page as a visitor gets it, from a running server (the deployed one, or `npm start`): it is handed out,
 // the archive and the ZXInfo API come through it, the emulator is served as WebAssembly, and the page starts in
 // Chrome on the real machine with no errors, the machine the tests passed: the very module they ran (its SHA-256 the
 // local build's, web/src/emulator/zx.wasm: the build is reproducible, scripts/build-wasm.sh), the 48K's copyright, and
@@ -78,7 +78,7 @@ export async function smoke(url, { network = true, log = console.log } = {}) {
     if (!res.ok) assert(false, `${res.status}: ${(await res.text()).trim().slice(0, 200)}`);
     const body = await res.json();
     assert(body.hits?.hits?.[0]?._source?.title, `${res.status}, and no title`);
-    // ZXInfo down, the server's own index answers (web/zxdb.mjs): said, as it is not ZXInfo.
+    // ZXInfo down, the server's own index answers (crates/app/src/zxdb.rs): said, as it is not ZXInfo.
     const by = res.headers.get('x-answered-by');
     return `  — ${body.hits.hits[0]._source.title}${by ? `, from ${by} (${body.source})` : ', from ZXInfo'}`;
   });

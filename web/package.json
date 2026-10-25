@@ -7,7 +7,8 @@
   "scripts": {
     "wasm": "bash ../scripts/build-wasm.sh",
     "dev": "bash ../scripts/build-wasm.sh && vite",
-    "build": "bash ../scripts/build-wasm.sh && tsc --noEmit && vite build",
+    "build": "bash ../scripts/build-wasm.sh && npm run build:page",
+    "build:page": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run",
     "test:wasm": "vitest run -c vitest.wasm.config.ts",
@@ -15,7 +16,7 @@
     "shot": "node tests/shot.mjs",
     "bench": "node tools/bench.mjs",
     "featured": "node tools/featured.mjs",
-    "start": "node server.mjs"
+    "start": "cd .. && cargo run -q -p app -- web/dist"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

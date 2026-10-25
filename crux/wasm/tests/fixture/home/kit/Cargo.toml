@@ -1,0 +1,6 @@
+# In cargo's home, as a crate of crates.io is: the tests make ../ their CARGO_HOME.
+[package]
+name = "kit"
+version = "0.1.0"
+edition = "2021"
+publish = false

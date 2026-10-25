@@ -1,6 +1,7 @@
 // What the page tells nerd of its use (`nerd guide telemetry`): a few events, each a step of playing a game or how it
-// ended, posted to the server's /nerd/event, which prints it as one line; and told to nerd's feedback widget
-// (public/nerd-feedback.js, loaded first in index.html), so that the last few go with what the person sends.
+// ended, posted to the server's /nerd/event (crux's part telemetry, in crates/app), which prints it as one line; and
+// told to nerd's feedback widget (crux's part widget, loaded first in index.html), so that the last few go with what the
+// person sends.
 //
 // Events are counted, never of anyone: no title, no file name, no number of an entry, only the kinds the page names.
 //

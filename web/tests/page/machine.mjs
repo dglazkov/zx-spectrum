@@ -5,7 +5,7 @@ import { parts, AMSTRAD, SHARP, assert, clean, open, pixel, ready, screen, until
 
 const test = parts(import.meta.url);
 
-test('becomes ready on the real machine, drawn in WebGL 2', ['web/src/keyboard/', 'web/src/ui/library.ts', 'web/src/library/', 'web/public/', 'web/server.mjs'], async () => {
+test('becomes ready on the real machine, drawn in WebGL 2', ['web/src/keyboard/', 'web/src/ui/library.ts', 'web/src/library/', 'web/public/', 'crates/app/', 'crux/widget/'], async () => {
   const page = await open();
   const ready = await page.evaluate(() => ({ emulator: document.body.dataset.emulator, renderer: document.body.dataset.renderer, keys: document.querySelectorAll('.kb-key').length, cards: document.querySelectorAll('.card').length }));
   assert(ready.emulator === 'wasm' && ready.renderer === 'webgl2', JSON.stringify(ready));

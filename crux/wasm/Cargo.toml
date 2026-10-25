@@ -1,0 +1,13 @@
+[package]
+name = "wasm"
+version = "0.1.0"
+# Its own, not the workspace's: a part reaches nothing outside its directory, in crux or in a product that takes it.
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "The build of a product's engine to WebAssembly: a crate of its workspace built for wasm32-unknown-unknown in release, the same bytes wherever it is built, shared memory where the crate asks for it, wasm-opt where asked, and the file written whole; and Dockerfile.wasm, the image of a product with an engine in wasm, its last stage crux's server on distroless."
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"

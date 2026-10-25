@@ -1,0 +1,12 @@
+# The part's own tests' workspace (tests/build.rs): a product's, as small as it can be. Its own workspace, not crux's,
+# so that the tests run as well in a product that takes the part. Each place a path compiled in can start from is
+# here, each in a panic the engine can meet: a member (engine), a crate of the workspace's directory that is not a
+# member (tune), a crate of cargo's home (kit, in ../home, the tests' CARGO_HOME, as a crate of crates.io is), and
+# code the build writes where cargo builds (engine's build.rs). And a crate built against shared memory (shared).
+[workspace]
+members = ["engine", "shared"]
+exclude = ["tune"]
+resolver = "2"
+
+[profile.release]
+panic = "abort"

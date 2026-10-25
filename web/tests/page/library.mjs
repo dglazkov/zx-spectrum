@@ -99,7 +99,7 @@ test('Saboteur from the library: searched, fetched, loaded flat out to its £100
   return `REWARD ${frames} frames after the tape went in; keys ${after.keys.join(' ')}; the game ${started.frames - s0} frames after Start; the controls over it`;
 });
 
-test('with ZXInfo down (its nginx’s 502 for every path), Saboteur is found in the ZXDB’s own index and loads, and a link to a game not on the shelf (?game=2514) opens from it', ['web/server.mjs', 'web/zxdb.mjs', 'web/tools/zxdb-index.mjs', 'web/tests/fixtures/zxdb/', 'web/src/library/', 'web/src/ui/library.ts'], async () => {
+test('with ZXInfo down (its nginx’s 502 for every path), Saboteur is found in the ZXDB’s own index and loads, and a link to a game not on the shelf (?game=2514) opens from it', ['crates/app/', 'web/app.mjs', 'web/zxdb.mjs', 'web/tools/zxdb-index.mjs', 'web/tests/fixtures/zxdb/', 'web/src/library/', 'web/src/ui/library.ts'], async () => {
   // The page's ZXDB requests go to the server, as they do when deployed; its ZXInfo is the harness's stand-in.
   const through = (page) => page.route('**/zxinfo/v3/**', (r) => r.continue());
   const asked = zxinfo.asked.length;

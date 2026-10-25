@@ -1,5 +1,6 @@
 # The emulator, a crate for each part of the machine, so that each builds and tests on its own:
 # `cargo test -p z80` touches nothing but the CPU. docs/architecture.md says what each is and how they meet.
+# And the server (crates/app), on crux's parts, copied into crux/ by `nerd crux` (nerd.toml's [crux]).
 [workspace]
 resolver = "3"
 members = [
@@ -12,6 +13,12 @@ members = [
   "crates/spectrum",
   "crates/wasm",
   "crates/cli",
+  "crates/app",
+  "crux/server",
+  "crux/telemetry",
+  "crux/widget",
+  "crux/load",
+  "crux/wasm",
 ]
 
 [workspace.package]
@@ -27,6 +34,12 @@ tape = { path = "crates/tape" }
 snapshot = { path = "crates/snapshot" }
 unzip = { path = "crates/unzip" }
 spectrum = { path = "crates/spectrum" }
+# Where each of crux's parts is, for the server and for a part that depends on another (crux/widget and crux/load on
+# server; crux/server's and crux/load's tests on the rest).
+server = { path = "crux/server" }
+telemetry = { path = "crux/telemetry" }
+widget = { path = "crux/widget" }
+load = { path = "crux/load" }
 # Inflate and deflate, in Rust alone (no C), so that it compiles to WebAssembly as it is: zip archives, CSW
 # tapes, SZX snapshots, PNG screenshots.
 miniz_oxide = "0.8"
@@ -34,11 +47,20 @@ miniz_oxide = "0.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+# The emulator's: the WebAssembly the page runs, and zx's corpus.
 [profile.release]
 opt-level = 3
 lto = "fat"
 codegen-units = 1
 panic = "abort"
+
+# The server's build for the image (Dockerfile): optimised, but not as the emulator is, at a cost of minutes a deploy
+# for nothing a reader would notice; and a panic in one request is that request's, not the end of the server.
+[profile.server]
+inherits = "release"
+lto = "thin"
+codegen-units = 16
+panic = "unwind"
 
 # An emulator is unusably slow unoptimised, and its test suites run billions of instructions: optimise, and keep
 # the debug assertions and overflow checks, which catch arithmetic that wraps where the hardware would not.

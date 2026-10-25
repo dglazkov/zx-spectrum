@@ -153,7 +153,7 @@ The page searches the ZXDB through the ZXInfo API, by way of its own server at `
 carry their cross-origin header twice, which browsers refuse: docs/web.md), and shows its screenshots straight from
 zxinfo.dk and spectrumcomputing.co.uk. A game's inlay and its instructions (as text) come through `/archive` with its
 files. The archive's files themselves come
-without cross-origin headers, so the server (`web/server.mjs`) fetches them for the page at
+without cross-origin headers, so the server (`crates/app`) fetches them for the page at
 `/archive/pub/sinclair/...` and `/archive/zxdb/sinclair/...` (the software's directories and the ZXDB's entries;
 Spectrum files, text and pictures), from spectrumcomputing.co.uk alone, keeping nothing, a client at a time at most
 120 a minute. The archive holds only what its rights holders allow to be distributed; the page loads only what ZXDB

@@ -1,0 +1,18 @@
+[package]
+name = "widget"
+version = "0.1.0"
+# Its own, not the workspace's: a product takes this directory as it is (crux.toml).
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "nerd's feedback widget, as `nerd telemetry widget` prints it, served by the part server at /nerd-feedback.js."
+
+[dependencies]
+# The part server, where the product's workspace says it is: `server = { path = "crux/server" }` in its
+# [workspace.dependencies], as crux's own says `crates/server`.
+server = { workspace = true }
+
+[dev-dependencies]
+brotli = "8"
+flate2 = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "net"] }

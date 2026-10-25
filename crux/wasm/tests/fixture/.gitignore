@@ -1,0 +1,5 @@
+# What cargo leaves where the fixture is built in place, rather than in a copy as its tests build it.
+target
+home/.global-cache
+home/.package-cache*
+home/registry

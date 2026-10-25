@@ -149,8 +149,9 @@ const queue = [];
 // What changed (nerd's NERD_CHANGED, one path a line): a part runs if a file it covers changed, all of them if a file
 // they share did (the machine itself among them), or one no part claims; with nothing given, all of them.
 const changed = (process.env.NERD_CHANGED ?? '').split('\n').filter(Boolean);
-// web/server.mjs is only the dev server's pass-through, which the page's routes answer before it: starting is its test.
-const SHARED = ['web/src/app.ts', 'web/src/main.ts', 'web/src/style.css', 'web/index.html', 'web/vite.config.ts', 'web/tests/page.mjs', 'web/tests/page/harness.mjs', 'web/src/emulator/', 'web/src/video/', 'web/src/ui/dom.ts', 'web/src/ui/controls.ts', 'web/src/ui/toast.ts', 'web/src/clock/', 'web/package-lock.json', 'roms/', 'crates/', 'scripts/build-wasm.sh', 'Cargo.toml', 'Cargo.lock', 'fixtures.txt'];
+// The server (crates/app, beside the dev server: web/app.mjs) is answered for by the page's routes but where a part lets
+// a request through to it: starting is its test.
+const SHARED = ['web/src/app.ts', 'web/src/main.ts', 'web/src/style.css', 'web/index.html', 'web/vite.config.ts', 'web/app.mjs', 'web/tests/page.mjs', 'web/tests/page/harness.mjs', 'web/src/emulator/', 'web/src/video/', 'web/src/ui/dom.ts', 'web/src/ui/controls.ts', 'web/src/ui/toast.ts', 'web/src/clock/', 'web/package-lock.json', 'roms/', 'crates/', 'scripts/build-wasm.sh', 'Cargo.toml', 'Cargo.lock', 'fixtures.txt'];
 const claims = (covers, path) => covers.some((c) => path === c || path.startsWith(c));
 
 /** A page on the real machine (or `query` for another), its clock the test's, the network answered from recordings; its console errors fail the test. */

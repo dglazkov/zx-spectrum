@@ -1,0 +1,20 @@
+[package]
+name = "load"
+version = "0.1.0"
+# Its own, not the workspace's: a product takes this directory as it is (crux.toml).
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "Each load of a product's pages, measured in the browser and sent to /nerd/event: the script, its tag for a view, and the hash a page's policy allows it by."
+
+[dependencies]
+base64 = "0.22"
+ring = "0.17"
+# The part server, where the product's workspace says it is, as the part widget has it.
+server = { workspace = true }
+
+[dev-dependencies]
+# The page load.test.ts loads in Chrome (examples/page.rs): served by the part server, sending to the part
+# telemetry, where the product's workspace says it is.
+telemetry = { workspace = true }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

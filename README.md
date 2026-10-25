@@ -26,7 +26,7 @@ npm run dev          # builds the emulator to WebAssembly (scripts/build-wasm.sh
 changed). To build it yourself: `scripts/build-wasm.sh` (into `web/src/emulator/zx.wasm`; reproducibly: the same
 sources and toolchain make the same bytes wherever they are built, so the module the Dockerfile builds is the one the
 tests ran, which the smoke test checks). `npm run build` makes `web/dist/`, and `npm start` serves it as the
-deployed site does (`web/server.mjs`, port `PORT` or 8080), passing the archive's files and the ZXDB through for the
+deployed site does (`crates/app`, in Rust on crux's parts, port `PORT` or 8080), passing the archive's files and the ZXDB through for the
 page. The `Dockerfile` builds the whole site from the repository alone; `nerd deploy` puts it up.
 
 The page's address takes `?game=<ZXDB id>`, `?emulator=stub` (the stand-in the page was built against), `?renderer=2d`

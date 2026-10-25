@@ -1,0 +1,22 @@
+[package]
+name = "server"
+version = "0.1.0"
+# Said here, not taken from a workspace: a product takes this directory as it is (crux's CLAUDE.md).
+edition = "2021"
+license = "Apache-2.0"
+description = "The shell a product's pages are served from: every file held in memory, its bytes shared; text compressed once, with brotli and gzip at their best, and never sent larger; tags and 304s; a range of a file sent as it is, with 206 and 416; the table swapped whole; a built directory served whole, its own .br and .gz, its hashed assets kept a year, its app's page for a route, the product's headers by path; served with axum on $PORT."
+
+[dependencies]
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
+brotli = "8"
+bytes = "1"
+flate2 = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "net", "macros", "signal", "sync"] }
+
+
+# What examples/dir.rs, a product's main.rs serving its built directory, takes beside this part: the parts a new
+# product starts with, where the product's workspace says they are, as scaffold/server's Cargo.toml says them all.
+[dev-dependencies]
+load = { workspace = true }
+telemetry = { workspace = true }
+widget = { workspace = true }

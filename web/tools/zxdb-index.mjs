@@ -1,8 +1,8 @@
-// The ZXDB's own index, for the server to answer from where the ZXInfo API cannot (web/zxdb.mjs): built from the
+// The ZXDB's own index, for the server to answer from where the ZXInfo API cannot (crates/app/src/zxdb.rs): built from the
 // ZXDB's MySQL dump (https://github.com/zxdb/ZXDB, ZXDB_mysql.sql.zip), the Spectrum's software alone, each entry in
 // the shape of the API's compact `_source` as far as the page reads it (web/src/library/zxinfo.ts): its title (and
 // other titles, for the search), year, machine, availability, genre, publisher, the files of each release, and its
-// inlay, instructions and screens. Written gzipped, as zxdb.mjs reads it (indexText).
+// inlay, instructions and screens. Written gzipped, as zxdb.mjs writes it (indexText).
 //
 //   node tools/zxdb-index.mjs DUMP OUT [--source TEXT]
 //       DUMP is ZXDB_mysql.sql.zip or ZXDB_mysql.sql; OUT the index (.gz); --source says where the dump came from

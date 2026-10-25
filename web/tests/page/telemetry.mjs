@@ -38,7 +38,7 @@ test('tells nerd what was played and how it went, and nothing of who or which: a
   return said.join(', ');
 });
 
-test('nerd’s feedback card: F7 and Settings open it, what is typed in it is not the machine’s, and it is sent as one line', ['web/src/telemetry.ts', 'web/src/ui/settings.ts', 'web/src/ui/help.ts', 'web/src/input/pc-keyboard.ts', 'web/public/nerd-feedback.js'], async () => {
+test('nerd’s feedback card: F7 and Settings open it, what is typed in it is not the machine’s, and it is sent as one line', ['web/src/telemetry.ts', 'web/src/ui/settings.ts', 'web/src/ui/help.ts', 'web/src/input/pc-keyboard.ts', 'crux/widget/', 'crates/app/'], async () => {
   const page = await open();
   await wait(page, 2000);
   const bottom = () => page.evaluate(() => window.zx.emulator.screenText().split('\n')[23]);
