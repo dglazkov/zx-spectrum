@@ -56,7 +56,9 @@ headers as an encoder that indexes all it sends would code them, after those of 
 answers before it by URL, its times and age at values fixed for them too: whether its server sent
 a header as a reference to the answer before, or whole, is its own. A weight's baseline keeps as
 its worst the bytes weighed and a margin, the larger of 0.1% of them and 1 KB: a weight within it
-is not worse than its baseline.
+is not worse than its baseline. A page's bytes keep one too, the larger of 0.1% of their worst and
+64 B, as a page whose markup is the same compresses a few bytes apart from one build to the next
+where the names of its hashed assets changed.
 
 Each mark is timed after the times and before the weights, in Chrome as the weights are, but as a
 desktop (1280 CSS pixels wide, 800 high), and as the page runs, its frames and all: each page that
@@ -316,12 +318,12 @@ async function measure(fetcher: Fetcher, page: Page, tries: number): Promise<Mea
     times.push(r.ms);
   }
   const kept = withoutNoise(times);
-  const number = (key: string, unit: string, xs: number[], noise: number): Measured => ({
+  const number = (key: string, unit: string, xs: number[], noise: number, worst = round(Math.max(...xs))): Measured => ({
     name: `${page.name}_${key}`, unit, value: round(median(xs)), spread: quartiles(xs).map(round) as [number, number],
-    better: 'lower', worst: round(Math.max(...xs)), noise,
+    better: 'lower', worst, noise,
   });
   return [
-    number('bytes', 'B', wires, 0),
+    number('bytes', 'B', wires, 0, bytesWorst(Math.max(...wires))),
     number('requests', 'requests', [requests], 0),
     number('ms', 'ms', kept, times.length - kept.length + retried),
   ];
@@ -366,6 +368,13 @@ export async function probe(options: ProbeOptions): Promise<Measured[]> {
  * 1 KB, so that a few bytes more of a third party's answer, or of a frame's split, is not a regression (#56).
  */
 export const weightWorst = (bytes: number) => Math.floor(bytes + Math.max(bytes / 1000, 1024));
+
+/**
+ * The worst a page's bytes keep in its baseline: the most of its answers and a margin, the larger of 0.1% of them and
+ * 64 B, so that a page whose markup is the same is not a regression for the names of its hashed assets, which brotli
+ * compresses a few bytes apart from one build to the next (#70).
+ */
+export const bytesWorst = (bytes: number) => Math.floor(bytes + Math.max(bytes / 1000, 64));
 
 /** The marks a page has: those on every page, and its own. */
 const marksOf = (marks: Mark[], page: Page) => marks.filter((m) => m.page === undefined || m.page === page.name);

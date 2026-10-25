@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AddressInfo } from 'node:net';
-import { framed, framesOf, headerBlock, idealsFrom, marksFrom, median, numberNames, pagesFrom, probe, quartiles, report, steadied, subresources, timeMarks, valueBytes, weigh, withoutNoise } from './speed.ts';
+import { bytesWorst, framed, framesOf, headerBlock, idealsFrom, marksFrom, median, numberNames, pagesFrom, probe, quartiles, report, steadied, subresources, timeMarks, valueBytes, weigh, withoutNoise } from './speed.ts';
 import type { Clock, Mark, Measured, Page } from './speed.ts';
 
 const icon = '<link rel="icon" href="data:image/svg+xml,x">';
@@ -214,6 +214,49 @@ test('a weight is judged with a margin: within its baseline up to 0.1% or 1 KB m
   } finally {
     await s.close();
   }
+});
+
+test('a page\'s bytes are judged with a margin: the same markup with new hashed names is not worse, and more of it is', async () => {
+  // A page as a bundler writes it, its script and stylesheet named by their hashes, the rest of it the same each build:
+  // the hashes drawn from a seed, so each run is the same builds.
+  let seed = 70;
+  const char = () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-'[((seed = (seed * 1103515245 + 12345) % 2 ** 31) >>> 16) % 64];
+  const hash = () => Array.from({ length: 8 }, char).join('');
+  const markup = (more = '') => `<!doctype html><html lang="en"><head><meta charset="utf-8">${icon}
+    <meta name="viewport" content="width=device-width, initial-scale=1"><title>Dawn</title>
+    <script type="module" crossorigin src="/assets/index-${hash()}.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-${hash()}.css"></head>
+    <body><main id="app"><h1>Dawn</h1><p>A day as it begins, kept for you.</p>${more}</main></body></html>`;
+  let html = markup();
+  const s = await stand(() => ({ html }));
+  try {
+    const bytes = async (file: string | null, write: boolean) =>
+      report(await probe({ url: s.url, pages: [{ name: 'home', path: '/' }], tries: 1, clock: testClock(), weigh: scales }), file, write)
+        .numbers.find((n) => n.name === 'home_bytes')!;
+    const file = JSON.stringify({ numbers: [await bytes(null, true)] });
+    const baseline = (await bytes(file, false)).baseline;
+    assert.equal(baseline.worst, baseline.value + 64);
+    // As nerd judges it: worse where it is more than its baseline's worst. Builds whose names alone changed are not,
+    // though some compress past the build the baseline was written from.
+    const builds: number[] = [];
+    for (let i = 0; i < 40; i++) {
+      html = markup();
+      const n = await bytes(file, false);
+      assert.ok(n.value <= n.baseline.worst, `${n.value} B, a baseline of ${n.baseline.value} B`);
+      builds.push(n.value);
+    }
+    assert.ok(builds.some((b) => b > baseline.value), `every build compressed to ${baseline.value} B or less: ${builds}`);
+    // A page with more to it, words that compress no smaller, is worse.
+    html = markup(`<p>${hash()}${hash()}${hash()}${hash()}${hash()}${hash()}${hash()}${hash()}${hash()}${hash()}</p>`);
+    const more = await bytes(file, false);
+    assert.ok(more.value > more.baseline.worst, `${more.value} B, a baseline of ${more.baseline.worst} B at worst`);
+  } finally {
+    await s.close();
+  }
+  // The margin is 64 B, or 0.1% of the bytes where that is larger.
+  assert.equal(bytesWorst(1573), 1637);
+  assert.equal(bytesWorst(64000), 64064);
+  assert.equal(bytesWorst(200000), 200200);
 });
 
 const measured: Measured[] = [
