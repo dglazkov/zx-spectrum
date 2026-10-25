@@ -4,7 +4,7 @@ version = "0.1.0"
 # Said here, not taken from a workspace: a product takes this directory as it is (crux's CLAUDE.md).
 edition = "2021"
 license = "Apache-2.0"
-description = "The shell a product's pages are served from: every file held in memory, its bytes shared; text compressed once, with brotli and gzip at their best, and never sent larger; tags and 304s; a range of a file sent as it is, with 206 and 416; the table swapped whole; a built directory served whole, listened on before it is read, each file read when first asked for or in the background, its own .br and .gz, its hashed assets kept a year, its app's page for a route, the product's headers by path, and on every answer its router makes; served with axum on $PORT, a client that stops reading let go of."
+description = "The shell a product's pages are served from: every file held in memory, its bytes shared; text compressed once, with brotli and gzip at their best, and never sent larger; tags and 304s; a range of a file sent as it is, with 206 and 416; the table swapped whole; a built directory served whole, listened on before it is read, each file read when first asked for or in the background, its own .br and .gz, its hashed assets kept a year, its app's page for a route, the product's headers by path, and on every answer its router makes; served with axum on $PORT, a client that stops reading let go of; and off Cloud Run each request printed as Cloud Run logs it."
 
 [dependencies]
 axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
@@ -30,4 +30,10 @@ futures-core = "0.3"
 # A server whose route panics, in a process of the test's own, as the hook is the process's: a main of its own.
 [[test]]
 name = "panic"
+harness = false
+
+# Each request printed as Cloud Run logs it, off Cloud Run alone (crux#76), in a process of the test's own, as
+# K_SERVICE is read as the server starts: a main of its own.
+[[test]]
+name = "requests"
 harness = false

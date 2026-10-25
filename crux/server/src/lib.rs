@@ -32,6 +32,13 @@
 //! when it is first asked for, or by the pass [`Site`] begins once it is first asked for anything
 //! ([`Table::read`]), whichever comes first, and a request waits on no file but its own.
 //!
+//! Off Cloud Run, where `K_SERVICE` is unset, [`serve`] prints a line on standard error for each request it
+//! answers, as Cloud Run logs one there (crux#76):
+//! `{"httpRequest":{"requestMethod","requestUrl","status","latency"},"severity"}`, its path alone and not its query,
+//! and nothing of who asked ([`logged`]); so that nerd counts a product's requests at home as it counts them on Cloud
+//! Run, and on Cloud Run, which logs them itself, none twice. On standard error, not output, as products' tests read
+//! their server's standard output for telemetry's events alone.
+//!
 //! A header that must be on every answer the product makes, and not only on its files, as COOP and
 //! COEP must for a page to be cross-origin isolated, is named once, with [`headers`], over the
 //! whole router, its own routes and telemetry's merged in: the widget, a 404, a 405, a redirect
@@ -1126,7 +1133,8 @@ pub async fn serve(app: axum::Router) -> Result<(), String> {
 /// as the part telemetry's limit asks for where no load balancer said it (crux#38), and its
 /// [`Peer`], as `ConnectInfo<Peer>`, for a route to let go of its connection; a connection whose
 /// write makes no headway for [`STALL`], as a client that stopped reading leaves it, is let go of
-/// (crux#45); and a request whose answer panics is answered 500 ([`guarded`]).
+/// (crux#45); a request whose answer panics is answered 500 ([`guarded`]); and, off Cloud Run, each request is printed
+/// as Cloud Run logs it ([`logged`]).
 pub async fn serve_on(listener: tokio::net::TcpListener, app: axum::Router) -> std::io::Result<()> {
     serve_on_within(listener, app, STALL).await
 }
@@ -1140,6 +1148,10 @@ pub async fn serve_on_within(
     let mut term = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
     let app = guarded(app)
         .layer(axum::middleware::from_fn(addressed))
+        .layer(axum::middleware::from_fn_with_state(
+            std::env::var_os("K_SERVICE").is_none(),
+            logged,
+        ))
         .into_make_service_with_connect_info::<Peer>();
     let listener = conn::Listener {
         tcp: listener,
@@ -1153,6 +1165,77 @@ pub async fn serve_on_within(
             }
         })
         .await
+}
+
+/// The answer to `req`, and, where `print` is so, as it is off Cloud Run (`K_SERVICE` unset, as Cloud Run sets it), one
+/// line on standard error saying it, as Cloud Run logs a request and nerd reads it ([`request_line`]), written whole
+/// as the part telemetry writes its lines. Its latency is the time to the answer's head, not to its last byte.
+async fn logged(
+    State(print): State<bool>,
+    req: Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    if !print {
+        return next.run(req).await;
+    }
+    let began = Instant::now();
+    let method = req.method().clone();
+    let path = req.uri().path().to_string();
+    let answer = next.run(req).await;
+    let line = request_line(method.as_str(), &path, answer.status(), began.elapsed());
+    // One write, under stderr's lock, as eprint! takes it: and so a test's harness captures it as it does eprintln!.
+    eprint!("{line}");
+    answer
+}
+
+/// The line a request is printed as, with its newline: `{"httpRequest":{"requestMethod","requestUrl","status",
+/// "latency"},"severity"}`, the URL its path alone, the latency as Cloud Logging writes it ([`latency`]), and the
+/// severity ERROR for a 5xx, WARNING for a 4xx and INFO for the rest. Nothing of who asked: no address, user agent or
+/// referer.
+fn request_line(method: &str, path: &str, status: StatusCode, took: Duration) -> String {
+    let severity = match status.as_u16() {
+        500.. => "ERROR",
+        400..=499 => "WARNING",
+        _ => "INFO",
+    };
+    format!(
+        "{{\"httpRequest\":{{\"requestMethod\":{},\"requestUrl\":{},\"status\":{},\"latency\":\"{}\"}},\"severity\":\"{severity}\"}}\n",
+        quoted(method),
+        quoted(path),
+        status.as_u16(),
+        latency(took),
+    )
+}
+
+/// `took` as Cloud Logging writes a duration, in seconds, with 0, 3, 6 or 9 digits after the point, the fewest
+/// that say it whole: `"0.012s"`, `"1.000500s"`, `"2s"`.
+fn latency(took: Duration) -> String {
+    let (secs, nanos) = (took.as_secs(), took.subsec_nanos());
+    if nanos == 0 {
+        format!("{secs}s")
+    } else if nanos % 1_000_000 == 0 {
+        format!("{secs}.{:03}s", nanos / 1_000_000)
+    } else if nanos % 1_000 == 0 {
+        format!("{secs}.{:06}s", nanos / 1_000)
+    } else {
+        format!("{secs}.{nanos:09}s")
+    }
+}
+
+/// `text` as a JSON string.
+fn quoted(text: &str) -> String {
+    let mut q = String::with_capacity(text.len() + 2);
+    q.push('"');
+    for c in text.chars() {
+        match c {
+            '"' => q.push_str("\\\""),
+            '\\' => q.push_str("\\\\"),
+            c if (c as u32) < 0x20 => q.push_str(&format!("\\u{:04x}", c as u32)),
+            c => q.push(c),
+        }
+    }
+    q.push('"');
+    q
 }
 
 /// `req`, carrying the address its [`Peer`] came from, as `ConnectInfo<SocketAddr>`.

@@ -151,7 +151,11 @@ fn main() {
         .unwrap();
     let _ = child.wait();
 
-    let lines: Vec<&str> = stderr.lines().collect();
+    // What it said beside its requests, which it prints on standard error too, as it runs off Cloud Run (crux#76).
+    let lines: Vec<&str> = stderr
+        .lines()
+        .filter(|l| !l.starts_with(r#"{"httpRequest":"#))
+        .collect();
     assert_eq!(lines.len(), panics.len(), "not a line a panic:\n{stderr}");
     for line in lines {
         let Value::Object(fields) = serde_json::from_str(line).expect(line) else {

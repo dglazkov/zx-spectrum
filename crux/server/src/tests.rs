@@ -683,3 +683,61 @@ fn ports() {
     assert!(port(Some("eighty")).is_err());
     assert!(port(Some("70000")).is_err());
 }
+
+/// A request's latency as Cloud Logging writes a duration (crux#76): seconds, with the fewest of 0, 3, 6 or 9 digits
+/// that say it whole, as nerd's Go reads it with time.ParseDuration.
+#[test]
+fn a_latency_is_written_as_cloud_logging_writes_it() {
+    for (took, said) in [
+        (Duration::ZERO, "0s"),
+        (Duration::from_secs(2), "2s"),
+        (Duration::from_millis(12), "0.012s"),
+        (Duration::from_micros(1_000_500), "1.000500s"),
+        (Duration::from_nanos(12_345_678), "0.012345678s"),
+        (Duration::from_nanos(61_000_000_001), "61.000000001s"),
+    ] {
+        assert_eq!(latency(took), said, "{took:?}");
+    }
+}
+
+/// A request's line is JSON whatever its method and path say, and its severity by its status's class (crux#76).
+#[test]
+fn a_request_line_is_json_its_severity_by_its_status() {
+    for (status, severity) in [
+        (200, "INFO"),
+        (204, "INFO"),
+        (304, "INFO"),
+        (399, "INFO"),
+        (400, "WARNING"),
+        (404, "WARNING"),
+        (499, "WARNING"),
+        (500, "ERROR"),
+        (503, "ERROR"),
+        (599, "ERROR"),
+    ] {
+        let line = request_line(
+            "GET",
+            "/a\"b\\c\u{1}d/é",
+            StatusCode::from_u16(status).unwrap(),
+            Duration::from_millis(3),
+        );
+        assert!(
+            line.ends_with("}\n") && line.matches('\n').count() == 1,
+            "{line:?}"
+        );
+        let said: serde_json::Value = serde_json::from_str(&line).expect(&line);
+        assert_eq!(
+            said,
+            serde_json::json!({
+                "httpRequest": {
+                    "requestMethod": "GET",
+                    "requestUrl": "/a\"b\\c\u{1}d/é",
+                    "status": status,
+                    "latency": "0.003s",
+                },
+                "severity": severity,
+            }),
+            "{line}"
+        );
+    }
+}
