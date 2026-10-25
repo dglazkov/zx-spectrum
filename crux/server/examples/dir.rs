@@ -2,8 +2,8 @@
 //! parts a new product starts with (crux#33): what polivoks, synth-exp, zx-spectrum, stitch-watch-face and
 //! reynolds-number each write in place of their Node server.
 //!
-//! - every file of `dist/` by [`Dir`]: the build's own `.br` and `.gz` sent as they are, its hashed assets kept a
-//!   year, and its `index.html` the page of every route of the app;
+//! - every file of `dist/` by [`Dir`], read once the server listens (crux#54): the build's own `.br` and `.gz` sent as
+//!   they are, its hashed assets kept a year, and its `index.html` the page of every route of the app;
 //! - nerd's feedback widget in the table (`widget`), loaded first in each page's `<head>`;
 //! - each load of a page measured (`load`), its tag at the end of each page's `<head>`, its view the page's name;
 //! - the paths the pages send their telemetry to (`telemetry`), merged into the router;
@@ -66,10 +66,11 @@ fn page(f: File) -> File {
     f.with_body(html)
 }
 
-/// Every file the product serves: its build's, and the widget's.
+/// Every file the product serves: its build's, unread, each read and made a [`page`] when it is first asked for or by
+/// the pass that compresses the table, so that the server listens at once, however large the build (crux#54); and the
+/// widget's.
 pub fn files(dist: &Path) -> std::io::Result<Vec<File>> {
-    let built = Dir::new(dist).fallback("/index.html").files()?;
-    let mut files: Vec<File> = built.into_iter().map(page).collect();
+    let mut files = Dir::new(dist).fallback("/index.html").map(page).unread()?;
     files.push(widget::file());
     Ok(files)
 }

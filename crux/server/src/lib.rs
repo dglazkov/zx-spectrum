@@ -27,7 +27,10 @@
 //! directory whole, with [`Dir`] (crux#33): each file at its path, typed by its extension, sent
 //! compressed as its build compressed it where it did, a hashed asset kept for a year, the
 //! product's headers on all of them or by prefix, and an app's page for any path with no extension
-//! that names no file.
+//! that names no file. [`Dir::unread`] gives it each file [`File::unread`], so that the server
+//! listens before a byte of the directory is read, however large it is (crux#54): a file is read
+//! when it is first asked for, or by the pass [`Site`] begins once it is first asked for anything
+//! ([`Table::read`]), whichever comes first, and a request waits on no file but its own.
 //!
 //! A header that must be on every answer the product makes, and not only on its files, as COOP and
 //! COEP must for a page to be cross-origin isolated, is named once, with [`headers`], over the
@@ -38,10 +41,10 @@
 use std::collections::HashMap;
 use std::future::Future;
 use std::hash::{DefaultHasher, Hash, Hasher};
-use std::io::Write;
+use std::io::{self, Write};
 use std::panic::AssertUnwindSafe;
 use std::pin::Pin;
-use std::sync::{Arc, OnceLock, RwLock};
+use std::sync::{Arc, Mutex, OnceLock, RwLock};
 use std::task::Poll;
 use std::time::{Duration, Instant};
 
@@ -80,6 +83,43 @@ pub struct File {
     /// Whether it answers, with 200, a path with no extension that names no file, as an app's
     /// `index.html` does; where more than one says so, the first.
     pub fallback: bool,
+    /// How it is read, where it is given [`File::unread`]: its type, headers and bodies are then
+    /// those of the file read.
+    pub unread: Option<Unread>,
+}
+
+/// How a file given [`File::unread`] is read: in full, as the file it is then, once, when it is
+/// first asked for or by the pass that reads the table ([`Table::read`]), whichever comes first.
+#[derive(Clone)]
+pub struct Unread {
+    read: Arc<dyn Fn() -> io::Result<File> + Send + Sync>,
+    /// How large it is thought to be, so that the pass reads the largest first.
+    size: u64,
+}
+
+impl Unread {
+    pub fn new(size: u64, read: impl Fn() -> io::Result<File> + Send + Sync + 'static) -> Unread {
+        Unread {
+            read: Arc::new(read),
+            size,
+        }
+    }
+
+    /// The file, read now.
+    pub fn read(&self) -> io::Result<File> {
+        (self.read)()
+    }
+
+    /// Whether it is `other`, read the same way.
+    pub fn is(&self, other: &Unread) -> bool {
+        Arc::ptr_eq(&self.read, &other.read)
+    }
+}
+
+impl std::fmt::Debug for Unread {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Unread({} B)", self.size)
+    }
 }
 
 impl File {
@@ -93,6 +133,22 @@ impl File {
             br: None,
             gzip: None,
             fallback: false,
+            unread: None,
+        }
+    }
+
+    /// A file not read yet, served at `path` once `unread` has read it, as it is then: compressed
+    /// and tagged as it would have been, given with the rest. What it is sent with is the file
+    /// read's; `content_type` and `headers`, which [`Table::build_from`] compares, are what it is
+    /// known by until then.
+    pub fn unread(
+        path: impl Into<String>,
+        content_type: impl Into<String>,
+        unread: Unread,
+    ) -> File {
+        File {
+            unread: Some(unread),
+            ..File::new(path, content_type, Bytes::new())
         }
     }
 
@@ -153,6 +209,17 @@ pub struct Entry {
     /// that is not text and that its build did not compress, or that was given later.
     packed: Option<OnceLock<Packed>>,
     etag: String,
+    /// Where it was given [`File::unread`]: how it is read, and what it is once read; the fields
+    /// above are then not used.
+    unread: Option<Reading>,
+}
+
+/// A file given [`File::unread`]: how it is read, and its entry once it is. A second caller while
+/// it is read waits for the first, and a caller for another file waits for neither.
+struct Reading {
+    unread: Unread,
+    read: OnceLock<Box<Entry>>,
+    lock: Mutex<()>,
 }
 
 /// A file not read with the rest: what it is read by, its version, and its bytes once read.
@@ -175,7 +242,12 @@ pub type Read = Arc<
 >;
 
 impl Entry {
-    fn new(f: File) -> Entry {
+    fn new(mut f: File) -> Entry {
+        let unread = f.unread.take().map(|unread| Reading {
+            unread,
+            read: OnceLock::new(),
+            lock: Mutex::new(()),
+        });
         let mut h = DefaultHasher::new();
         let (later, packed) = match f.later {
             Some((key, version)) => {
@@ -207,7 +279,34 @@ impl Entry {
             etag: format!("{:016x}", h.finish()),
             identity: f.body,
             later,
-            packed,
+            packed: packed.filter(|_| unread.is_none()),
+            unread,
+        }
+    }
+
+    /// The entry to answer from: itself, or, where it was given [`File::unread`], the file read,
+    /// read now where it was not yet; an error where it could not be read, read again when next
+    /// asked for.
+    fn now(&self) -> Result<&Entry, String> {
+        let Some(r) = &self.unread else {
+            return Ok(self);
+        };
+        if let Some(e) = r.read.get() {
+            return Ok(e);
+        }
+        let _one = r.lock.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(e) = r.read.get() {
+            return Ok(e);
+        }
+        let f = r.unread.read().map_err(|e| e.to_string())?;
+        Ok(r.read.get_or_init(|| Box::new(Entry::new(f))))
+    }
+
+    /// How large it is, or is thought to be where it is not read yet.
+    fn size(&self) -> u64 {
+        match &self.unread {
+            Some(r) => r.read.get().map_or(r.unread.size, |e| e.size()),
+            None => self.identity.len() as u64,
         }
     }
 
@@ -215,6 +314,11 @@ impl Entry {
     fn is(&self, f: &File) -> bool {
         self.content_type == f.content_type
             && self.headers == f.headers
+            && match (&self.unread, &f.unread) {
+                (Some(r), Some(u)) => r.unread.is(u),
+                (None, None) => true,
+                _ => false,
+            }
             && match (&self.later, &f.later) {
                 (Some(l), Some((key, version))) => l.key == *key && l.version == *version,
                 (None, None) => {
@@ -230,8 +334,11 @@ impl Entry {
             }
     }
 
-    /// Its bytes; none for a file given later and not read yet.
+    /// Its bytes; none for a file given later, or unread, and not read yet.
     pub fn bytes(&self) -> Option<&Bytes> {
+        if let Some(r) = &self.unread {
+            return r.read.get().and_then(|e| e.bytes());
+        }
         match &self.later {
             None => Some(&self.identity),
             Some(l) => l.bytes.get(),
@@ -249,8 +356,12 @@ impl Entry {
 
     /// Its compressed bodies, its build's as they are and the rest made now where they were not
     /// yet; none where it is not text and its build compressed none. A second caller while they are
-    /// made waits for them, and nothing is compressed twice.
+    /// made waits for them, and nothing is compressed twice. A file given [`File::unread`] is read
+    /// first, where it was not yet; none where it cannot be.
     pub fn packed(&self) -> Option<&Packed> {
+        if self.unread.is_some() {
+            return self.now().ok()?.packed();
+        }
         self.packed.as_ref().map(|p| {
             p.get_or_init(|| {
                 let smaller = |b: Bytes| (b.len() < self.identity.len()).then_some(b);
@@ -267,8 +378,11 @@ impl Entry {
         })
     }
 
-    /// Whether it is compressed already, or is not compressed at all.
+    /// Whether it is read and compressed already, or is not compressed at all.
     pub fn ready(&self) -> bool {
+        if let Some(r) = &self.unread {
+            return r.read.get().is_some_and(|e| e.ready());
+        }
         self.packed.as_ref().is_none_or(|p| p.get().is_some())
     }
 
@@ -406,9 +520,14 @@ impl Table {
         let mut entries = HashMap::new();
         let mut new = 0;
         let mut fallback = None;
-        // Each entry made here, by its bytes, so that a file given at two paths, as a directory's
-        // index.html at `/docs/` and at `/docs/index.html`, is one entry, compressed once.
+        // Each entry made here, by its bytes or by what reads it, so that a file given at two
+        // paths, as a directory's index.html at `/docs/` and at `/docs/index.html`, is one entry,
+        // read and compressed once.
         let mut made: HashMap<(usize, usize), Arc<Entry>> = HashMap::new();
+        let key = |f: &File| match &f.unread {
+            Some(u) => (Arc::as_ptr(&u.read) as *const () as usize, usize::MAX),
+            None => (f.body.as_ptr() as usize, f.body.len()),
+        };
         for f in files {
             if f.fallback && fallback.is_none() {
                 fallback = Some(f.path.clone());
@@ -416,15 +535,15 @@ impl Table {
             let kept = old
                 .and_then(|t| t.entries.get(&f.path))
                 .filter(|e| e.is(&f))
-                .or_else(|| made.get(&(f.body.as_ptr() as usize, f.body.len())))
+                .or_else(|| made.get(&key(&f)))
                 .filter(|e| e.is(&f));
             let entry = match kept {
                 Some(e) => e.clone(),
                 None => {
                     new += 1;
                     let e = Arc::new(Entry::new(f.clone()));
-                    if !f.body.is_empty() {
-                        made.insert((f.body.as_ptr() as usize, f.body.len()), e.clone());
+                    if !f.body.is_empty() || f.unread.is_some() {
+                        made.insert(key(&f), e.clone());
                     }
                     e
                 }
@@ -443,16 +562,36 @@ impl Table {
         (table, new)
     }
 
-    /// Compresses every file not compressed yet, on as many threads as there are cores, while
-    /// requests compress what they ask for first; with how many it compressed, and how long it took.
+    /// Compresses every file given with the rest not compressed yet, on as many threads as there
+    /// are cores, while requests compress what they ask for first; with how many it compressed,
+    /// and how long it took. A file given [`File::unread`] is [`Table::read`]'s.
     pub fn compress(&self) -> (usize, Duration) {
+        self.pass(false)
+    }
+
+    /// Reads every file given [`File::unread`] not read yet, and compresses it, on as many
+    /// threads as there are cores, while requests read what they ask for first; with how many it
+    /// read, and how long it took.
+    pub fn read(&self) -> (usize, Duration) {
+        self.pass(true)
+    }
+
+    /// Whether a file given [`File::unread`] is among them.
+    pub fn unread(&self) -> bool {
+        std::iter::once(&self.not_found)
+            .chain(self.entries.values())
+            .any(|e| e.unread.is_some())
+    }
+
+    /// Readies each file not ready yet, of those given unread or of the rest.
+    fn pass(&self, unread: bool) -> (usize, Duration) {
         let started = Instant::now();
         let mut todo: Vec<&Arc<Entry>> = std::iter::once(&self.not_found)
             .chain(self.entries.values())
-            .filter(|e| !e.ready())
+            .filter(|e| e.unread.is_some() == unread && !e.ready())
             .collect();
         // The largest first, so that no thread is left with a long one at the end.
-        todo.sort_by_key(|e| std::cmp::Reverse(e.identity.len()));
+        todo.sort_by_key(|e| std::cmp::Reverse(e.size()));
         let threads = std::thread::available_parallelism()
             .map(|n| n.get())
             .unwrap_or(1);
@@ -609,6 +748,17 @@ fn send(
     (range, if_range): (&str, &str),
     method: &Method,
 ) -> Answer {
+    let entry = match entry.now() {
+        Ok(e) => e,
+        Err(err) => {
+            eprintln!("could not read a file: {err}");
+            return Answer {
+                status: StatusCode::SERVICE_UNAVAILABLE,
+                headers: vec![(header::RETRY_AFTER, "1".into())],
+                body: Bytes::new(),
+            };
+        }
+    };
     let Some(identity) = entry.bytes() else {
         return Answer {
             status: StatusCode::SERVICE_UNAVAILABLE,
@@ -750,30 +900,67 @@ fn not_modified(headers: Vec<(header::HeaderName, String)>) -> Answer {
 }
 
 /// The table served, swapped whole when the product's files change, so that a request is answered
-/// from one table or the other, never a mix; and how files given later are read.
+/// from one table or the other, never a mix; how files given later are read; and whether it has
+/// been asked for anything yet.
 pub struct Site {
     table: RwLock<Arc<Table>>,
     read: Option<Read>,
+    asked: Arc<Asked>,
 }
 
-/// Compresses what `table` has not yet, on threads of its own, and says in the log when it is done.
-fn compress(table: Arc<Table>) {
+/// Whether a site has been asked for anything yet, for a pass to wait on.
+#[derive(Default)]
+struct Asked {
+    yet: std::sync::atomic::AtomicBool,
+    lock: Mutex<bool>,
+    cv: std::sync::Condvar,
+}
+
+impl Asked {
+    fn now(&self) {
+        if !self.yet.swap(true, std::sync::atomic::Ordering::AcqRel) {
+            *self.lock.lock().unwrap_or_else(|e| e.into_inner()) = true;
+            self.cv.notify_all();
+        }
+    }
+
+    fn wait(&self) {
+        let yet = self.lock.lock().unwrap_or_else(|e| e.into_inner());
+        drop(self.cv.wait_while(yet, |yet| !*yet));
+    }
+}
+
+/// Compresses what `table` has not yet, on threads of its own, and says in the log when it is done;
+/// then, once the site is first asked for anything, so that nothing of it is read before it
+/// listens, reads what was given unread, and says so too.
+fn compress(table: Arc<Table>, asked: Arc<Asked>) {
     std::thread::spawn(move || {
         let (n, took) = table.compress();
         if n > 0 {
             eprintln!("compressed {n} files in {} ms", took.as_millis());
         }
+        if table.unread() {
+            asked.wait();
+            let (n, took) = table.read();
+            if n > 0 {
+                eprintln!("read {n} files in {} ms", took.as_millis());
+            }
+        }
     });
 }
 
 impl Site {
-    /// Serves `table` at once, while a thread of its own compresses what is text.
+    /// Serves `table` at once, while a thread of its own compresses what is text, and, once the
+    /// site is first asked for anything, reads what was given [`File::unread`] that no request
+    /// has read first (crux#54).
     pub fn new(table: Table) -> Site {
         let table = Arc::new(table);
-        compress(table.clone());
+        let asked = Arc::new(Asked::default());
+        compress(table.clone(), asked.clone());
         Site {
             table: RwLock::new(table),
             read: None,
+            asked,
         }
     }
 
@@ -791,7 +978,7 @@ impl Site {
     /// Serves `table` in place of the one served, whole, and compresses what is new in it.
     pub fn swap(&self, table: Table) {
         let table = Arc::new(table);
-        compress(table.clone());
+        compress(table.clone(), self.asked.clone());
         *self.table.write().unwrap() = table;
     }
 
@@ -806,6 +993,7 @@ impl Site {
     /// The answer to a request, from the table as it is now: a file given later is read first,
     /// and the body is compressed, where it is, off the workers that serve the rest.
     pub async fn answer(&self, method: Method, uri: Uri, headers: HeaderMap) -> Answer {
+        self.asked.now();
         let table = self.table();
         if let (Some(read), true) = (&self.read, method == Method::GET || method == Method::HEAD) {
             if let Some(e) = table.entries.get(&decode(uri.path())) {

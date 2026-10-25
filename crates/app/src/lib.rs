@@ -1,8 +1,8 @@
 //! The deployed server (crux#35, zx-spectrum#9): the page built into `web/dist`, served whole by crux's part `server`
 //! as crux's `examples/dir.rs` serves a built directory, and two things passed through for it.
 //!
-//! - every file of the build by [`Dir`]: its hashed assets kept a year, `/fonts/` a week, the rest as `Dir` sends
-//!   them; no COOP or COEP, which the page does not need;
+//! - every file of the build by [`Dir`], read once the server listens (crux#54): its hashed assets kept a year,
+//!   `/fonts/` a week, the rest as `Dir` sends them; no COOP or COEP, which the page does not need;
 //! - nerd's feedback widget in the table (`widget`), which `index.html` loads first in its `<head>` itself;
 //! - each load of a page measured (`load`), its tag at the end of each page's `<head>`: `home` and `how`;
 //! - nerd's `/nerd/event` and `/nerd/feedback` (`telemetry`), merged into the router;
@@ -56,10 +56,10 @@ fn page(f: File) -> File {
     f.with_body(html)
 }
 
-/// Every file the server hands out: the build's, and the widget's.
+/// Every file the server hands out: the build's, unread, each read and made a [`page`] when it is first asked for or by
+/// the pass the server begins with its first request, so that it listens at once (crux#54); and the widget's.
 pub fn files(dist: &Path) -> std::io::Result<Vec<File>> {
-    let built = Dir::new(dist).header("/fonts/", CACHE_CONTROL, FONTS).files()?;
-    let mut files: Vec<File> = built.into_iter().map(page).collect();
+    let mut files = Dir::new(dist).header("/fonts/", CACHE_CONTROL, FONTS).map(page).unread()?;
     files.push(widget::file());
     Ok(files)
 }
