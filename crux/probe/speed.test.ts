@@ -129,7 +129,7 @@ test('each page is measured: its bytes as a browser asks for them, its requests,
 
     // Each page's weight is its own, weighed once, all the pages together after their times.
     assert.deepEqual(weighed, [pages]);
-    assert.deepEqual({ ...n.home_weight }, { name: 'home_weight', unit: 'B', value: 1001, spread: [1001, 1001], better: 'lower', worst: 1001, noise: 0 });
+    assert.deepEqual({ ...n.home_weight }, { name: 'home_weight', unit: 'B', value: 1001, spread: [1001, 1001], better: 'lower', worst: 2025, noise: 0 });
     assert.equal(n.post_weight.value, 2001);
 
     // The wake is left out, and so is the noise, counted.
@@ -190,6 +190,27 @@ test('a server that never answers is given up at the deadline, each try on its o
     await assert.rejects(probe({ url: s.url, pages: [{ name: 'home', path: '/' }], tries: 2, clock, deadline: 50, weigh: scales }),
       /no answer to \/ in 50 ms, then no answer to \/ in 50 ms/);
     assert.equal(s.asked.length, 2);
+  } finally {
+    await s.close();
+  }
+});
+
+test('a weight is judged with a margin: within its baseline up to 0.1% or 1 KB more, whichever is larger, and worse a byte past it', async () => {
+  const s = await stand(() => ({ html: '<p>a page</p>' }));
+  try {
+    const weighs = (bytes: number) => probe({ url: s.url, pages: [{ name: 'home', path: '/' }], tries: 1, clock: testClock(), weigh: async () => [{ bytes, fetched: [] }] });
+    // As nerd judges it: a weight is worse where it is more than its baseline's worst.
+    const worse = async (file: string, bytes: number) => {
+      const n = report(await weighs(bytes), file, false).numbers.find((n) => n.name === 'home_weight')!;
+      return n.value > n.baseline.worst;
+    };
+    // A small page, where 1 KB is the larger (0.1% of 20,001 B is 20 B); and a large one, where 0.1% is (5,000 B).
+    for (const [w, margin] of [[20001, 1024], [5000000, 5000]]) {
+      const file = JSON.stringify(report(await weighs(w), null, true));
+      assert.equal(await worse(file, w), false);
+      assert.equal(await worse(file, w + margin), false, `${w} B and ${margin} B more`);
+      assert.equal(await worse(file, w + margin + 1), true, `${w} B and ${margin + 1} B more`);
+    }
   } finally {
     await s.close();
   }

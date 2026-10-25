@@ -54,7 +54,9 @@ came in frames of 16384 B, however many its front end split it into, and without
 added. A third party's answer over HTTP/2 (another host's, as Google Fonts') is counted with its
 headers as an encoder that indexes all it sends would code them, after those of its connection's
 answers before it by URL, its times and age at values fixed for them too: whether its server sent
-a header as a reference to the answer before, or whole, is its own.
+a header as a reference to the answer before, or whole, is its own. A weight's baseline keeps as
+its worst the bytes weighed and a margin, the larger of 0.1% of them and 1 KB: a weight within it
+is not worse than its baseline.
 
 Each mark is timed after the times and before the weights, in Chrome as the weights are, but as a
 desktop (1280 CSS pixels wide, 800 high), and as the page runs, its frames and all: each page that
@@ -348,7 +350,7 @@ export async function probe(options: ProbeOptions): Promise<Measured[]> {
   const weighed = await (options.weigh ?? ((url, pages) => weigh(url, pages)))(options.url, options.pages);
   return options.pages.flatMap((page, i) => [...measured[i], {
     name: `${page.name}_weight`, unit: 'B', value: weighed[i].bytes, spread: [weighed[i].bytes, weighed[i].bytes] as [number, number],
-    better: 'lower' as const, worst: weighed[i].bytes, noise: 0,
+    better: 'lower' as const, worst: weightWorst(weighed[i].bytes), noise: 0,
   }, ...marksOf(marks, page).map((m): Measured => {
     const times = timed[i][m.name];
     const kept = withoutNoise(times);
@@ -358,6 +360,12 @@ export async function probe(options: ProbeOptions): Promise<Measured[]> {
     };
   })]);
 }
+
+/**
+ * The worst a weight of so many bytes keeps in its baseline: the bytes and a margin, the larger of 0.1% of them and
+ * 1 KB, so that a few bytes more of a third party's answer, or of a frame's split, is not a regression (#56).
+ */
+export const weightWorst = (bytes: number) => Math.floor(bytes + Math.max(bytes / 1000, 1024));
 
 /** The marks a page has: those on every page, and its own. */
 const marksOf = (marks: Mark[], page: Page) => marks.filter((m) => m.page === undefined || m.page === page.name);

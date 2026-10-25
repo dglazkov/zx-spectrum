@@ -41,8 +41,9 @@ type Clock = Arc<dyn Fn() -> Instant + Send + Sync>;
 /// and answered 204; one whose name nerd would drop is answered 204 too, and printed not at all. `/nerd/event` takes a
 /// list of up to `EVENTS` too, each its own line, so that what a page sends as it is torn down arrives whole or not at
 /// all, as the part `load` sends a load's (crux#8). A body that is neither is answered 400, and nothing of it printed.
-/// A load sent by a browser a probe drives, its user agent `HeadlessChrome`, is answered 204 and printed not at all,
-/// so that a load nerd counts is a reader's (crux#23). A client posting more than `RATE` a minute, past a burst of
+/// An event sent by a browser a probe drives, its user agent `HeadlessChrome`, a load's or the product's own, is
+/// answered 204 and printed not at all, so that what nerd counts is a reader's (crux#23, crux#55); its feedback is
+/// printed, as a person's words. A client posting more than `RATE` a minute, past a burst of
 /// `BURST`, is answered 429, before its body is read, and printed not at all (crux#38).
 pub fn routes<S: Clone + Send + Sync + 'static>() -> Router<S> {
     routes_to(
@@ -194,20 +195,14 @@ fn driven(headers: &HeaderMap) -> bool {
     agent.is_some_and(|agent| agent.windows(14).any(|word| word == b"HeadlessChrome"))
 }
 
-/// Whether an event is of a page's load, as the part `load` names them: `load.lcp`, `load.cls` and the rest.
-fn of_a_load(event: &Event) -> bool {
-    event.name().starts_with("load.")
-}
-
 /// The lines of the events of a body: one object, or a list of up to `EVENTS` of them; those nerd would drop left out,
-/// and, where a probe sent them, those of a load.
+/// and, where a probe sent them, all.
 fn events(body: &Value, probe: bool) -> Option<Vec<String>> {
     let line = |body| {
-        let event = Event::from_body(body);
-        if probe && of_a_load(&event) {
+        if probe {
             return None;
         }
-        event.line()
+        Event::from_body(body).line()
     };
     match body {
         Value::Object(body) => Some(line(body).into_iter().collect()),
@@ -424,22 +419,36 @@ mod tests {
         None,
     ];
 
+    /// A product's own key events, one alone, as a page sends it, as stitch-watch-face, reynolds-number and polivoks
+    /// sent theirs from the probe's browser (crux#55).
+    const KEYS: [&str; 3] = [
+        r#"{"name":"prompt.seen"}"#,
+        r#"{"name":"tunnel.started","kind":"wing","n":3}"#,
+        r#"{"name":"midi.blocked","kind":"no.access","ms":12}"#,
+    ];
+
     #[tokio::test]
-    async fn a_load_a_probe_sent_is_not_printed() {
+    async fn an_event_a_probe_sent_is_not_printed() {
         for agent in HEADLESS {
+            // A load's list, the product's own event among it, as the part `load` sends it.
             assert_eq!(
                 send_as(Some(agent), Method::POST, "/nerd/event", LOAD).await,
-                (
-                    StatusCode::NO_CONTENT,
-                    vec![r#"{"nerd":"event","name":"song.made","kind":"drums"}"#.to_string()]
-                ),
+                (StatusCode::NO_CONTENT, vec![]),
                 "{agent}"
             );
-            // One event alone, as a page sends it outside a load.
+            // One event alone, as a page sends it outside a load: a load's, or a key event of the product's own.
             let one = r#"{"name":"load.lcp","kind":"home.desktop","ms":700}"#;
+            for body in [one].into_iter().chain(KEYS) {
+                assert_eq!(
+                    send_as(Some(agent), Method::POST, "/nerd/event", body).await,
+                    (StatusCode::NO_CONTENT, vec![]),
+                    "{agent} {body}"
+                );
+            }
+            // Still refused where it is not of an event's shape, as a reader's would be.
             assert_eq!(
-                send_as(Some(agent), Method::POST, "/nerd/event", one).await,
-                (StatusCode::NO_CONTENT, vec![]),
+                send_as(Some(agent), Method::POST, "/nerd/event", "not json").await,
+                (StatusCode::BAD_REQUEST, vec![]),
                 "{agent}"
             );
             // Feedback is a person's words, whatever their browser.
@@ -461,7 +470,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_load_a_reader_sent_is_printed_whole() {
+    async fn an_event_a_reader_sent_is_printed_whole() {
         let whole = vec![
             r#"{"nerd":"event","name":"load.ttfb","kind":"post.phone","ms":80}"#.to_string(),
             r#"{"nerd":"event","name":"load.lcp","kind":"post.phone","ms":1830}"#.to_string(),
@@ -469,12 +478,24 @@ mod tests {
             r#"{"nerd":"event","name":"song.made","kind":"drums"}"#.to_string(),
             r#"{"nerd":"event","name":"load.ready","kind":"post.phone","ms":900}"#.to_string(),
         ];
+        let keys = [
+            r#"{"nerd":"event","name":"prompt.seen"}"#,
+            r#"{"nerd":"event","name":"tunnel.started","kind":"wing","n":3}"#,
+            r#"{"nerd":"event","name":"midi.blocked","kind":"no.access","ms":12}"#,
+        ];
         for agent in READERS {
             assert_eq!(
                 send_as(agent, Method::POST, "/nerd/event", LOAD).await,
                 (StatusCode::NO_CONTENT, whole.clone()),
                 "{agent:?}"
             );
+            for (body, line) in KEYS.into_iter().zip(keys) {
+                assert_eq!(
+                    send_as(agent, Method::POST, "/nerd/event", body).await,
+                    (StatusCode::NO_CONTENT, vec![line.to_string()]),
+                    "{agent:?} {body}"
+                );
+            }
         }
     }
 

@@ -40,11 +40,6 @@ impl Event {
         self
     }
 
-    /// What happened, by its name.
-    pub(crate) fn name(&self) -> &str {
-        &self.name
-    }
-
     /// How long, as `ms`.
     pub fn took(self, took: Duration) -> Self {
         self.ms(took.as_millis().try_into().unwrap_or(u64::MAX))
