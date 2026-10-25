@@ -701,7 +701,7 @@ compressed one would be wrong (the client then saw the connection cut: tested wi
 through carries `Content-Security-Policy: default-src 'none'; sandbox` and `nosniff`, so an HTML answer (the
 archive's 404 pages are HTML) opened on this origin runs nothing, and `Cross-Origin-Resource-Policy: same-origin`, so
 no other site's page takes it. The body streams as the client takes it, under the route's timeout for the whole exchange: a client that stops
-reading is let go of when the time is up, its connection closed (`src/conn.rs`), and the archive's connection with it. A client is allowed 120 requests a minute through (a burst of 60; by the first address of
+reading is let go of when the time is up, its connection closed (crux's `server::Peer`, at once rather than after crux's 30 s `STALL`), and the archive's connection with it. A client is allowed 120 requests a minute through (a burst of 60; by the first address of
 X-Forwarded-For), then 429. Other paths under those prefixes are 403; methods other than GET and HEAD 405; upstream
 failures 502, timeouts 504. No cross-origin isolation headers.
 

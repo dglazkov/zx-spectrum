@@ -32,7 +32,7 @@ use futures_util::future::{FutureExt, Shared};
 use regex::Regex;
 use reqwest::Url;
 
-use crate::conn::Peer;
+use server::Peer;
 use crate::zxdb::Zxdb;
 
 /// Who asks, as the ZXInfo API asks its clients to say.

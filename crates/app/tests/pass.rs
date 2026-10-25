@@ -101,7 +101,7 @@ impl Drop for Huge {
 async fn listen(app: Router) -> SocketAddr {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
-    tokio::spawn(app::conn::serve_on(listener, app));
+    tokio::spawn(server::serve_on(listener, app));
     addr
 }
 

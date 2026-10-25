@@ -64,7 +64,7 @@ async fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    if let Err(err) = app::conn::serve(app).await {
+    if let Err(err) = server::serve(app).await {
         eprintln!("{err}");
         return ExitCode::FAILURE;
     }

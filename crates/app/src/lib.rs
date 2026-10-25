@@ -7,9 +7,9 @@
 //! - each load of a page measured (`load`), its tag at the end of each page's `<head>`: `home` and `how`;
 //! - nerd's `/nerd/event` and `/nerd/feedback` (`telemetry`), merged into the router;
 //! - `/archive` and `/zxinfo/v3`, passed through to the archive and the ZXInfo API ([`pass`]), answering from the
-//!   ZXDB's own index where ZXInfo cannot ([`zxdb`]), on connections a route can let go of ([`conn`]).
+//!   ZXDB's own index where ZXInfo cannot ([`zxdb`]), a client that stops reading let go of once the time is up (crux's
+//!   `server::Peer`).
 
-pub mod conn;
 pub mod pass;
 pub mod zxdb;
 
