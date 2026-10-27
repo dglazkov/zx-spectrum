@@ -7,7 +7,7 @@
 //   nerd test web-build
 
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { appendFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,6 +25,17 @@ const t0 = performance.now();
 try {
   await build({ root, logLevel: 'warn', build: { outDir: out, emptyOutDir: true, sourcemap: false } });
   report({ part: 'build › vite build', seconds: Number(((performance.now() - t0) / 1000).toFixed(2)), outcome: 'passed' });
+  // Each page is sent with no comment and no indented line but inside a script or a style, whose bytes are the
+  // reader's (#23).
+  for (const page of ['index.html', 'how.html']) {
+    const html = readFileSync(join(out, page), 'utf8');
+    const outside = html.replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, '');
+    const loose = [...(outside.match(/<!--[\s\S]*?-->/g) || []), ...(outside.match(/^[ \t]+\S.*$/gm) || [])];
+    const l = `${page} sent tight, ${html.length} B`;
+    console.log(loose.length ? `FAIL  ${l}: ${loose.length} comments or indented lines, the first ${JSON.stringify(loose[0].slice(0, 60))}` : `ok    ${l}`);
+    report({ part: `build › ${page} sent tight`, seconds: 0, outcome: loose.length ? 'failed' : 'passed', ...(loose.length ? { said: loose[0].slice(0, 60) } : {}) });
+    failed += loose.length ? 1 : 0;
+  }
   const server = await startApp(out);
   const url = server.url;
   const t1 = performance.now();

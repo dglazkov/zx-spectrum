@@ -25,9 +25,24 @@ const serverPlugin = (): Plugin => ({
   },
 });
 
+// A built page as a reader is sent it: no comment, and no line's indentation, but inside a script, a style, a pre or a
+// textarea, where they are the content. The source keeps both, for whoever reads it; the reader is sent ~130 B less of
+// the emulator's page, and ~80 B less of how.html, compressed (#23: as much as crux's load script grew by).
+export const tight = (html: string) =>
+  html
+    .split(/(<(script|style|pre|textarea)\b[\s\S]*?<\/\2>)/i)
+    .map((part, i) => (i % 3 === 1 ? part : i % 3 === 2 ? '' : part.replace(/<!--[\s\S]*?-->/g, '').replace(/^[ \t]+|[ \t]+$/gm, '').replace(/\n{2,}/g, '\n')))
+    .join('');
+
+const tightPlugin = (): Plugin => ({
+  name: 'zx-tight',
+  apply: 'build',
+  transformIndexHtml: { order: 'post', handler: tight },
+});
+
 export default defineConfig({
   base: './',
-  plugins: [serverPlugin()],
+  plugins: [serverPlugin(), tightPlugin()],
   // The ROMs live at the repository's root (the core compiles them in); the stand-in reads the 48K's font from there.
   server: { port: 5173, fs: { allow: ['..'] } },
   preview: { port: 4173 },
