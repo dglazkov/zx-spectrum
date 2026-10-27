@@ -4,8 +4,11 @@
 // it is hidden, as `nerd look` closes it (blog's lost some of theirs so, one request each, on Oct 23). Each load, as a
 // desktop and as a phone (touch emulated): each name once, of its kind, its own field alone; ready no earlier than
 // the page was whole; and nothing the page's policy refused, which allows the script inline by its hash alone. Each
-// as a reader's browser says itself; and a load in Chrome as a probe drives it, saying `HeadlessChrome`, as blog's
-// probe/weigh.mjs does, sends its beacon all the same, and telemetry prints nothing of it (crux#23).
+// as a reader's browser says itself, navigator.webdriver false. A load in Chrome as automation drives it,
+// navigator.webdriver true, headless as a probe, saying `HeadlessChrome` as blog's probe/weigh.mjs does, or saying
+// itself a reader's, sends nothing (crux#86), and telemetry prints nothing of it. And a load opened in a tab hidden,
+// shown once it is complete, or prerendering (its document.prerendering said so in the page, as Chrome's would be),
+// sends no fcp and no lcp, its paints no reader's wait (crux#85).
 //
 // npx --yes tsx@4.20.6 load.test.mts   (from anywhere: it runs `cargo run -p load --example page` in its directory)
 // Prints what it checked and exits 0 where all is so; else says what was not, and exits 1.
@@ -66,6 +69,9 @@ chrome = spawn(
   process.env.CHROME || "google-chrome",
   [
     "--headless=new", "--remote-debugging-port=0", `--user-data-dir=${dir}`,
+    // Chrome over its DevTools port says navigator.webdriver true, which Emulation.setAutomationOverride does not
+    // clear: a reader's tab is without it, and automation's sets it again.
+    "--disable-blink-features=AutomationControlled",
     "--no-first-run", "--no-default-browser-check", "--disable-gpu", "about:blank",
   ],
   { stdio: ["ignore", "ignore", "pipe"], detached: true },
@@ -130,10 +136,10 @@ const READER = {
   phone: `Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Mobile Safari/537.36`,
 };
 
-/** A tab of its own, as a phone where asked, as a reader's browser says itself unless a probe drives it, and the
- * requests it makes to /nerd/event, as they are made: each by its type, as Chrome has it, its body, and its status
- * once answered. */
-async function tab(phone: boolean, probe = false) {
+/** A tab of its own, as a phone where asked, as a reader's browser says itself unless a probe drives it, as
+ * automation drives it where asked (a probe's is), and the requests it makes to /nerd/event, as they are made: each
+ * by its type, as Chrome has it, its body, and its status once answered. */
+async function tab(phone: boolean, probe = false, automated = probe) {
   const { targetId } = await send("Target.createTarget", { url: "about:blank" });
   const { sessionId } = await send("Target.attachToTarget", { targetId, flatten: true });
   const s = (method: string, params = {}) => send(method, params, sessionId);
@@ -150,6 +156,7 @@ async function tab(phone: boolean, probe = false) {
   await s("Page.enable");
   await s("Page.addScriptToEvaluateOnNewDocument", { source: RECORD });
   if (!probe) await s("Emulation.setUserAgentOverride", { userAgent: phone ? READER.phone : READER.desktop });
+  if (automated) await s("Emulation.setAutomationOverride", { enabled: true });
   if (phone) {
     await s("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
     await s("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
@@ -171,12 +178,13 @@ async function until(t: Tab, what: string) {
   }
 }
 
-/** Hides the tab, as another opened over it does. */
-async function hide(t: Tab) {
+/** Hides the tab, as another opened over it does; and the tab over it, left open where asked. */
+async function hide(t: Tab, leave = false) {
   const { targetId } = await send("Target.createTarget", { url: "about:blank" });
   await send("Target.activateTarget", { targetId });
   await until(t, 'document.visibilityState === "hidden"');
-  await send("Target.closeTarget", { targetId });
+  if (!leave) await send("Target.closeTarget", { targetId });
+  return targetId;
 }
 
 /** Clicks as a person would, so that the browser counts it an interaction. */
@@ -194,11 +202,24 @@ const LOADED = ["load.ttfb", "load.fcp", "load.lcp", "load.cls", "load.ready"];
 
 /** A load of `path`: hidden and its tab closed at once; then what reached the server of it, a line each of `names`
  * once, of `kind`, with its own field alone, a whole number; sent as one request; ready no earlier than `whole` in
- * the page; and nothing its policy refused. */
-async function load(path: string, kind: string, phone: boolean, names: string[], whole: string, act?: (t: Tab) => Promise<void>, again = false) {
-  const what = `${path} as ${kind}`;
+ * the page; and nothing its policy refused. Opened shown, as a reader opens it, or hidden, in a tab behind another
+ * and shown once it is complete, or prerendering, as the page sees it. */
+async function load(path: string, kind: string, phone: boolean, names: string[], whole: string, act?: (t: Tab) => Promise<void>, again = false, opened: "shown" | "hidden" | "prerendering" = "shown") {
+  const what = `${path} as ${kind}${opened === "shown" ? "" : `, opened ${opened}`}`;
   const t = await tab(phone);
+  if (opened === "prerendering") {
+    await t.s("Page.addScriptToEvaluateOnNewDocument", {
+      source: "Object.defineProperty(Document.prototype, 'prerendering', { get: () => true, configurable: true });",
+    });
+  }
+  const over = opened === "hidden" ? await hide(t, true) : undefined;
   await t.s("Page.navigate", { url: base + path });
+  if (over) {
+    await until(t, "document.readyState === 'complete' && document.visibilityState === 'hidden'");
+    await send("Target.closeTarget", { targetId: over });
+    await t.s("Page.bringToFront");
+    await until(t, 'document.visibilityState === "visible"');
+  }
   await until(t, "!!window.__painted && document.readyState === 'complete'");
   if (act) await act(t);
   const at: number = await t.run(whole);
@@ -243,26 +264,28 @@ async function load(path: string, kind: string, phone: boolean, names: string[],
   return sent;
 }
 
-/** A load of `path` in Chrome as a probe drives it, headless and saying so: the script runs and sends its beacon, as
- * it would for a reader, and the server answers it; what it printed of it is judged once the readers' loads after it
- * have arrived, as it printed it before it answered. */
-async function probed(path: string, kind: string, phone: boolean) {
-  const what = `${path} as ${kind}, by a probe`;
-  const t = await tab(phone, true);
+/** A load of `path` in Chrome as automation drives it, navigator.webdriver true, headless and saying so where a
+ * probe drives it, and saying itself a reader's otherwise: the page painted and complete, the script run, and hidden.
+ * It sends nothing: its tab's beacons are judged by `judged`, once the readers' loads after it have arrived, so that
+ * one sent late is seen. */
+const automation: { what: string; t: Tab }[] = [];
+async function automated(path: string, kind: string, phone: boolean, probe: boolean) {
+  const what = `${path} as ${kind}, by ${probe ? "a probe" : "other automation"}`;
+  const t = await tab(phone, probe, true);
   await t.s("Page.navigate", { url: base + path });
   await until(t, "!!window.__painted && document.readyState === 'complete'");
   const agent: string = await t.run("navigator.userAgent");
-  if (!agent.includes("HeadlessChrome")) problems.push(`${what}: Chrome said itself ${agent}`);
+  if (agent.includes("HeadlessChrome") !== probe) problems.push(`${what}: Chrome said itself ${agent}`);
+  if ((await t.run("navigator.webdriver")) !== true) problems.push(`${what}: navigator.webdriver is not true`);
   if (!(await t.run("!!window.nerdLoad"))) problems.push(`${what}: the script never ran`);
   await hide(t);
-  for (let i = 0; !t.beacons.some((b) => b.status); i++) {
-    if (i === 200) break;
-    await new Promise((r) => setTimeout(r, 25));
+  automation.push({ what, t });
+}
+async function judged() {
+  for (const { what, t } of automation) {
+    if (t.beacons.length) problems.push(`${what}: sent ${t.beacons.map((b) => b.body).join(", ")}, where automation sends nothing`);
+    await send("Target.closeTarget", { targetId: t.targetId });
   }
-  await send("Target.closeTarget", { targetId: t.targetId });
-  const sent = t.beacons.map((b) => `${b.type} ${b.status}`);
-  if (JSON.stringify(sent) !== JSON.stringify(["Ping 204"])) problems.push(`${what}: sent ${JSON.stringify(sent)}, not one beacon answered 204`);
-  if (!t.beacons.some((b) => b.body?.includes(`"kind":"${kind}"`))) problems.push(`${what}: its beacon was ${t.beacons[0]?.body}, not its load`);
 }
 
 // When a page rendered whole is whole: its HTML parsed.
@@ -270,9 +293,12 @@ const PARSED = 'performance.getEntriesByType("navigation")[0].domContentLoadedEv
 
 let counted = 0;
 try {
-  // A probe's loads first, so that whatever telemetry printed of them is among the lines before the readers' arrive.
-  await probed("/post/", "post.phone", true);
-  await probed("/", "home.desktop", false);
+  // Automation's loads first, so that whatever they sent is among the lines before the readers' arrive.
+  await automated("/post/", "post.phone", true, true);
+  await automated("/", "home.desktop", false, true);
+  await automated("/post/", "post.phone", true, false);
+  await automated("/app/", "app.desktop", false, false);
+  const UNSHOWN = LOADED.filter((n) => n !== "load.fcp" && n !== "load.lcp");
   const loads = [
     () => load("/", "home.desktop", false, LOADED, PARSED),
     () => load("/", "home.phone", true, LOADED, PARSED),
@@ -281,17 +307,23 @@ try {
     // Built by script: ready is the frame its view was shown in, and the later call is not another load.
     () => load("/app/", "app.desktop", false, LOADED, "window.framed", undefined, true),
     () => load("/app/", "app.phone", true, [...LOADED, "load.inp"], "window.framed", press),
+    // Opened where no one saw it paint: its paints are not sent.
+    () => load("/post/", "post.desktop", false, UNSHOWN, PARSED, undefined, false, "hidden"),
+    () => load("/app/", "app.phone", true, UNSHOWN, "window.framed", undefined, false, "hidden"),
+    () => load("/", "home.phone", true, UNSHOWN, PARSED, undefined, false, "prerendering"),
   ];
   for (const l of loads) counted += (await l()).length;
-  // Every line printed is a reader's load's: none is the probe's.
+  await judged();
+  // Every line printed is a reader's load's: none is automation's.
   if (lines.length !== counted) problems.push(`telemetry printed ${lines.length} lines, where the readers' loads sent ${counted}`);
 } catch (e) {
   problems.push(e instanceof Error ? e.stack || e.message : String(e));
 }
 if (problems.length) await fail(problems.join("\n"));
 console.log(
-  `load: ${lines.length} events from 6 loads, each one beacon that arrived whole as its tab closed; ` +
-    "and 2 loads by a probe, each its beacon answered, and none of it printed",
+  `load: ${lines.length} events from 9 loads, each one beacon that arrived whole as its tab closed, 3 of them opened ` +
+    "unseen and sending no paint; " +
+    "and 4 loads as automation drives Chrome, 2 of them a probe's, sending nothing",
 );
 await end(0);
 

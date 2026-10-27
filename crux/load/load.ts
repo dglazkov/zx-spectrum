@@ -6,6 +6,13 @@
 // and phone where the main pointer is coarse, else desktop. Nothing else goes with it, nothing of the reader, and a
 // number the browser never gave is not sent.
 //
+// A paint is a reader's wait only where the page was shown for it: fcp and lcp are not sent where the page was hidden
+// or prerendering as it began, as one opened in a background tab is, as web-vitals drops them (crux#85: blog's loads
+// in a background tab said an lcp of 4,118 s). Shown, it is sent as it is first hidden, its paints all before that.
+//
+// Nothing is sent where navigator.webdriver is true, as in a browser automation drives, a probe or a crawler, so
+// that the lab's own Chrome is not counted as a reader (crux#86: blog's tests sent 481 post.phone loads on Oct 24).
+//
 // It reads PerformanceObserver alone, nothing from elsewhere. It is the same script on every page, with nothing of
 // the page's in it, so that a policy allows it by its hash. A page rendered whole on the server has it inline,
 // minified, with its view on the script itself (<script data-view="post">), and is whole once its HTML is parsed. A
@@ -34,6 +41,10 @@ const got: Record<string, number> = {};
 /** The observers, each with what it gives its entries to, so that what each holds yet is taken as the page hides. */
 const observers: [PerformanceObserver, (e: Entry) => void][] = [];
 const now = () => performance.now();
+// Named once, as the minifier keeps every "document" whole.
+const doc = document;
+/** Whether the page began unseen: hidden, or prerendering. */
+const unseen = doc.visibilityState == "hidden" || (doc as { prerendering?: boolean }).prerendering;
 
 /** Observes entries of a type, where the browser has them, each given to f; and says whether it does. */
 function observe(type: string, f: (e: Entry) => void, more = {}): boolean {
@@ -48,10 +59,10 @@ observe("navigation", (e) => {
   if (e.responseStart! > 0) got.ttfb = e.responseStart!;
 });
 observe("paint", (e) => {
-  if (e.name == "first-contentful-paint") got.fcp = e.startTime;
+  if (e.name == "first-contentful-paint" && !unseen) got.fcp = e.startTime;
 });
 observe("largest-contentful-paint", (e) => {
-  got.lcp = e.startTime;
+  if (!unseen) got.lcp = e.startTime;
 });
 // The longest interaction: each of its events has its id, and the slowest is its duration.
 const interaction = (e: Entry) => {
@@ -74,18 +85,18 @@ function ready(name: string) {
   });
 }
 
-const named = document.currentScript?.dataset.view;
+const named = doc.currentScript?.dataset.view;
 if (named) {
   const parsed = () => {
     view = named;
     got.ready = now();
   };
-  if (document.readyState == "loading") document.addEventListener("DOMContentLoaded", parsed);
+  if (doc.readyState == "loading") doc.addEventListener("DOMContentLoaded", parsed);
   else parsed();
 }
 
-document.addEventListener("visibilitychange", () => {
-  if (sent || document.visibilityState != "hidden") return;
+doc.addEventListener("visibilitychange", () => {
+  if (sent || navigator.webdriver || doc.visibilityState != "hidden") return;
   sent = true;
   for (const [o, f] of observers) o.takeRecords().forEach((e) => f(e));
   const kind = (view || "none") + "." + (matchMedia("(pointer:coarse)").matches ? "phone" : "desktop");
@@ -94,8 +105,9 @@ document.addEventListener("visibilitychange", () => {
   );
   if (!events.length) return;
   const body = JSON.stringify(events);
-  if (!navigator.sendBeacon?.("/nerd/event", body)) {
-    fetch("/nerd/event", { method: "POST", keepalive: true, body }).catch(() => {});
+  const to = "/nerd/event";
+  if (!navigator.sendBeacon?.(to, body)) {
+    fetch(to, { method: "POST", keepalive: true, body }).catch(() => {});
   }
 });
 
