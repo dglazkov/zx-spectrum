@@ -741,3 +741,26 @@ fn a_request_line_is_json_its_severity_by_its_status() {
         );
     }
 }
+
+/// What the server says of itself, as the compress thread's "compressed N files in M ms", is JSON with its severity,
+/// so that a box's journal, which gives every line of stderr an error's priority, does not file it as one (crux#112).
+#[test]
+fn a_log_line_is_json_with_its_severity() {
+    for (severity, message) in [
+        ("INFO", "compressed 3 files in 12 ms"),
+        ("INFO", "read 2 files in 0 ms"),
+        ("ERROR", "could not read /a\"b\\c\u{1}d/é: gone"),
+    ] {
+        let line = log_line(severity, message);
+        assert!(
+            line.ends_with("}\n") && line.matches('\n').count() == 1,
+            "{line:?}"
+        );
+        let said: serde_json::Value = serde_json::from_str(&line).expect(&line);
+        assert_eq!(
+            said,
+            serde_json::json!({"severity": severity, "message": message}),
+            "{line}"
+        );
+    }
+}

@@ -758,7 +758,7 @@ fn send(
     let entry = match entry.now() {
         Ok(e) => e,
         Err(err) => {
-            eprintln!("could not read a file: {err}");
+            log("ERROR", &format!("could not read a file: {err}"));
             return Answer {
                 status: StatusCode::SERVICE_UNAVAILABLE,
                 headers: vec![(header::RETRY_AFTER, "1".into())],
@@ -944,13 +944,19 @@ fn compress(table: Arc<Table>, asked: Arc<Asked>) {
     std::thread::spawn(move || {
         let (n, took) = table.compress();
         if n > 0 {
-            eprintln!("compressed {n} files in {} ms", took.as_millis());
+            log(
+                "INFO",
+                &format!("compressed {n} files in {} ms", took.as_millis()),
+            );
         }
         if table.unread() {
             asked.wait();
             let (n, took) = table.read();
             if n > 0 {
-                eprintln!("read {n} files in {} ms", took.as_millis());
+                log(
+                    "INFO",
+                    &format!("read {n} files in {} ms", took.as_millis()),
+                );
             }
         }
     });
@@ -1005,7 +1011,7 @@ impl Site {
         if let (Some(read), true) = (&self.read, method == Method::GET || method == Method::HEAD) {
             if let Some(e) = table.entries.get(&decode(uri.path())) {
                 if let Err(err) = e.fill(read).await {
-                    eprintln!("could not read {}: {err}", uri.path());
+                    log("ERROR", &format!("could not read {}: {err}", uri.path()));
                     return Answer {
                         status: StatusCode::SERVICE_UNAVAILABLE,
                         headers: vec![(header::RETRY_AFTER, "1".into())],
@@ -1204,6 +1210,22 @@ fn request_line(method: &str, path: &str, status: StatusCode, took: Duration) ->
         quoted(path),
         status.as_u16(),
         latency(took),
+    )
+}
+
+/// Says `message` on standard error as [`log_line`] writes it, in one write under stderr's lock, as [`logged`] does.
+fn log(severity: &str, message: &str) {
+    eprint!("{}", log_line(severity, message));
+}
+
+/// The line the server says `message` in, with its newline: `{"severity","message"}`, as Cloud Run reads a line's
+/// severity, and crux's ship at home, where podman's journal gives every line of stderr the priority of an error
+/// (crux#112).
+fn log_line(severity: &str, message: &str) -> String {
+    format!(
+        "{{\"severity\":{},\"message\":{}}}\n",
+        quoted(severity),
+        quoted(message)
     )
 }
 
