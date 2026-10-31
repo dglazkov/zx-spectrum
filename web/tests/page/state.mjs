@@ -1,13 +1,14 @@
-// The page test's parts for keeping the machine: save slots, snapshots, rewind, a breakpoint, the settings. Run by
-// page.mjs on page/harness.mjs; each part covers this file too, so that a change here runs only these.
+// The page test's parts for keeping the machine: save slots, snapshots, rewind, a breakpoint, the settings. A change
+// here runs only these.
 
 import { readFileSync } from 'node:fs';
-import { parts, assert, clean, open, pause, ready, screen, until, wait } from './harness.mjs';
+import { group, pause } from '../../../crux/chrome/harness.ts';
+import { assert, open, ready, screen, until, wait } from '../harness.mjs';
 
-const test = parts(import.meta.url);
+const test = group('state', { covers: ['web/src/state', 'web/src/ui/game.ts', 'web/src/ui/timeline.ts', 'web/src/ui/inspector.ts', 'web/src/keyboard/keyboard.ts', 'web/src/ui/settings.ts'], why: 'what the page keeps of the machine, across reloads' });
 
-test('save slots: F2 keeps the machine, F4 puts it back, after a reload too, with the game’s tape in the deck', ['web/src/state/saves.ts', 'web/src/ui/game.ts'], async () => {
-  const page = await open({ query: '?game=4293', storage: { loading: 'accelerated' } });
+test('save slots: F2 keeps the machine, F4 puts it back, after a reload too, with the game’s tape in the deck', async ({ page }) => {
+  await open(page, { query: '?game=4293', storage: { loading: 'accelerated' } });
   assert(await until(page, () => window.zx.emulator.peek(0x5800) === 0x4f && !window.zx.emulator.tape.state().playing, null, { step: 200, max: 20_000 }), 'the game did not load');
   await page.evaluate(() => window.zx.emulator.poke(0x8000, 0x5a));
   await page.mouse.click(5, 300);
@@ -25,13 +26,11 @@ test('save slots: F2 keeps the machine, F4 puts it back, after a reload too, wit
   assert(await until(page, () => window.zx.emulator.peek(0x8000) === 0x5a, null, { step: 100, max: 5_000 }), 'the slot did not come back after a reload');
   const after = await page.evaluate(() => ({ slots: document.querySelectorAll('.slot.filled').length, tape: window.zx.emulator.tape.state() }));
   assert(after.slots === 1 && after.tape.loaded && after.tape.position > 30, JSON.stringify(after));
-  clean(page);
-  await page.context().close();
   return `tape at ${after.tape.position.toFixed(1)} s`;
 });
 
-test('saves a snapshot, and loads one dropped on the page', [], async () => {
-  const page = await open();
+test('saves a snapshot, and loads one dropped on the page', async ({ page }) => {
+  await open(page);
   await wait(page, 2000);
   await page.evaluate(() => window.zx.emulator.poke(0x8000, 0x5a));
   const files = [];
@@ -60,13 +59,11 @@ test('saves a snapshot, and loads one dropped on the page', [], async () => {
   await wait(page, 500);
   const text = (await screen(page)).split('\n')[23];
   assert(text.includes('Sinclair Research'), `after the snapshots: ${JSON.stringify(text)}`);
-  clean(page);
-  await page.context().close();
   return files.map((f) => `${f.name} ${f.bytes.length} bytes`).join(', ');
 });
 
-test('rewinds: a moment every half second, its picture shown while choosing, and the machine put back to it', ['web/src/state/rewind.ts', 'web/src/ui/timeline.ts'], async () => {
-  const page = await open();
+test('rewinds: a moment every half second, its picture shown while choosing, and the machine put back to it', async ({ page }) => {
+  await open(page);
   await wait(page, 4000);
   const before = await page.evaluate(() => ({ moments: window.zx.app.rewind.length, history: window.zx.app.history, first: Array.from(window.zx.app.rewind.list()[0].colours).reduce((a, b) => a + b, 0) }));
   assert(before.moments >= 7, `${before.moments} moments after 4 s`);
@@ -96,13 +93,11 @@ test('rewinds: a moment every half second, its picture shown while choosing, and
   assert(after.history === chosen.frame && after.history < before.history + 100, `history ${before.history} → ${after.history}`);
   assert(!after.bottom.startsWith('LOAD'), `after going back the bottom line reads ${JSON.stringify(after.bottom)}`);
   assert(JSON.stringify(after.frame) === JSON.stringify(chosen.picture), 'the picture after going back is not the moment’s');
-  clean(page);
-  await page.context().close();
   return `back to frame ${after.history}`;
 });
 
-test('a breakpoint stops the machine, and the inspector shows where, disassembled', ['web/src/ui/inspector.ts'], async () => {
-  const page = await open();
+test('a breakpoint stops the machine, and the inspector shows where, disassembled', async ({ page }) => {
+  await open(page);
   await wait(page, 2000);
   await page.locator('button[title="Settings"]').click();
   await page.fill('.inspector input[aria-label="Breakpoint address, in hex"]', '0038');
@@ -119,13 +114,11 @@ test('a breakpoint stops the machine, and the inspector shows where, disassemble
   await wait(page, 1000);
   const ran = (await page.evaluate(() => window.zx.emulator.frameCount)) - f0;
   assert(ran >= 45, `${ran} frames after Run`);
-  clean(page);
-  await page.context().close();
   return stopped.code.split('\n')[0].trim();
 });
 
-test('the keyboard button is lit while the keyboard shows, puts it away and brings it back, and is remembered', ['web/src/keyboard/keyboard.ts'], async () => {
-  const page = await open();
+test('the keyboard button is lit while the keyboard shows, puts it away and brings it back, and is remembered', async ({ page }) => {
+  await open(page);
   const state = () =>
     page.evaluate(() => ({
       pressed: document.querySelector('.tools button:has(.icon-keyboard)').getAttribute('aria-pressed'),
@@ -144,18 +137,14 @@ test('the keyboard button is lit while the keyboard shows, puts it away and brin
   await page.click('.tools button:has(.icon-keyboard)');
   const back = await state();
   assert(back.pressed === 'true' && back.shown && back.lit === on.lit, `brought back: ${JSON.stringify(back)}`);
-  clean(page);
-  await page.context().close();
   return `lit ${on.lit}, put away ${off.lit}`;
 });
 
-test('remembers its settings across a reload', ['web/src/state/settings.ts', 'web/src/ui/settings.ts'], async () => {
-  const page = await open();
+test('remembers its settings across a reload', async ({ page }) => {
+  await open(page);
   await page.locator('.display .seg', { hasText: 'Sharp' }).click();
   await page.reload();
   await page.waitForSelector('body[data-ready]', { state: 'attached' });
   const display = await page.evaluate(() => document.body.dataset.display);
   assert(display === 'sharp', `display ${display} after a reload`);
-  clean(page);
-  await page.context().close();
 });

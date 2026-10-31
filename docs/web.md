@@ -74,9 +74,10 @@ web/
   zxdb.mjs                     how the index's text is written, and an entry of it read, for the tool's tests
   tools/bench.mjs              frames a second of the wasm build in Chrome, by model and loading a tape flat out
   tools/pictures.mjs           the pictures (below)
-  tests/page.mjs               the page test in Chrome;  shot.mjs a picture;  smoke.mjs a running server
-  tests/page/                  its harness (harness.mjs) and its parts, a file an area: machine, keys, tapes, library,
-                               state, phone; a change to one file runs its parts alone
+  tests/run.mjs                the page test in Chrome, on crux's harness;  shot.mjs a picture;  smoke.mjs a running server
+  tests/harness.mjs            what its parts share: the tapes it makes, the recordings, the page opened, the machine read
+  tests/page/                  its suite.mjs and its parts, a file an area: machine, keys, tapes, library, state, phone,
+                               language, telemetry; a change to one file runs its groups alone
   tests/build.mjs              the production build, served by the server, with the smoke test's checks
   tests/wasm/wasm.spec.ts      the module in Node, held to the native build;  nerd-reporter.mjs its parts to nerd
   tests/wasm/games/            each card held to its game on the module (helpers.ts; saboteur.spec.ts, ...): its route
@@ -86,11 +87,11 @@ web/
   tests/zxdb-dump.spec.mjs     the index of the real dump (vitest.zxdb.config.ts)
 ```
 
-Commands (in `web/`, after `npm install`): `npm run dev` (builds the module if it is missing or stale, then Vite at
+Commands (in `web/`, after `npm install`, and in `crux/chrome/`, for what starts Chrome): `npm run dev` (builds the module if it is missing or stale, then Vite at
 :5173), `npm run build` (the same, into `dist/`), `npm start` (the server on `dist/`, PORT or 8080), `npm run test:unit`,
-`npm run test:wasm`, `node tests/page.mjs [words]`, `node tests/shot.mjs [--phone] [--dpr 2] [--file tape.tzx]
-[--frames N] [--eval js] [--settings json] [--full]` (a picture into `out/`), `node tools/pictures.mjs [desktop]
-[phone] [--sharp]`, `node tools/bench.mjs [--frames N] [--json]`, `node tests/smoke.mjs URL`, `node tools/featured.mjs
+`npm run test:wasm`, `nerd test web-page [words]`, `npx tsx tests/shot.mjs [--phone] [--dpr 2] [--file tape.tzx]
+[--frames N] [--eval js] [--settings json] [--full]` (a picture into `out/`), `npx tsx tools/pictures.mjs [desktop]
+[phone] [--sharp]`, `npx tsx tools/bench.mjs [--frames N] [--json]`, `npx tsx tests/smoke.mjs URL`, `node tools/featured.mjs
 [--check]`.
 
 The page's address takes: `?game=<ZXDB id>` (that game, loaded straight away: `?game=4293` is Saboteur), `?lang=ru` or
@@ -809,7 +810,7 @@ code) is already the bar and the set with its tube dark, which the page then swi
 | `server` | the server's Rust tests (`crates/app/tests/`): the pass-through against origins of their own, the ZXDB's index, the binary on a built directory | 2 s |
 | `web-types` | `tsc --noEmit` (TypeScript 7), strict, over src, vite.config.ts, app.d.mts | 1 s |
 | `web-unit` | Vitest, 148 tests in 20 files (below) | 6 s |
-| `web-page` | Chrome (playwright-core, `CHROME` with `CHROME_ARGS`, WebGL on the GPU) on the real machine, 34 parts, 4 at a time | 30 s |
+| `web-page` | Chrome (crux's part chrome, `CHROME` with `CHROME_ARGS`, WebGL on the GPU) on the real machine, 42 parts, 4 at a time | 40 s |
 | `web-build` | the production build (vite build, the module as tested), served by the server on a port of its own, with the smoke test's checks but those needing the network (`tests/build.mjs`) | 8 s |
 
 **wasm**. Natively (`crates/wasm/src/tests.rs`): a model out of range is a null handle and a null handle is harmless;
@@ -871,8 +872,8 @@ it, no listener left behind), and a client asking too often (refused past its bu
 goes on). The
 fixtures (`web/tests/fixtures/zxinfo/`) are the API's own answers, which ZXInfo's metadata licence lets us keep.
 
-Page (`web/tests/page.mjs`, running the harness and the parts in `web/tests/page/`), the machine built first, each
-part on fresh pages with `?sound=off` (but the two about sound), time moved by the test through Playwright's
+Page (`web/tests/run.mjs`, running crux's harness, `crux/chrome/harness.ts`, on the parts in `web/tests/page/`), the
+machine built first, each part on fresh pages with `?sound=off` (but the two about sound), time moved by the test through Playwright's
 `page.clock` (paused once the page is ready), the network answered from recordings (searches and entries; the archive
 with Saboteur's real tape, manual and inlay from the fixture cache, or a tape the test makes: a BASIC loader,
 `10 LOAD ""SCREEN$`, and a screen; pictures with a one-pixel PNG), any console error failing the part, the slowest

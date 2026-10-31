@@ -1,0 +1,9 @@
+{
+  "name": "crux-chrome",
+  "private": true,
+  "type": "module",
+  "description": "One way to drive a page in a product's tests: the one Playwright they all run, at one exact version.",
+  "dependencies": {
+    "playwright-core": "1.64.1"
+  }
+}

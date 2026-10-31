@@ -1,7 +1,7 @@
 // Pictures of the page, for looking at while it is made: each a viewport, after the page is ready.
 //
-//   node tests/shot.mjs [--phone] [--path ?emulator=stub] [--out ../out/desktop.png] [--frames 150] [--eval 'js']
-//                       [--file tape.tzx] [--settings '{"display":"sharp"}'] [--full]
+//   npx tsx tests/shot.mjs [--phone] [--path ?emulator=stub] [--out ../out/desktop.png] [--frames 150] [--eval 'js']
+//                          [--file tape.tzx] [--settings '{"display":"sharp"}'] [--full]
 //
 // --phone is 390 × 844 at 3× with touch; otherwise 1440 × 900 at 1× (--dpr 2 for a retina display). --frames runs that many frames of the machine
 // (at 50 a second of the page's clock) before the picture; --eval runs script in the page first (after the frames).
@@ -9,7 +9,7 @@
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright-core';
+import { launch } from '../../crux/chrome/launch.ts';
 import { createServer } from 'vite';
 
 const args = process.argv.slice(2);
@@ -24,17 +24,19 @@ mkdirSync(dirname(out), { recursive: true });
 
 const server = await createServer({ root, server: { port: 0 }, logLevel: 'error' });
 await server.listen();
-const browser = await chromium.launch({
-  executablePath: process.env.CHROME ?? '/usr/bin/google-chrome',
-  args: [...(process.env.CHROME_ARGS ?? '').split(' ').filter(Boolean)],
-});
+const browser = await launch();
+let problems = 0;
 try {
   const context = await browser.newContext(
     phone ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true } : { viewport: { width: 1440, height: 900 }, deviceScaleFactor: Number(opt('dpr', '1')) },
   );
   const page = await context.newPage();
-  page.on('pageerror', (e) => console.log('pageerror:', e.message));
+  page.on('pageerror', (e) => {
+    problems++;
+    console.log('pageerror:', e.message);
+  });
   page.on('console', (m) => {
+    if (m.type() === 'error') problems++;
     if (m.type() === 'error' || m.type() === 'warning') console.log(`console ${m.type()}:`, m.text());
   });
   await page.clock.install();
@@ -71,3 +73,5 @@ try {
   await browser.close();
   await server.close();
 }
+// The picture is kept, and what the page said fails the run. The server the dev server started ends with this process.
+process.exit(problems ? 1 : 0);

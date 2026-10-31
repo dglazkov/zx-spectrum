@@ -1,16 +1,17 @@
 // The page test's parts for what the page tells nerd (nerd guide telemetry): its events, counted and never of anyone,
-// and nerd's feedback card, from F7 and from Settings, which keeps the keys typed into it from the machine. Run by
-// page.mjs on page/harness.mjs; each part covers this file too, so that a change here runs only these.
+// and nerd's feedback card, from F7 and from Settings, which keeps the keys typed into it from the machine. A change
+// here runs only these.
 
-import { parts, assert, clean, open, until, wait } from './harness.mjs';
+import { group } from '../../../crux/chrome/harness.ts';
+import { assert, open, until, wait } from '../harness.mjs';
 
-const test = parts(import.meta.url);
+const test = group('telemetry', { covers: ['web/src/telemetry.ts', 'web/src/state/saves.ts', 'web/src/ui/settings.ts', 'web/src/ui/help.ts', 'web/src/input/pc-keyboard.ts', 'crux/widget'], why: 'what the page sends as a person uses it' });
 
 /** The events the page sent so far, as `name kind` each. */
 const events = (page) => page.nerd.filter((n) => n.path === '/nerd/event').map((n) => [n.body.name, n.body.kind].filter(Boolean).join(' '));
 
-test('tells nerd what was played and how it went, and nothing of who or which: a game from a link, its slots, a rewind', ['web/src/telemetry.ts', 'web/src/state/saves.ts'], async () => {
-  const page = await open({ query: '?game=4293', storage: { loading: 'accelerated' } });
+test('tells nerd what was played and how it went, and nothing of who or which: a game from a link, its slots, a rewind', async ({ page }) => {
+  await open(page, { query: '?game=4293', storage: { loading: 'accelerated' } });
   assert(await until(page, () => window.zx.emulator.peek(0x5800) === 0x4f && !window.zx.emulator.tape.state().playing, null, { step: 200, max: 20_000 }), 'the game did not load');
   await page.mouse.click(5, 300);
   await page.keyboard.press('F2');
@@ -33,13 +34,11 @@ test('tells nerd what was played and how it went, and nothing of who or which: a
   await page.keyboard.press('F7');
   const listed = await page.evaluate(() => document.querySelector('#nerd-feedback')?.shadowRoot.querySelector('dl')?.textContent ?? '');
   assert(want.every((w) => listed.includes(w.split(' ')[0])), `the card's events: ${listed}`);
-  clean(page);
-  await page.context().close();
   return said.join(', ');
 });
 
-test('nerd’s feedback card: F7 and Settings open it, what is typed in it is not the machine’s, and it is sent as one line', ['web/src/telemetry.ts', 'web/src/ui/settings.ts', 'web/src/ui/help.ts', 'web/src/input/pc-keyboard.ts', 'crux/widget/', 'crates/app/'], async () => {
-  const page = await open();
+test('nerd’s feedback card: F7 and Settings open it, what is typed in it is not the machine’s, and it is sent as one line', async ({ page }) => {
+  await open(page);
   await wait(page, 2000);
   const bottom = () => page.evaluate(() => window.zx.emulator.screenText().split('\n')[23]);
   const before = await bottom();
@@ -74,7 +73,5 @@ test('nerd’s feedback card: F7 and Settings open it, what is typed in it is no
   await page.keyboard.press('Escape');
   const keys = await page.evaluate(() => document.querySelector('dialog.help').textContent);
   assert(keys.includes('F7') && keys.includes('Send feedback on the page'), 'the Keys sheet does not list F7');
-  clean(page);
-  await page.context().close();
   return `sent: ${JSON.stringify(sent[0].words)}`;
 });

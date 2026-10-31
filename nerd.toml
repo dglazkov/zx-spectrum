@@ -2,8 +2,8 @@
 name = "zx-spectrum"
 # After a deploy: the page, the archive, the manual and the ZXDB through the server (crates/app, on crux's parts), the emulator served as
 # WebAssembly, and the deployed machine starting in Chrome as the one the tests passed (web/tests/smoke.mjs; it needs
-# `npm install` in web/ and the network).
-smoke = "cd web && node tests/smoke.mjs"
+# `npm install` in web/ and crux/chrome/, and the network).
+smoke = "cd web && npx --yes tsx@4.20.6 tests/smoke.mjs"
 
 # The tests, a layer each, fastest first: `nerd test` runs the ones that cover what changed. Each crate is built
 # into a target directory of its own, so that tests side by side do not wait on one another's build lock.
@@ -113,6 +113,15 @@ run = "cd web && npx vitest run -c vitest.zxdb.config.ts"
 covers = ["web/tools/zxdb-index.mjs", "web/zxdb.mjs", "crates/app/src/zxdb.rs", "crates/app/src/main.rs", "web/app.mjs", "web/tests/zxdb-dump.spec.mjs", "web/vitest.zxdb.config.ts", "web/src/library/choose.ts", "web/src/library/zxinfo.ts", "web/src/library/featured.json", "fixtures.txt"]
 limit = "2m"
 
+# crux's part chrome has a node_modules of its own, for what follows: readied once, ahead of them, as npm ci takes the
+# directory away from under whatever runs on it. What imports the part, which is TypeScript, runs on tsx.
+[[test]]
+name = "chrome-part"
+run = "cd crux/chrome && { [ node_modules/.package-lock.json -nt package-lock.json ] || npm ci --no-audit --no-fund --loglevel=error; }"
+covers = ["crux/chrome/package.json", "crux/chrome/package-lock.json"]
+before = true
+limit = "1m"
+
 # The page in Chrome on the real machine (the WebAssembly build, built first), on the page's own clock
 # (Playwright's page.clock): power-on to the copyright read from the frame, keys (<> typed as two characters), a tape
 # from a file (LOAD "" typed when the ROM is ready, the stripes, the screen), the 128's Tape Loader, Saboteur from the
@@ -122,16 +131,17 @@ limit = "2m"
 # server (crates/app, which the dev server passes to: web/app.mjs); save slots across a reload,
 # snapshots, rewind and its preview, a SAVE as a TAP named for itself, a breakpoint, the Kempston across a power-on, a
 # frame that throws and the machine started again, files refused, the machine that will not start, the warm-up,
-# settings, sound, a phone upright and sideways; any console error fails a part. Four parts at a time, the slowest
-# first, each reported; those a change cannot touch are skipped (each part covers its own file in web/tests/page/,
-# and only the harness, web/tests/page/harness.mjs, runs them all). About 25 s; Chrome is launched from nerd's CHROME and
-# CHROME_ARGS, so WebGL is drawn on the GPU, and Saboteur's 9,200 frames are the longest part.
+# settings, sound, a phone upright and sideways; any console error fails a part. On crux's harness (crux/chrome), run by
+# web/tests/run.mjs, its suite web/tests/page/: four parts at a time, the longest first, each reported; those a change
+# cannot touch are skipped (each group in it covers its own file and what it says, and what they all share,
+# web/tests/harness.mjs among it, runs them all). About 25 s; Chrome is launched from nerd's CHROME and CHROME_ARGS, so
+# WebGL is drawn on the GPU, and Saboteur's 9,200 frames are the longest part.
 # Not covered: what the page never loads (how.html's sheet and its Plex Mono, the fonts' licences) and the
 # crates' unit tests, which are not in the WebAssembly module.
 [[test]]
 name = "web-page"
-run = "cd web && node tests/page.mjs"
-covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/public/**", "web/tests/page.mjs", "web/tests/page/**", "web/tests/fixtures/**", "web/vite.config.ts", "web/app.mjs", "crates/app/**", "crux/server/**", "crux/telemetry/**", "crux/widget/**", "crux/load/**", "crux/wasm/**", "web/zxdb.mjs", "web/tools/zxdb-index.mjs", "web/package-lock.json", "roms/**", "crates/wasm/src/**", "crates/wasm/Cargo.toml", "crates/spectrum/src/**", "crates/z80/src/**", "crates/audio/src/**", "crates/ay/src/**", "crates/tape/src/**", "crates/snapshot/src/**", "crates/unzip/src/**", "Cargo.toml", "Cargo.lock", "scripts/build-wasm.sh", "fixtures.txt", "!web/src/how/**", "!web/src/fonts/plex-mono-*", "!web/src/fonts/*.txt", "!crates/**/tests.rs"]
+run = "cd web && npx --yes tsx@4.20.6 tests/run.mjs page"
+covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/public/**", "web/tests/run.mjs", "web/tests/harness.mjs", "web/tests/page/**", "crux/chrome/**", "!crux/chrome/standin/**", "!crux/chrome/*.test.mts", "web/tests/fixtures/**", "web/vite.config.ts", "web/app.mjs", "crates/app/**", "crux/server/**", "crux/telemetry/**", "crux/widget/**", "crux/load/**", "crux/wasm/**", "web/zxdb.mjs", "web/tools/zxdb-index.mjs", "web/package-lock.json", "roms/**", "crates/wasm/src/**", "crates/wasm/Cargo.toml", "crates/spectrum/src/**", "crates/z80/src/**", "crates/audio/src/**", "crates/ay/src/**", "crates/tape/src/**", "crates/snapshot/src/**", "crates/unzip/src/**", "Cargo.toml", "Cargo.lock", "scripts/build-wasm.sh", "fixtures.txt", "!web/src/how/**", "!web/src/fonts/plex-mono-*", "!web/src/fonts/*.txt", "!crates/**/tests.rs"]
 inputs = ["web/src/emulator/zx.wasm"]
 limit = "3m"
 
@@ -141,8 +151,8 @@ limit = "3m"
 # only the production build gets wrong is found before a deploy, not after. About 10 s.
 [[test]]
 name = "web-build"
-run = "cd web && node tests/build.mjs"
-covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/how.html", "web/public/**", "web/vite.config.ts", "web/app.mjs", "crates/app/**", "crux/server/**", "crux/telemetry/**", "crux/widget/**", "crux/load/**", "crux/wasm/**", "web/package.json", "web/package-lock.json", "web/tests/build.mjs", "web/tests/smoke.mjs", "roms/**", "scripts/build-wasm.sh", "Cargo.toml", "Cargo.lock"]
+run = "cd web && npx --yes tsx@4.20.6 tests/build.mjs"
+covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/how.html", "web/public/**", "web/vite.config.ts", "web/app.mjs", "crates/app/**", "crux/server/**", "crux/telemetry/**", "crux/widget/**", "crux/load/**", "crux/wasm/**", "web/package.json", "web/package-lock.json", "web/tests/build.mjs", "web/tests/smoke.mjs", "crux/chrome/**", "!crux/chrome/standin/**", "!crux/chrome/*.test.mts", "roms/**", "scripts/build-wasm.sh", "Cargo.toml", "Cargo.lock"]
 inputs = ["web/src/emulator/zx.wasm"]
 limit = "2m"
 
@@ -180,4 +190,4 @@ baseline = "probe/speed.json"
 
 [crux]
 commit = "fa16921e2f86b2820b605253fcbc4f36334216c4"
-parts = ["server", "telemetry", "widget", "load", "probe", "wasm"]
+parts = ["server", "telemetry", "widget", "load", "probe", "wasm", "chrome"]

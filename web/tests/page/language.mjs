@@ -1,13 +1,13 @@
 // The page test's parts for its language (src/i18n/, docs/russian.md): Russian asked for in the address, or the
 // browser's; nothing of the page's own left in English on the Russian page (nor in Russian on the English one); the
 // language changed at once from the bar's menu and from Settings, with nothing reloaded and the game left as it was;
-// the choice remembered over the browser's; and a phone in Russian. Run by page.mjs on page/harness.mjs; each part
-// covers this file too.
+// the choice remembered over the browser's; and a phone in Russian. A change here runs only
+// these.
 
-import { parts, assert, clean, open, until, wait } from './harness.mjs';
+import { group } from '../../../crux/chrome/harness.ts';
+import { PHONE, assert, open, until, wait } from '../harness.mjs';
 
-const test = parts(import.meta.url);
-const COVERS = ['web/src/i18n/', 'web/src/library/games/', 'web/src/ui/', 'web/src/state/settings.ts', 'web/src/fonts/golos-text-cyrillic.woff2'];
+const test = group('language', { covers: ['web/src/i18n', 'web/src/library/games', 'web/src/ui', 'web/src/state/settings.ts', 'web/src/fonts/golos-text-cyrillic.woff2'], why: 'what the page shows, in the language it chose' });
 
 /**
  * What the page says in the other language than it speaks: in Russian, each run of three English words or more (the
@@ -61,8 +61,8 @@ async function everythingShowing(page) {
   await wait(page, 200);
 }
 
-test('in Russian from the address: nothing of the page’s own left in English, the address tidied, the choice kept across a reload', COVERS, async () => {
-  const page = await open({ query: '?lang=ru&game=4293', locale: 'en-US' });
+test('in Russian from the address: nothing of the page’s own left in English, the address tidied, the choice kept across a reload', { context: { locale: 'en-US' } }, async ({ page }) => {
+  await open(page, { query: '?lang=ru&game=4293' });
   await everythingShowing(page);
   const now = await said(page);
   assert(now.lang === 'ru' && now.badge === 'РУ' && now.open === 'Открыть' && now.goal === 'Ваша цель' && now.settings === 'Настройки', `the page says ${JSON.stringify(now)}`);
@@ -81,13 +81,11 @@ test('in Russian from the address: nothing of the page’s own left in English, 
   await page.waitForSelector('body[data-ready]', { state: 'attached' });
   const again = await said(page);
   assert(again.lang === 'ru' && again.badge === 'РУ' && again.open === 'Открыть', `after a reload the page says ${JSON.stringify(again)}`);
-  clean(page);
-  await page.context().close();
   return `${now.goal}; ${now.open}; ${now.overlay.slice(0, 40)}…`;
 });
 
-test('opens in the browser’s language, changes at once from the menu and from Settings, and keeps a choice over the browser’s', COVERS, async () => {
-  const page = await open({ query: '?game=4293', locale: 'ru-RU' });
+test('opens in the browser’s language, changes at once from the menu and from Settings, and keeps a choice over the browser’s', { context: { locale: 'ru-RU' } }, async ({ page }) => {
+  await open(page, { query: '?game=4293' });
   await everythingShowing(page);
   const first = await said(page);
   assert(first.lang === 'ru' && first.goal === 'Ваша цель' && first.chosen === '', `a Russian browser's page says ${JSON.stringify(first)}`);
@@ -117,22 +115,18 @@ test('opens in the browser’s language, changes at once from the menu and from 
   await page.waitForSelector('body[data-ready]', { state: 'attached' });
   const chosen = await said(page);
   assert(chosen.lang === 'en' && chosen.open === 'Open', `after a reload, English chosen in a Russian browser, the page says ${JSON.stringify(chosen)}`);
-  clean(page);
-  await page.context().close();
   return `ru → en → ru → en, kept over the browser’s ru-RU`;
 });
 
-test('a browser in another language opens it in English', COVERS, async () => {
-  const page = await open({ locale: 'de-DE' });
+test('a browser in another language opens it in English', { context: { locale: 'de-DE' } }, async ({ page }) => {
+  await open(page);
   const now = await said(page);
   assert(now.lang === 'en' && now.open === 'Open' && now.badge === 'EN', `a German browser's page says ${JSON.stringify(now)}`);
-  clean(page);
-  await page.context().close();
   return 'de-DE: English';
 });
 
-test('a phone in Russian: no sideways scroll, the language in Settings', COVERS, async () => {
-  const page = await open({ phone: true, query: '?lang=ru&game=4293' });
+test('a phone in Russian: no sideways scroll, the language in Settings', { context: PHONE }, async ({ page }) => {
+  await open(page, { query: '?lang=ru&game=4293' });
   await until(page, () => !document.querySelector('.panel.game').hidden);
   await wait(page, 500);
   const fit = await page.evaluate(() => ({
@@ -149,7 +143,5 @@ test('a phone in Russian: no sideways scroll, the language in Settings', COVERS,
   await wait(page, 200);
   const choice = await page.evaluate(() => [...document.querySelectorAll('dialog.settings .language-choice [data-value]')].map((b) => `${b.textContent}:${b.getAttribute('aria-checked')}`));
   assert(choice.join() === 'English:false,Русский:true', `Settings' language on a phone: ${choice}`);
-  clean(page);
-  await page.context().close();
   return `${fit.scroll} px in ${fit.width} px`;
 });

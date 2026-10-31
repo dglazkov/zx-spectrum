@@ -1,14 +1,14 @@
 // The page test's parts for tapes loaded from a file and from the 128’s menu, a SAVE out of the deck, files refused,
-// the stripes. Run by page.mjs on page/harness.mjs; each part covers this file too, so that a change here runs only
-// these.
+// the stripes. A change here runs only these.
 
 import { readFileSync } from 'node:fs';
-import { parts, SHARP, assert, borderColours, clean, header, keyLog, open, openFile, pixel, playing, programTape, ready, screen, until, wait } from './harness.mjs';
+import { group } from '../../../crux/chrome/harness.ts';
+import { PHONE, SHARP, assert, borderColours, header, keyLog, open, openFile, pixel, playing, programTape, ready, screen, until, wait } from '../harness.mjs';
 
-const test = parts(import.meta.url);
+const test = group('tapes', { covers: ['web/src/ui/deck.ts', 'web/src/input', 'web/src/ui/settings.ts', 'web/src/ui/help.ts'], why: 'tapes through the page’s deck, on the real machine' });
 
-test('a tape from a file loads: LOAD "" typed when the ROM is ready, stripes in the border, then its screen, flat out', ['web/src/ui/deck.ts', 'web/src/input/', 'web/src/clock/'], async () => {
-  const page = await open({ storage: SHARP });
+test('a tape from a file loads: LOAD "" typed when the ROM is ready, stripes in the border, then its screen, flat out', async ({ page }) => {
+  await open(page, { storage: SHARP });
   await wait(page, 1000);
   await openFile(page, 'test.tap', programTape('PICTURE'));
   await wait(page, 100);
@@ -31,13 +31,11 @@ test('a tape from a file loads: LOAD "" typed when the ROM is ready, stripes in 
   assert(paper.join() === '0,0,255' && ink.join() === '255,255,255', `the loaded screen: ink ${ink}, paper ${paper}`);
   const speed = await page.evaluate(() => window.zx.app.scheduler.speed);
   assert(speed === 1, `back at ${speed} once the tape stopped`);
-  clean(page);
-  await page.context().close();
   return `border ${colours.size} colours; the rest in ${loadedIn} frames flat out; the screen ink ${ink} on ${paper}`;
 });
 
-test('a 128 loads a tape from its menu: ENTER on Tape Loader once the menu shows', ['web/src/input/typer.ts'], async () => {
-  const page = await open({ storage: { ...SHARP, model: '128k', loading: 'accelerated' } });
+test('a 128 loads a tape from its menu: ENTER on Tape Loader once the menu shows', async ({ page }) => {
+  await open(page, { storage: { ...SHARP, model: '128k', loading: 'accelerated' } });
   await wait(page, 500);
   const f0 = await page.evaluate(() => window.zx.emulator.frameCount);
   await openFile(page, 'test.tap', programTape('PICTURE'));
@@ -48,13 +46,11 @@ test('a 128 loads a tape from its menu: ENTER on Tape Loader once the menu shows
   // The menu shows about 61 frames after switching on: ENTER is pressed then, not after a fixed wait.
   assert(after > 55 && after < 100, `ENTER ${after} frames after switching on`);
   assert(await until(page, () => window.zx.emulator.peek(0x5800) === 0x4f && !window.zx.emulator.tape.state().playing, null, { step: 200, max: 15_000 }), 'the screen did not load');
-  clean(page);
-  await page.context().close();
   return `ENTER ${after} frames after switching on`;
 });
 
-test('a SAVE from BASIC comes out of the deck as a TAP to download', ['web/src/ui/deck.ts'], async () => {
-  const page = await open();
+test('a SAVE from BASIC comes out of the deck as a TAP to download', async ({ page }) => {
+  await open(page);
   await wait(page, 2000);
   await page.mouse.click(5, 300);
   // 10 REM hi (E is REM in K mode), then SAVE "hi" (S is SAVE), as the ROM is typed.
@@ -73,26 +69,22 @@ test('a SAVE from BASIC comes out of the deck as a TAP to download', ['web/src/u
   const tap = readFileSync(await file.path());
   // Named for what was SAVEd: its header's name.
   assert(file.suggestedFilename() === 'hi.tap' && tap[0] === 19 && tap[2] === 0 && tap.subarray(4, 6).toString() === 'hi', `${file.suggestedFilename()}: ${[...tap.subarray(0, 8)]}`);
-  clean(page);
-  await page.context().close();
   return `${file.suggestedFilename()}, ${tap.length} bytes`;
 });
 
-test('a tape playing leaves the page where it is: the deck’s list follows the head, the window does not', ['web/src/ui/deck.ts'], async () => {
+test('a tape playing leaves the page where it is: the deck’s list follows the head, the window does not', { context: PHONE }, async ({ page }) => {
   // On a phone the deck is under the keyboard: the screen is what is watched while the tape loads.
-  const page = await open({ phone: true });
+  await open(page);
   await wait(page, 1000);
   await openFile(page, 'test.tap', programTape('PICTURE'));
   await page.evaluate(() => window.scrollTo(0, 0));
   assert(await until(page, () => window.zx.emulator.tape.state().block >= 1, null, { step: 500, max: 20_000 }), 'the tape did not reach its second block');
   const y = await page.evaluate(() => window.scrollY);
   assert(y === 0, `the window scrolled to ${y} as the tape went on`);
-  clean(page);
-  await page.context().close();
 });
 
-test('a file the machine cannot load changes nothing: a tape with nothing to play, a file too large', ['web/src/ui/deck.ts'], async () => {
-  const page = await open();
+test('a file the machine cannot load changes nothing: a tape with nothing to play, a file too large', async ({ page }) => {
+  await open(page);
   await wait(page, 2000);
   await page.mouse.click(5, 300);
   await page.keyboard.press('j');
@@ -106,12 +98,10 @@ test('a file the machine cannot load changes nothing: a tape with nothing to pla
   const after = await page.evaluate(() => ({ bottom: window.zx.emulator.screenText().split('\n')[23], loaded: window.zx.emulator.tape.state().loaded, empty: document.querySelector('.deck').classList.contains('empty'), toasts: [...document.querySelectorAll('.toast-error .toast-text')].map((t) => t.textContent), frames: window.zx.emulator.frameCount }));
   assert(after.bottom.startsWith('LOAD') && !after.loaded && after.empty, `after the files: ${JSON.stringify(after)}`);
   assert(after.toasts.length === 2 && /nothing on it|no block that plays/.test(after.toasts[0]) && /larger than any Spectrum file/.test(after.toasts[1]), JSON.stringify(after.toasts));
-  clean(page);
-  await page.context().close();
 });
 
-test('a loader’s stripes drawn calmly when asked: the border one colour while the tape plays; F8 reads the screen; F1 the keys', ['web/src/ui/settings.ts', 'web/src/ui/help.ts'], async () => {
-  const page = await open({ storage: { ...SHARP, calmStripes: 'on' } });
+test('a loader’s stripes drawn calmly when asked: the border one colour while the tape plays; F8 reads the screen; F1 the keys', async ({ page }) => {
+  await open(page, { storage: { ...SHARP, calmStripes: 'on' } });
   await wait(page, 2000);
   await page.mouse.click(5, 300);
   await page.keyboard.press('F8');
@@ -131,7 +121,5 @@ test('a loader’s stripes drawn calmly when asked: the border one colour while 
   assert(read.includes('Sinclair Research'), `the screen read: ${read}`);
   assert(help, 'F1 did not show the keys');
   assert(calm.size === 1 && machine > 1, `the border shown in ${calm.size} colours, the machine's in ${machine}`);
-  clean(page);
-  await page.context().close();
   return `${calm.size} colour shown of the border's ${machine}`;
 });

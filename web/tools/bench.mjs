@@ -3,17 +3,17 @@
 // tape flat out from the fixture cache (as the accelerated style does). A measurement, judged by no test: the machine
 // is shared, and what else runs on it shows in the numbers.
 //
-//   node tools/bench.mjs [--frames 3000] [--json]       CHROME and CHROME_ARGS say which Chrome and its flags
+//   npx tsx tools/bench.mjs [--frames 3000] [--json]       CHROME and CHROME_ARGS say which Chrome and its flags
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright-core';
+import { launch } from '../../crux/chrome/launch.ts';
 import { createServer } from 'vite';
 
 const args = process.argv.slice(2);
 if (args.includes('--help')) {
-  console.log('node tools/bench.mjs [--frames N] [--json]: frames a second of the wasm build in Chrome, by model, and loading Saboteur flat out');
+  console.log('npx tsx tools/bench.mjs [--frames N] [--json]: frames a second of the wasm build in Chrome, by model, and loading Saboteur flat out');
   process.exit(0);
 }
 const opt = (name, fallback) => {
@@ -32,7 +32,7 @@ try {
 
 const server = await createServer({ root, server: { port: 0 }, logLevel: 'error' });
 await server.listen();
-const browser = await chromium.launch({ executablePath: process.env.CHROME ?? '/usr/bin/google-chrome', args: [...(process.env.CHROME_ARGS ?? '').split(' ').filter(Boolean)] });
+const browser = await launch();
 try {
   const page = await browser.newPage();
   await page.goto(`${server.resolvedUrls.local[0]}favicon.svg`);
@@ -92,3 +92,5 @@ try {
   await browser.close();
   await server.close();
 }
+// The server the dev server started ends with this process.
+process.exit(0);

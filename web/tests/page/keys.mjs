@@ -1,12 +1,14 @@
 // The page test's parts for the keys: the drawn keyboard, the PC’s, the arrows and the Kempston, and a card’s key map.
-// Run by page.mjs on page/harness.mjs; each part covers this file too, so that a change here runs only these.
+// A change here runs only these.
 
-import { parts, assert, clean, keyLog, open, screen, until, wait } from './harness.mjs';
+import { group } from '../../../crux/chrome/harness.ts';
+import { assert, keyLog, open, screen, until, wait } from '../harness.mjs';
 
-const test = parts(import.meta.url);
+const focus = group('focus', { covers: ['web/src/input', 'web/src/ui'], why: 'where the keyboard’s focus goes in a real page' });
+const test = group('keys', { covers: ['web/src/keyboard', 'web/src/input', 'web/src/ui/touch.ts'], why: 'keys go down in a real page, over what is drawn and what has the focus' });
 
-test('the keyboard is laid out as the case: no legend over another, each key’s on its face', ['web/src/keyboard/'], async () => {
-  const page = await open();
+test('the keyboard is laid out as the case: no legend over another, each key’s on its face', async ({ page }) => {
+  await open(page);
   const r = await page.evaluate(() => {
     const box = (el) => {
       const b = el.getBBox();
@@ -32,13 +34,11 @@ test('the keyboard is laid out as the case: no legend over another, each key’s
   assert(r.plate === 76, `${r.plate} legends on the plate (26 letters × 2, 10 digits × 2 and 4 under the colours)`);
   assert(r.clashes.length === 0, `legends over one another: ${r.clashes.join(', ')}`);
   assert(r.off.length === 0, `legends off their keys or over one another: ${r.off.join(', ')}`);
-  clean(page);
-  await page.context().close();
   return `${r.plate} legends on the plate, none over another`;
 });
 
-test('a drawn key presses the key, lit while it is down; a shift latches', ['web/src/keyboard/', 'web/src/input/'], async () => {
-  const page = await open();
+test('a drawn key presses the key, lit while it is down; a shift latches', async ({ page }) => {
+  await open(page);
   await wait(page, 2000);
   const key = page.locator('.kb-key[data-key="J"]');
   await key.scrollIntoViewIfNeeded();
@@ -65,12 +65,10 @@ test('a drawn key presses the key, lit while it is down; a shift latches', ['web
   // The machine took them: LOAD (J in K mode), then a quote.
   const line = (await screen(page)).split('\n')[23];
   assert(line.startsWith('LOAD "'), `the bottom line reads ${JSON.stringify(line)}`);
-  clean(page);
-  await page.context().close();
 });
 
-test('the PC keyboard types BASIC: j is LOAD, a typed " is SYMBOL SHIFT and P, and the ROM shows LOAD ""', ['web/src/input/'], async () => {
-  const page = await open();
+test('the PC keyboard types BASIC: j is LOAD, a typed " is SYMBOL SHIFT and P, and the ROM shows LOAD ""', async ({ page }) => {
+  await open(page);
   await wait(page, 2000);
   await page.mouse.click(5, 300); // the page, not a field
   await page.keyboard.press('j');
@@ -100,13 +98,11 @@ test('the PC keyboard types BASIC: j is LOAD, a typed " is SYMBOL SHIFT and P, a
     return s;
   });
   assert(text === 'LOAD ""', `the bottom line reads ${JSON.stringify(text)}`);
-  clean(page);
-  await page.context().close();
   return text;
 });
 
-test('the page works from the keyboard, and a clicked button does not keep the keys', ['web/src/input/', 'web/src/ui/'], async () => {
-  const page = await open();
+focus('the page works from the keyboard, and a clicked button does not keep the keys', async ({ page }) => {
+  await open(page);
   await wait(page, 1000);
   await page.mouse.click(5, 300);
   // From the machine, Shift+Tab is the way to the page's controls; there Tab moves on and Enter presses.
@@ -135,12 +131,10 @@ test('the page works from the keyboard, and a clicked button does not keep the k
   assert(first, 'Shift+Tab from the machine reached no control');
   assert(hidden && moved && back, `Enter on the focused toggle hid the keyboard: ${hidden}; Tab moved on: ${moved}; Escape back to the machine: ${back}`);
   assert(shown && still && space, `after a click: focus let go ${shown}, Space left the button alone ${still}, Space reached the machine ${space}`);
-  clean(page);
-  await page.context().close();
 });
 
-test('the arrows edit a BASIC line until a program loads, then are the joystick', ['web/src/input/'], async () => {
-  const page = await open({ storage: { joystick: 'kempston', arrowsJoystick: true, mapping: 'auto' } });
+test('the arrows edit a BASIC line until a program loads, then are the joystick', async ({ page }) => {
+  await open(page, { storage: { joystick: 'kempston', arrowsJoystick: true, mapping: 'auto' } });
   await wait(page, 1000);
   await page.mouse.click(5, 300);
   await page.keyboard.down('ArrowLeft');
@@ -167,12 +161,10 @@ test('the arrows edit a BASIC line until a program loads, then are the joystick'
   // CAPS SHIFT (0) and 5 (19) at BASIC; the joystick's left (2) once a program is in.
   assert(cursor.bits === 0 && cursor.down.includes(0) && cursor.down.includes(19), `at BASIC: joystick ${cursor.bits}, keys down ${cursor.down}`);
   assert(joy === 2 && port === 2, `with a program loaded: joystick ${joy}, IN 31 reads ${port}`);
-  clean(page);
-  await page.context().close();
 });
 
-test('a card’s key map: for a game with no joystick, the arrows and the fire key press its keys, and let them go', ['web/src/input/', 'web/src/ui/touch.ts'], async () => {
-  const page = await open({ storage: { joystick: 'kempston', arrowsJoystick: true, mapping: 'auto' } });
+test('a card’s key map: for a game with no joystick, the arrows and the fire key press its keys, and let them go', async ({ page }) => {
+  await open(page, { storage: { joystick: 'kempston', arrowsJoystick: true, mapping: 'auto' } });
   await wait(page, 1000);
   // As a card's key map would put them (Manic Miner's, say): left on O, fire on SPACE.
   await page.evaluate(() => {
@@ -200,12 +192,10 @@ test('a card’s key map: for a game with no joystick, the arrows and the fire k
   const joystick = await page.evaluate(() => window.zx.emulator.joystickState.bits);
   await page.keyboard.up('ArrowLeft');
   assert(joystick === 2, `without a key map, left is joystick bit ${joystick}`);
-  clean(page);
-  await page.context().close();
 });
 
-test('the Kempston stays plugged in: IN 31 reads nothing pressed after the power button, a game’s tape and going back', ['web/src/input/'], async () => {
-  const page = await open({ query: '?game=4293', storage: { joystick: 'kempston', loading: 'accelerated' } });
+test('the Kempston stays plugged in: IN 31 reads nothing pressed after the power button, a game’s tape and going back', async ({ page }) => {
+  await open(page, { query: '?game=4293', storage: { joystick: 'kempston', loading: 'accelerated' } });
   // IN A,(31) at 8000h mid-frame, as a game reads the joystick: 0 with nothing pressed; a port with no interface floats (FF).
   const in31 = () =>
     page.evaluate(() => {
@@ -231,12 +221,10 @@ test('the Kempston stays plugged in: IN 31 reads nothing pressed after the power
   await wait(page, 200);
   const afterRewind = await in31();
   assert(loading === 0 && afterPower === 0 && afterRewind === 0, `IN 31: loading ${loading}, after the power button ${afterPower}, after going back ${afterRewind}`);
-  clean(page);
-  await page.context().close();
 });
 
-test('typing <> as two characters gives the Spectrum’s own <>: a line of BASIC with it is taken', ['web/src/input/'], async () => {
-  const page = await open();
+test('typing <> as two characters gives the Spectrum’s own <>: a line of BASIC with it is taken', async ({ page }) => {
+  await open(page);
   await wait(page, 2000);
   await page.mouse.click(5, 300);
   // 10 IF 1<>2 THEN PRINT 1: IF is U in K mode, THEN SYMBOL SHIFT and G (Alt+G), PRINT is P in K mode again.
@@ -257,7 +245,5 @@ test('typing <> as two characters gives the Spectrum’s own <>: a line of BASIC
   const top = (await screen(page)).split('\n')[0];
   // As the ROM lists it: the line number, the current line's >, and <> one token (typed as < and >, it would be refused).
   assert(/^ *10.IF 1<>2 THEN PRINT 1 *$/.test(top), `the listing reads ${JSON.stringify(top)}`);
-  clean(page);
-  await page.context().close();
   return top.trim();
 });

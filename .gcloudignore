@@ -12,3 +12,4 @@ web/node_modules
 web/dist
 web/src/emulator/zx.wasm
 docs
+crux/chrome

@@ -6,12 +6,12 @@
 // docs/toolchain/). nerd runs it after a deploy (nerd.toml's smoke), with the network, as the server needs it;
 // tests/build.mjs runs it on the page built here, without the network's parts.
 //
-//   node tests/smoke.mjs https://zx-spectrum.lab.glazkov.ai      (or NERD_URL)
+//   npx tsx tests/smoke.mjs https://zx-spectrum.lab.glazkov.ai      (or NERD_URL)
 
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { chromium } from 'playwright-core';
+import { launch } from '../../crux/chrome/launch.ts';
 
 const LOCAL_MODULE = fileURLToPath(new URL('../src/emulator/zx.wasm', import.meta.url));
 
@@ -84,7 +84,7 @@ export async function smoke(url, { network = true, log = console.log } = {}) {
   });
 
   await check('the page starts the real machine in Chrome, with no errors, and it is the machine the tests passed', async () => {
-    const browser = await chromium.launch({ executablePath: process.env.CHROME ?? '/usr/bin/google-chrome', args: [...(process.env.CHROME_ARGS ?? '').split(' ').filter(Boolean)] });
+    const browser = await launch();
     try {
       const page = await browser.newPage();
       const problems = [];
@@ -128,7 +128,7 @@ export async function smoke(url, { network = true, log = console.log } = {}) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const url = (process.argv[2] ?? process.env.NERD_URL ?? '').replace(/\/$/, '');
   if (!url) {
-    console.error('usage: node tests/smoke.mjs URL');
+    console.error('usage: npx tsx tests/smoke.mjs URL');
     process.exit(2);
   }
   process.exit((await smoke(url)) ? 1 : 0);

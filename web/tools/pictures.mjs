@@ -4,17 +4,17 @@
 // manual and inlay come from the fixture cache (scripts/fixture), the ZXDB's answers from the recordings the tests use;
 // the page's clock is moved by the tool, and the tape loaded flat out (accelerated), as the page loads it when asked.
 //
-//   node tools/pictures.mjs [desktop] [phone] [--sharp]      CHROME and CHROME_ARGS say which Chrome and its flags
+//   npx tsx tools/pictures.mjs [desktop] [phone] [--sharp]      CHROME and CHROME_ARGS say which Chrome and its flags
 
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright-core';
+import { launch } from '../../crux/chrome/launch.ts';
 import { createServer } from 'vite';
 
 const args = process.argv.slice(2);
 if (args.includes('--help')) {
-  console.log('node tools/pictures.mjs [desktop] [phone] [--sharp]: pictures of the page and of Saboteur into out/');
+  console.log('npx tsx tools/pictures.mjs [desktop] [phone] [--sharp]: pictures of the page and of Saboteur into out/');
   process.exit(0);
 }
 const which = args.filter((a) => !a.startsWith('--'));
@@ -32,12 +32,21 @@ const recording = (name) => readFileSync(`${root}tests/fixtures/zxinfo/${name}.j
 
 const server = await createServer({ root, server: { port: 0 }, logLevel: 'error' });
 await server.listen();
-const browser = await chromium.launch({ executablePath: process.env.CHROME ?? '/usr/bin/google-chrome', args: [...(process.env.CHROME_ARGS ?? '').split(' ').filter(Boolean)] });
+const browser = await launch();
+let problems = 0;
 
 async function open(phone, query, viewport = { width: 390, height: 844 }) {
   const context = await browser.newContext(phone ? { viewport, deviceScaleFactor: 3, isMobile: true, hasTouch: true } : { viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
-  page.on('pageerror', (e) => console.log('pageerror:', e.message));
+  page.on('pageerror', (e) => {
+    problems++;
+    console.log('pageerror:', e.message);
+  });
+  page.on('console', (m) => {
+    if (m.type() !== 'error') return;
+    problems++;
+    console.log('console error:', m.text());
+  });
   await page.route('**/zxinfo/v3/games/**', (r) => r.fulfill({ contentType: 'application/json', body: recording('game-0004293') }));
   await page.route('**/archive/**', (r) => {
     const path = new URL(r.request().url()).pathname;
@@ -167,3 +176,5 @@ try {
   await browser.close();
   await server.close();
 }
+// The pictures are kept, and what the page said fails the run. The server the dev server started ends with this process.
+process.exit(problems ? 1 : 0);
