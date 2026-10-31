@@ -10,23 +10,25 @@
 // shown once it is complete, or prerendering (its document.prerendering said so in the page, as Chrome's would be),
 // sends no fcp and no lcp, its paints no reader's wait (crux#85).
 //
-// npx --yes tsx@4.20.6 load.test.mts   (from anywhere: it runs `cargo run -p load --example page` in its directory)
+// Chrome is the part chrome's reader (crux#117), which a product takes beside this one. Each page is a tab of that
+// Chrome's first context, where a tab is hidden as a reader's is, and automation's are that same Chrome, told so.
+//
+// npm ci in ../chrome, then: CHROME=... npx --yes tsx@4.20.6 load.test.mts   (from anywhere: it runs `cargo run -p load
+// --example page` in its directory)
 // Prints what it checked and exits 0 where all is so; else says what was not, and exits 1.
 
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
+import type { Browser } from "playwright-core";
 
 const here = import.meta.dirname;
 const problems: string[] = [];
 // What end() stops, once each is started.
-let server: ChildProcess | undefined, chrome: ChildProcess | undefined;
-let ended: Promise<unknown> = Promise.resolve();
+let server: ChildProcess | undefined, browser: Browser | undefined;
 let ending: Promise<never> | undefined;
 let deadline: NodeJS.Timeout | undefined;
-const dir = mkdtempSync(join(tmpdir(), "crux-load-"));
 
 // nerd-load.js is what load.ts builds to, as load.ts says to build it.
 {
@@ -43,6 +45,15 @@ const dir = mkdtempSync(join(tmpdir(), "crux-load-"));
     );
   }
 }
+
+// A product that runs this test and does not take the part chrome yet has what is above and no more, until its move
+// onto it: blog's is dglazkov/blog#113 (crux#117), and once that is closed this goes.
+if (!existsSync(join(here, "../chrome/launch.ts"))) {
+  if (problems.length) await fail(problems.join("\n"));
+  console.log("load: its script is what load.ts builds to; no load was tried, as this product does not take the part chrome");
+  process.exit(0);
+}
+const { hide: hidden, launch, readerAgent } = await import("../chrome/launch.ts");
 
 // The pages' server, and the telemetry lines it prints, as they come.
 server = spawn("cargo", ["run", "--locked", "-q", "-p", "load", "--example", "page"], {
@@ -65,59 +76,19 @@ const base = await new Promise<string>((resolve) => {
   });
 });
 
-chrome = spawn(
-  process.env.CHROME || "google-chrome",
-  [
-    "--headless=new", "--remote-debugging-port=0", `--user-data-dir=${dir}`,
-    // Chrome over its DevTools port says navigator.webdriver true, which Emulation.setAutomationOverride does not
-    // clear: a reader's tab is without it, and automation's sets it again.
-    "--disable-blink-features=AutomationControlled",
-    "--no-first-run", "--no-default-browser-check", "--disable-gpu", "about:blank",
-  ],
-  { stdio: ["ignore", "ignore", "pipe"], detached: true },
-);
-chrome.on("error", (e) => fail(`Chrome could not start: ${e.message}`));
-// Chrome leads a process group of its own, its renderers and services in it, so that the end can kill them all and
-// wait for them: they write in its profile until they are gone.
-ended = new Promise((resolve) => {
-  chrome!.on("exit", resolve);
-  chrome!.on("error", resolve);
-});
 deadline = setTimeout(() => fail(["Chrome's part took longer than a minute", ...problems].join("\n")), 60_000);
 
-const ws = await new Promise<string>((resolve) => {
-  let err = "";
-  chrome!.stderr!.on("data", (d) => {
-    err += d;
-    const m = err.match(/DevTools listening on (ws:\S+)/);
-    if (m) resolve(m[1]);
-  });
-  ended.then(() => ending || fail(`Chrome ended: ${err}`));
-});
+// Chrome's own user agent, as it says itself headless and as automation leaves it.
+const HEADLESS = await launch().then(async (automation) => {
+  const page = await (await automation.newContext()).newPage();
+  const agent = await page.evaluate<string>("navigator.userAgent");
+  await automation.close();
+  return agent;
+}, (e) => fail(e.message));
+if (!HEADLESS.includes("HeadlessChrome/")) await fail(`Chrome says itself ${HEADLESS}, not HeadlessChrome: a probe's loads would be counted`);
 
-const socket = new WebSocket(ws);
-await new Promise((resolve, reject) => {
-  socket.onopen = resolve;
-  socket.onerror = reject;
-});
-let next = 0;
-type Waiting = { resolve: (v: any) => void; reject: (e: Error) => void; method: string };
-const waiting = new Map<number, Waiting>();
-const listeners: ((m: any) => void)[] = [];
-socket.onmessage = ({ data }) => {
-  const m = JSON.parse(String(data));
-  if (m.id !== undefined) {
-    const w = waiting.get(m.id)!;
-    waiting.delete(m.id);
-    if (m.error) w.reject(new Error(`${w.method}: ${m.error.message}`));
-    else w.resolve(m.result);
-  } else for (const l of listeners) l(m);
-};
-function send(method: string, params = {}, sessionId?: string): Promise<any> {
-  const id = ++next;
-  socket.send(JSON.stringify({ id, method, params, sessionId }));
-  return new Promise((resolve, reject) => waiting.set(id, { resolve, reject, method }));
-}
+browser = await launch({ reader: true }).catch((e) => fail(e.message));
+const pages = browser.contexts()[0];
 
 // Recorded in the page before anything of it runs: what its policy refused, and whether its largest paint has been
 // presented, as someone looking at it would wait for before doing anything.
@@ -127,46 +98,26 @@ const RECORD = `
   new PerformanceObserver(() => { window.__painted = true; }).observe({ type: 'largest-contentful-paint', buffered: true });
 `;
 
-// Chrome's own user agent, as it says itself headless, and the same Chrome as a reader's, on a desktop and a phone.
-const { userAgent: HEADLESS } = await send("Browser.getVersion");
-const version = HEADLESS.match(/HeadlessChrome\/(\S+)/)?.[1];
-if (!version) await fail(`Chrome says itself ${HEADLESS}, not HeadlessChrome: a probe's loads would be counted`);
-const READER = {
-  desktop: `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Safari/537.36`,
-  phone: `Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Mobile Safari/537.36`,
-};
-
 /** A tab of its own, as a phone where asked, as a reader's browser says itself unless a probe drives it, as
  * automation drives it where asked (a probe's is), and the requests it makes to /nerd/event, as they are made: each
- * by its type, as Chrome has it, its body, and its status once answered. */
+ * by its type, as Chrome has it, and its body. */
 async function tab(phone: boolean, probe = false, automated = probe) {
-  const { targetId } = await send("Target.createTarget", { url: "about:blank" });
-  const { sessionId } = await send("Target.attachToTarget", { targetId, flatten: true });
-  const s = (method: string, params = {}) => send(method, params, sessionId);
-  const beacons: { id: string; type: string; body: string; status?: number }[] = [];
-  listeners.push((m) => {
-    if (m.sessionId !== sessionId) return;
-    if (m.method === "Network.requestWillBeSent" && m.params.request.url.endsWith("/nerd/event")) {
-      beacons.push({ id: m.params.requestId, type: m.params.type, body: m.params.request.postData });
-    }
-    const beacon = beacons.find((b) => b.id === m.params?.requestId);
-    if (beacon && m.method === "Network.responseReceived") beacon.status = m.params.response.status;
+  const page = await pages.newPage();
+  const beacons: { type: string; body: string | null }[] = [];
+  page.on("request", (request) => {
+    if (request.url().endsWith("/nerd/event")) beacons.push({ type: request.resourceType(), body: request.postData() });
   });
-  await s("Network.enable");
-  await s("Page.enable");
-  await s("Page.addScriptToEvaluateOnNewDocument", { source: RECORD });
-  if (!probe) await s("Emulation.setUserAgentOverride", { userAgent: phone ? READER.phone : READER.desktop });
-  if (automated) await s("Emulation.setAutomationOverride", { enabled: true });
+  await page.addInitScript(RECORD);
+  const cdp = await pages.newCDPSession(page);
+  if (probe) await cdp.send("Emulation.setUserAgentOverride", { userAgent: HEADLESS });
+  else if (phone) await cdp.send("Emulation.setUserAgentOverride", { userAgent: readerAgent(browser!.version(), true) });
+  if (automated) await cdp.send("Emulation.setAutomationOverride", { enabled: true });
   if (phone) {
-    await s("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
-    await s("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
+    await cdp.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
+    await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
   }
-  const run = async (expression: string) => {
-    const r = await s("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
-    if (r.exceptionDetails) throw new Error(`${expression}: ${r.exceptionDetails.exception?.description}`);
-    return r.result.value;
-  };
-  return { s, run, targetId, beacons };
+  const run = <T = any>(expression: string) => page.evaluate<T>(expression);
+  return { page, run, beacons };
 }
 type Tab = Awaited<ReturnType<typeof tab>>;
 
@@ -180,11 +131,15 @@ async function until(t: Tab, what: string) {
 
 /** Hides the tab, as another opened over it does; and the tab over it, left open where asked. */
 async function hide(t: Tab, leave = false) {
-  const { targetId } = await send("Target.createTarget", { url: "about:blank" });
-  await send("Target.activateTarget", { targetId });
-  await until(t, 'document.visibilityState === "hidden"');
-  if (!leave) await send("Target.closeTarget", { targetId });
-  return targetId;
+  const over = await hidden(t.page);
+  if (!leave) await over.close();
+  return over;
+}
+
+/** Shows the tab again. */
+async function show(t: Tab) {
+  await t.page.bringToFront();
+  await until(t, 'document.visibilityState === "visible"');
 }
 
 /** Clicks as a person would, so that the browser counts it an interaction. */
@@ -192,9 +147,7 @@ async function press(t: Tab) {
   const { x, y } = await t.run(
     `(() => { const r = document.getElementById("press").getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`,
   );
-  for (const type of ["mousePressed", "mouseReleased"]) {
-    await t.s("Input.dispatchMouseEvent", { type, x, y, button: "left", clickCount: 1 });
-  }
+  await t.page.mouse.click(x, y);
 }
 
 // What a load sends where no one did anything in it; and where someone did, how long it took.
@@ -208,17 +161,14 @@ async function load(path: string, kind: string, phone: boolean, names: string[],
   const what = `${path} as ${kind}${opened === "shown" ? "" : `, opened ${opened}`}`;
   const t = await tab(phone);
   if (opened === "prerendering") {
-    await t.s("Page.addScriptToEvaluateOnNewDocument", {
-      source: "Object.defineProperty(Document.prototype, 'prerendering', { get: () => true, configurable: true });",
-    });
+    await t.page.addInitScript("Object.defineProperty(Document.prototype, 'prerendering', { get: () => true, configurable: true });");
   }
   const over = opened === "hidden" ? await hide(t, true) : undefined;
-  await t.s("Page.navigate", { url: base + path });
+  await t.page.goto(base + path, { waitUntil: "commit" });
   if (over) {
     await until(t, "document.readyState === 'complete' && document.visibilityState === 'hidden'");
-    await send("Target.closeTarget", { targetId: over });
-    await t.s("Page.bringToFront");
-    await until(t, 'document.visibilityState === "visible"');
+    await over.close();
+    await show(t);
   }
   await until(t, "!!window.__painted && document.readyState === 'complete'");
   if (act) await act(t);
@@ -229,11 +179,10 @@ async function load(path: string, kind: string, phone: boolean, names: string[],
   await hide(t);
   if (again) {
     // A page hidden again is not a load again.
-    await t.s("Page.bringToFront");
-    await until(t, 'document.visibilityState === "visible"');
+    await show(t);
     await hide(t);
   }
-  await send("Target.closeTarget", { targetId: t.targetId });
+  await t.page.close();
 
   if (!ran) problems.push(`${what}: the script never ran`);
   if (refused.length) problems.push(`${what}: the policy refused ${refused.join(", ")}`);
@@ -243,7 +192,7 @@ async function load(path: string, kind: string, phone: boolean, names: string[],
   }
   const sent = lines.slice(from) as { nerd: string; name: string; kind: string; ms?: number; n?: number }[];
   const types = t.beacons.map((b) => b.type);
-  if (JSON.stringify(types) !== JSON.stringify(["Ping"])) problems.push(`${what}: sent ${JSON.stringify(types)}, not one beacon`);
+  if (JSON.stringify(types) !== JSON.stringify(["ping"])) problems.push(`${what}: sent ${JSON.stringify(types)}, not one beacon`);
   // What the browser sent, before telemetry made its lines of it: the same events, and nothing else of the reader.
   for (const { body } of t.beacons) {
     const lines = sent.map(({ nerd, ...e }) => e);
@@ -272,7 +221,7 @@ const automation: { what: string; t: Tab }[] = [];
 async function automated(path: string, kind: string, phone: boolean, probe: boolean) {
   const what = `${path} as ${kind}, by ${probe ? "a probe" : "other automation"}`;
   const t = await tab(phone, probe, true);
-  await t.s("Page.navigate", { url: base + path });
+  await t.page.goto(base + path, { waitUntil: "commit" });
   await until(t, "!!window.__painted && document.readyState === 'complete'");
   const agent: string = await t.run("navigator.userAgent");
   if (agent.includes("HeadlessChrome") !== probe) problems.push(`${what}: Chrome said itself ${agent}`);
@@ -284,7 +233,7 @@ async function automated(path: string, kind: string, phone: boolean, probe: bool
 async function judged() {
   for (const { what, t } of automation) {
     if (t.beacons.length) problems.push(`${what}: sent ${t.beacons.map((b) => b.body).join(", ")}, where automation sends nothing`);
-    await send("Target.closeTarget", { targetId: t.targetId });
+    await t.page.close();
   }
 }
 
@@ -327,23 +276,12 @@ console.log(
 );
 await end(0);
 
-/** Kills Chrome and the server, every process of their groups, and removes Chrome's profile once the last is gone. */
+/** Stops the server, every process of its group, and closes Chrome, or leaves it to launch where it will not close. */
 function end(code: number): Promise<never> {
   ending ??= (async () => {
     clearTimeout(deadline);
-    for (const p of [server, chrome]) {
-      try { process.kill(-p!.pid!, "SIGKILL"); } catch {}
-    }
-    await ended;
-    for (let i = 0; chrome; i++) {
-      try { process.kill(-chrome.pid!, 0); } catch { break; }
-      if (i === 1000) {
-        console.error(`load: Chrome's processes were still there 10s after it was killed; its profile is left in ${dir}`);
-        process.exit(1);
-      }
-      await new Promise((r) => setTimeout(r, 10));
-    }
-    rmSync(dir, { recursive: true, force: true });
+    try { process.kill(-server!.pid!, "SIGKILL"); } catch {}
+    await Promise.race([browser?.close(), new Promise((r) => setTimeout(r, 10_000))]).catch(() => {});
     process.exit(code);
   })();
   return ending;
