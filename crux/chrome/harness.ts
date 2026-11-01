@@ -44,7 +44,8 @@
 // - An error thrown in a page or written to its console fails the part it came in, in any page of the part's context.
 // - Each part is held to a limit of its own, seconds, its suite's unless it says. On a machine that kept the run from
 //   running it has three times that and all the machine kept from it, up to ten times its limit, where one that hangs
-//   on a busy machine still fails. A wait on the page fails ahead of it, saying what it waited for.
+//   on a busy machine still fails. A wait on the page ends with the part, saying what it waited for.
+// - A page's opening is held to `opening`, seconds, in the same way, and says what it waited for where it ran out.
 // - A judgment of real time (`inTime`) that fails while the machine kept the run from running is inconclusive, and fails
 //   nothing: it measured the machine.
 // - Each part is reported as it ends, in the file NERD_REPORT names. The options a suite can say are `Options`, below;
@@ -74,7 +75,7 @@ type Served = { base: string; close: () => unknown };
 export type Options = {
   /** How many seconds a part may take, unless it says: 10 when not given. */
   limit?: number;
-  /** How many seconds a page may take to open: 60 when not given. */
+  /** How many seconds a page may take to open, a limit that stretches as a part's does: 60 when not given. */
   opening?: number;
   /** How many groups run side by side: 4 when not given. */
   parallel?: number;
@@ -474,12 +475,14 @@ async function answerFrom(context: BrowserContext, base: string, recordings: Rec
   }
 }
 
-/** What a part stopped at its limit was waiting for, from the wait's own failure as `closing` takes its page away. */
+/** What a part stopped at its limit was waiting for, from the wait's own failure as `closing` takes its page away: its
+ * log, under "Call log:" or a line of its own as a wait for an event writes it, or which call it was, for one with none. */
 async function waitedFor(work: Promise<unknown>, closing: () => Promise<void>): Promise<string> {
   await closing();
   const ended = await Promise.race([work.then(() => null, (e: Error) => e), sleep(1000, null)]);
-  const waiting = ended?.message.match(/^\s*- (waiting for .*)$/m)?.[1];
-  return waiting ? `, ${waiting}` : "";
+  const waiting = ended?.message.match(/^\s*(?:- )?((?:waiting for|navigating to) .*)$/m)?.[1];
+  const call = ended?.message.match(/^(\w+\.\w+): /)?.[1];
+  return waiting ? `, ${waiting}` : call ? `, in ${call}` : "";
 }
 
 // --- Running a suite -------------------------------------------------------------------------------------------------
@@ -579,15 +582,16 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
     let away: (() => Promise<unknown>) | null = null;
     let start: unknown = null;
     let errors: string[] = [];
-    /** Whether the machine kept the run from running in what was done last: a limit stretches from the first. */
-    let busyLately = false;
+    /** Tells a wait on the page to wait past where a limit of `seconds` can stretch, as it is told its timeout as it begins,
+     * before the machine can be looked at, and cannot be told more of what is kept after: the limit itself ends it, and
+     * `waitedFor` says what it was. */
+    const waitsPast = (seconds: number) => here.context?.setDefaultTimeout(seconds * (FURTHEST + 1) * 1000);
     const closing = async () => {
       await (away ? within(away(), 10, "the page was still closing") : null)?.catch(() => undefined);
       away = null;
       here.page = here.context = null as never;
     };
     const fresh = async () => {
-      const from = kept();
       await closing();
       if (browser) {
         const tab = group.tab ?? suite.tab;
@@ -622,12 +626,18 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
         here.page = await context.newPage();
       }
       const opening = suite.opening ?? 60;
-      // A wait on the page as it opens fails just before the opening's limit, as a part's does before its own.
-      here.context?.setDefaultTimeout((opening - 0.5) * 1000);
+      waitsPast(opening);
+      const inOpening = async <T>(work: Promise<T>, what: string) => {
+        try {
+          return await within(work, opening, what);
+        } catch (e) {
+          if (e instanceof Overran) e.message += await waitedFor(work, closing);
+          throw e;
+        }
+      };
       const open = group.open ?? suite.open;
-      if (open) await within(Promise.resolve(open(here.page, base)), opening, "the page was still opening");
-      start = suite.start ? await within(Promise.resolve(suite.start(here.page)), opening, "the page was still starting") : null;
-      busyLately = kept() - from >= STALLED;
+      if (open) await inOpening(Promise.resolve(open(here.page, base)), "the page was still opening");
+      start = suite.start ? await inOpening(Promise.resolve(suite.start(here.page)), "the page was still starting") : null;
     };
 
     let broken: Error | null = null;
@@ -649,20 +659,7 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
         const limit = limitOf(p);
         const t0 = performance.now();
         const kept0 = kept();
-        // A wait on the page that never ends fails before the part's limit, saying what it waited for. On a machine that
-        // kept the run from running lately or does as the part runs, it waits as far as a limit can stretch, as it cannot
-        // be told more of what is kept once it has begun: the limit itself ends it, and `waitedFor` says what it was.
-        let stretched = busyLately;
-        const waitsUpTo = () => {
-          const seconds = limit * (stretched ? FURTHEST : 1);
-          here.context?.setDefaultTimeout(Math.max(seconds - 0.5, seconds * 0.75) * 1000);
-        };
-        waitsUpTo();
-        const looking = setInterval(() => {
-          if (stretched || kept() - kept0 < STALLED) return;
-          stretched = true;
-          waitsUpTo();
-        }, 250); // the machine looked at as the part runs, not a wait
+        waitsPast(limit);
         let detail: unknown;
         let failure: Error | null = null;
         const work = Promise.resolve().then(() => p.fn(here));
@@ -670,15 +667,12 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
           detail = await within(work, limit, "still going");
         } catch (e) {
           failure = e as Error;
-        } finally {
-          clearInterval(looking);
         }
-        // A wait begun late in the part outlives its limit: it says what it waited for once its page is gone.
+        // A wait outlives the part's limit: it says what it waited for once its page is gone.
         if (failure instanceof Overran) failure.message += await waitedFor(work, closing);
         const ms = performance.now() - t0;
         if (failure instanceof RealTime) await counted();
         const waited = Math.round(kept() - kept0);
-        busyLately = waited >= STALLED;
         const said = errors.splice(0).filter((e) => !p.reports.some((r) => r.test(e)));
         if (said.length) failure ??= new Error(`the page reported: ${[...new Set(said)].join("; ")}`);
         // An error the page reported is the part's, whatever it judged of real time.

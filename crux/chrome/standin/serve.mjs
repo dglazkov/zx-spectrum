@@ -10,10 +10,12 @@ const PAGES = {
   "/writes": `<script>console.error("written to the console")</script>`,
   "/warns": `<script>console.warn("a warning")</script>`,
   "/popup": `<a id=open href=/throws target=_blank>open</a>`,
+  "/loading": `<img src=/never>`,
 };
 
 export async function serve() {
   const server = createServer((request, response) => {
+    if (request.url === "/never") return;
     response.setHeader("Content-Type", "text/html");
     response.end(`<!doctype html><title>stand-in</title><link rel=icon href=data:,>${PAGES[request.url] ?? "<p>a page"}`);
   });

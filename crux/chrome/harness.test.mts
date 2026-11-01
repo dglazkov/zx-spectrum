@@ -105,6 +105,31 @@ test("a wait that outlives its part's limit is said too", async () => {
   assert.match(one("limits › begins a wait late").said!, /still going after [\d.]+s.*waiting for locator\('#late'\)/);
 });
 
+test("every kind of wait a part's limit ends says what it waited for", async () => {
+  const { code, out, one } = await stand(["waits"]);
+  assert.equal(code, 1, out);
+  for (const [name, waited] of [
+    ["a selector", /waiting for locator\('#never'\)/],
+    ["a locator's wait", /waiting for locator\('#never'\)/],
+    ["a click", /waiting for locator\('#never'\)/],
+    ["a fill", /waiting for locator\('#never'\)/],
+    ["a function", /in page\.waitForFunction/],
+    ["a url", /waiting for navigation to "\*\*\/never"/],
+    ["an event", /waiting for event "popup"/],
+    ["a request", /waiting for request "\*\*\/never"/],
+    ["a response", /waiting for response "\*\*\/never"/],
+    ["a navigation", /navigating to "[^"]*never"/],
+    ["a load", /in page\.waitForLoadState/],
+    ["a context's event", /in browserContext\.waitForEvent/],
+    ["a script", /in page\.evaluate/],
+  ] as const) {
+    const part = one(`hung › ${name}`);
+    assert.equal(part.outcome, "failed", out);
+    assert.match(part.said!, /^still going after /, out);
+    assert.match(part.said!, waited, out);
+  }
+});
+
 test("a part past its limit with nothing to wait for says so, and the part after one is on a fresh page", async () => {
   const { one, parts } = await whole();
   assert.equal(one("limits › never ends").outcome, "failed");
@@ -382,12 +407,43 @@ test("a wait begun on a machine that kept the run is not held to less than the p
   assert.equal(one("stalled › waits through a stall").outcome, "passed", out);
 });
 
+test("a wait begun before the machine is looked at is not held to less than the part is", async () => {
+  const { code, out, one } = await stand(["stalls", "before the machine"]);
+  assert.equal(code, 0, out);
+  assert.equal(one("stalled › begins a wait before the machine is looked at").outcome, "passed", out);
+});
+
 test("a hang the machine kept still fails, saying what it waited for and what was kept", async () => {
   const { code, out, one } = await stand(["stalls", "hangs"]);
   assert.equal(code, 1, out);
   const part = one("stalled › hangs after a stall");
   assert.equal(part.outcome, "failed", out);
   assert.match(part.said!, /still going after [\d.]+s: its 1s limit, stretched as the machine kept it from running [\d.]+s, waiting for locator\('#never'\)/);
+});
+
+test("a hang the machine kept to the end of its limit's reach is ended by that limit, not by the wait's own timeout", async () => {
+  const { code, out, one } = await stand(["stalls", "long stall"]);
+  assert.equal(code, 1, out);
+  const part = one("stalled › hangs through a long stall");
+  assert.equal(part.outcome, "failed", out);
+  assert.match(part.said!, /^still going after [\d.]+s: its 1s limit, stretched as the machine kept it from running [\d.]+s, waiting for locator\('#never'\)/);
+});
+
+test("a wait as a page opens is not held to less than the opening is, and a hung opening says what it waited for", async () => {
+  const { code, out, one } = await stand(["opening"]);
+  assert.equal(code, 1, out);
+  assert.equal(one("kept › opens").outcome, "passed", out);
+  const hung = /its page did not open: the page was still (?:opening|starting) after (?:[\d.]+s, its limit|[^,]+: its 2s limit, stretched as the machine kept it from running [\d.]+s), /;
+  for (const [name, waited] of [
+    ["waits › opens", /waiting for locator\('#never'\)/],
+    ["starts › opens", /waiting for locator\('#never'\)/],
+    ["navigates › opens", /navigating to "[^"]*never"/],
+  ] as const) {
+    const part = one(name);
+    assert.equal(part.outcome, "failed", out);
+    assert.match(part.said!, hung, out);
+    assert.match(part.said!, waited, out);
+  }
 });
 
 test("a stall does not excuse what is no judgment of real time", async () => {
