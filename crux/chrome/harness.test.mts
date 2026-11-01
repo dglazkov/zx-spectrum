@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { after, describe, test as one, type TestContext } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
-import { cannotTab, chooseGroups, counted, covered, longestFirst, ordered, RealTime, Skip, STRETCH, took, verdict, vite, within } from "./harness.ts";
+import { cannotTab, chooseGroups, counted, covered, FURTHEST, longestFirst, ordered, reach, RealTime, Skip, STALLED, STRETCH, took, verdict, vite, within } from "./harness.ts";
 
 // Held as the file is read, and run side by side at its end: node:test goes one at a time but in a suite that says otherwise.
 const cases: [string, (t: TestContext) => void | Promise<void>][] = [];
@@ -370,6 +370,26 @@ test("a part a stall only slowed passes past its limit", async () => {
   assert.equal(one("stalled › is only slowed").outcome, "passed", out);
 });
 
+test("a part the machine kept past three times its limit passes", async () => {
+  const { code, out, one } = await stand(["stalls", "kept past"]);
+  assert.equal(code, 0, out);
+  assert.equal(one("stalled › is kept past three times its limit").outcome, "passed", out);
+});
+
+test("a wait begun on a machine that kept the run is not held to less than the part is", async () => {
+  const { code, out, one } = await stand(["stalls", "wait"]);
+  assert.equal(code, 0, out);
+  assert.equal(one("stalled › waits through a stall").outcome, "passed", out);
+});
+
+test("a hang the machine kept still fails, saying what it waited for and what was kept", async () => {
+  const { code, out, one } = await stand(["stalls", "hangs"]);
+  assert.equal(code, 1, out);
+  const part = one("stalled › hangs after a stall");
+  assert.equal(part.outcome, "failed", out);
+  assert.match(part.said!, /still going after [\d.]+s: its 1s limit, stretched as the machine kept it from running [\d.]+s, waiting for locator\('#never'\)/);
+});
+
 test("a stall does not excuse what is no judgment of real time", async () => {
   const { code, one } = await stand(["stalls", "fails beside"]);
   assert.equal(code, 1);
@@ -494,7 +514,7 @@ test("within: a limit stretches on a machine that kept the run, and a hang past 
   await assert.rejects(within(never, 0.01, "still going", () => 0), /still going after 0\.01s, its limit/);
   let kept = 0;
   const stalled = within(never, 0.01, "still going", () => (kept += 40));
-  await assert.rejects(stalled, new RegExp(`stretched ${STRETCH} times`));
+  await assert.rejects(stalled, /still going after [\d.]+s: its 0\.01s limit, stretched as the machine kept it from running [\d.]+s/);
   assert.equal(await within(Promise.resolve("done"), 1, "still going", () => 0), "done");
 });
 
@@ -503,6 +523,34 @@ test("within: a stall counted just after the limit came still stretches it", asy
   let looks = 0;
   const work = sleep(400, "done");
   assert.equal(await within(work, 0.2, "still going", () => (looks++ < 2 ? 0 : 100)), "done");
+});
+
+test("within: a part the machine held past three times its limit, and then let run, ends", async () => {
+  // Limit 100 ms, stretched 300 ms and a second kept: the work done at 600 ms, past 300 ms and short of the 1 s at the end.
+  const t0 = performance.now();
+  const work = sleep(600, "done");
+  assert.equal(await within(work, 0.1, "still going", () => (performance.now() - t0 >= 50 ? 1000 : 0)), "done");
+});
+
+test("within: what was kept growing as fast as the clock, a hang still fails", async () => {
+  const t0 = performance.now();
+  await assert.rejects(within(new Promise<void>(() => undefined), 0.02, "still going", () => 10 * (performance.now() - t0)), /still going after/);
+});
+
+test("within: a stall counted as the stretched limit comes stretches it further", async () => {
+  // Limit 100 ms, counted late, and stretched 340 ms; the work done at 500 ms, the rest counted late at that limit too.
+  let looks = 0;
+  const work = sleep(500, "done");
+  assert.equal(await within(work, 0.1, "still going", () => (looks++ < 2 ? 0 : looks < 5 ? 40 : 700)), "done");
+});
+
+test("reach: the limit alone on a machine that kept nothing, then three times it and what was kept, up to its end", () => {
+  assert.equal(reach(30, 0), 30_000);
+  assert.equal(reach(30, STALLED - 1), 30_000);
+  assert.equal(reach(30, STALLED), 30_000 * STRETCH + STALLED);
+  assert.equal(reach(30, 60_000), 150_000);
+  assert.equal(reach(30, 30_000 * (FURTHEST - STRETCH)), 30_000 * FURTHEST);
+  assert.equal(reach(30, 3_600_000), 30_000 * FURTHEST);
 });
 
 test("counted: only once the thread has gone round twice, as its first turn from here may have read the clock before", async () => {

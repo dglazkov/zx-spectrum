@@ -7,12 +7,17 @@
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
+use std::sync::mpsc::{channel, Receiver};
 use std::time::Duration;
 
 use axum::http::StatusCode;
 use axum::routing::{get, post};
 use serde_json::{json, Value};
+
+/// How long one blocking step here may stand, so that a hang says where it stood rather than taking the test's limit
+/// (crux#140). Each takes milliseconds, on a machine however busy: this judges no speed.
+const LIMIT: Duration = Duration::from_secs(60);
 
 /// How long `/slow` takes to answer, and so the least its latency may be.
 const SLOW: Duration = Duration::from_millis(50);
@@ -45,6 +50,7 @@ fn child() {
 /// all said.
 fn ask(addr: &str, method: &str, target: &str) -> u16 {
     let mut s = TcpStream::connect(addr).unwrap();
+    s.set_read_timeout(Some(LIMIT)).unwrap();
     write!(
         s,
         "{method} {target} HTTP/1.1\r\nHost: crux.test\r\nUser-Agent: Mozilla/5.0 (crux-test-agent)\r\n\
@@ -61,6 +67,29 @@ fn ask(addr: &str, method: &str, target: &str) -> u16 {
         .unwrap_or_else(|| panic!("{method} {target} was not answered: {raw:?}"))
 }
 
+/// `read`, on a thread of its own, so that what it reads can be waited for [`within`] a limit.
+fn reading<T: Send + 'static>(read: impl FnOnce() -> T + Send + 'static) -> Receiver<T> {
+    let (tx, rx) = channel();
+    std::thread::spawn(move || tx.send(read()));
+    rx
+}
+
+/// What `read` gave, or a panic naming `what` it was waiting for.
+fn within<T>(read: Receiver<T>, what: &str) -> T {
+    read.recv_timeout(LIMIT)
+        .unwrap_or_else(|e| panic!("waiting for {what}: {e}"))
+}
+
+/// The server, stopped however the check ends.
+struct Server(Child);
+
+impl Drop for Server {
+    fn drop(&mut self) {
+        let _ = self.0.kill();
+        let _ = self.0.wait();
+    }
+}
+
 /// The lines the server printed on standard error, but for its panic's, once it was asked each of `asks`, run with
 /// `K_SERVICE` set to `service`, or unset where it is none.
 fn served(service: Option<&str>, asks: &[(&str, &str, u16)]) -> Vec<String> {
@@ -74,10 +103,21 @@ fn served(service: Option<&str>, asks: &[(&str, &str, u16)]) -> Vec<String> {
     if let Some(service) = service {
         command.env("K_SERVICE", service);
     }
-    let mut child = command.spawn().unwrap();
-    let mut out = BufReader::new(child.stdout.take().unwrap());
-    let mut line = String::new();
-    out.read_line(&mut line).unwrap();
+    let mut child = Server(command.spawn().unwrap());
+    // Read from the start, not once the server is stopped: a panic's line is 9KB, and a pipe holds 8KB, not 64KB, once
+    // this user's pipes pass the kernel's pipe-user-pages-soft, as on a machine full of Chrome. Left unread, the server
+    // stands in the write, in its panic hook, and the request it was answering is never answered (crux#140).
+    let mut stderr = child.0.stderr.take().unwrap();
+    let stderr = reading(move || {
+        let mut said = String::new();
+        stderr.read_to_string(&mut said).map(|_| said)
+    });
+    let mut out = BufReader::new(child.0.stdout.take().unwrap());
+    let line = reading(move || {
+        let mut line = String::new();
+        out.read_line(&mut line).map(|_| line)
+    });
+    let line = within(line, "the server to say it listens").unwrap();
     let addr = line
         .trim()
         .strip_prefix("listening on http://")
@@ -87,16 +127,10 @@ fn served(service: Option<&str>, asks: &[(&str, &str, u16)]) -> Vec<String> {
         assert_eq!(ask(&addr, method, target), status, "{method} {target}");
     }
     // Each line is printed before its answer is sent: all are there once the last is answered.
-    let _ = child.kill();
-    let mut said = String::new();
-    child
-        .stderr
-        .take()
+    drop(child);
+    within(stderr, "the end of the server's standard error")
         .unwrap()
-        .read_to_string(&mut said)
-        .unwrap();
-    let _ = child.wait();
-    said.lines()
+        .lines()
         .filter(|l| !l.contains("\"message\":\"boom"))
         .map(str::to_string)
         .collect()

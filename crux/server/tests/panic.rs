@@ -7,10 +7,16 @@
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
+use std::sync::mpsc::{channel, Receiver};
+use std::time::Duration;
 
 use axum::routing::{get, post};
 use serde_json::Value;
+
+/// How long one blocking step here may stand, so that a hang says where it stood rather than taking the test's limit
+/// (crux#140). Each takes milliseconds, on a machine however busy: this judges no speed.
+const LIMIT: Duration = Duration::from_secs(60);
 
 /// A route's answer that cannot be written: the top frame of its panic's stack.
 #[inline(never)]
@@ -39,6 +45,7 @@ fn child() {
 /// The status and cache-control of what `addr` answers to `method path`.
 fn ask(addr: &str, method: &str, path: &str) -> (u16, Option<String>) {
     let mut s = TcpStream::connect(addr).unwrap();
+    s.set_read_timeout(Some(LIMIT)).unwrap();
     write!(
         s,
         "{method} {path} HTTP/1.1\r\nHost: crux.test\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
@@ -58,6 +65,29 @@ fn ask(addr: &str, method: &str, path: &str) -> (u16, Option<String>) {
             .map(|v| v.trim().to_string())
     });
     (status, kept)
+}
+
+/// `read`, on a thread of its own, so that what it reads can be waited for [`within`] a limit.
+fn reading<T: Send + 'static>(read: impl FnOnce() -> T + Send + 'static) -> Receiver<T> {
+    let (tx, rx) = channel();
+    std::thread::spawn(move || tx.send(read()));
+    rx
+}
+
+/// What `read` gave, or a panic naming `what` it was waiting for.
+fn within<T>(read: Receiver<T>, what: &str) -> T {
+    read.recv_timeout(LIMIT)
+        .unwrap_or_else(|e| panic!("waiting for {what}: {e}"))
+}
+
+/// The server, stopped however the check ends.
+struct Server(Child);
+
+impl Drop for Server {
+    fn drop(&mut self) {
+        let _ = self.0.kill();
+        let _ = self.0.wait();
+    }
 }
 
 /// What the test runner asked, as nextest asks a harness of a program's own
@@ -106,17 +136,30 @@ fn main() {
     if !asked() {
         return;
     }
-    let mut child = Command::new(std::env::current_exe().unwrap())
-        .env("PANIC_CHILD", "1")
-        .env("PORT", "0")
-        .env_remove("RUST_BACKTRACE")
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .unwrap();
-    let mut out = BufReader::new(child.stdout.take().unwrap());
-    let mut line = String::new();
-    out.read_line(&mut line).unwrap();
+    let mut child = Server(
+        Command::new(std::env::current_exe().unwrap())
+            .env("PANIC_CHILD", "1")
+            .env("PORT", "0")
+            .env_remove("RUST_BACKTRACE")
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap(),
+    );
+    // Read from the start, not once the server is stopped: a panic's line is 9KB, and a pipe holds 8KB, not 64KB, once
+    // this user's pipes pass the kernel's pipe-user-pages-soft, as on a machine full of Chrome. Left unread, the server
+    // stands in the write, in its panic hook, and the request it was answering is never answered (crux#140).
+    let mut stderr = child.0.stderr.take().unwrap();
+    let stderr = reading(move || {
+        let mut said = String::new();
+        stderr.read_to_string(&mut said).map(|_| said)
+    });
+    let mut out = BufReader::new(child.0.stdout.take().unwrap());
+    let line = reading(move || {
+        let mut line = String::new();
+        out.read_line(&mut line).map(|_| line)
+    });
+    let line = within(line, "the server to say it listens").unwrap();
     let addr = line
         .trim()
         .strip_prefix("listening on http://")
@@ -141,15 +184,8 @@ fn main() {
             "after {method} {path}"
         );
     }
-    let _ = child.kill();
-    let mut stderr = String::new();
-    child
-        .stderr
-        .take()
-        .unwrap()
-        .read_to_string(&mut stderr)
-        .unwrap();
-    let _ = child.wait();
+    drop(child);
+    let stderr = within(stderr, "the end of the server's standard error").unwrap();
 
     // What it said beside its requests, which it prints on standard error too, as it runs off Cloud Run (crux#76).
     let lines: Vec<&str> = stderr

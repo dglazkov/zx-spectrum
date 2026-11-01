@@ -42,8 +42,9 @@
 //   stays, with its cookies and storage: what a part leaves there is the next tab's.
 // - What a suite's module keeps for the group running, as its page, it takes from `current()`.
 // - An error thrown in a page or written to its console fails the part it came in, in any page of the part's context.
-// - Each part is held to a limit of its own, seconds, its suite's unless it says, and to three times that on a machine
-//   that kept the run from running. A wait on the page fails ahead of it, saying what it waited for.
+// - Each part is held to a limit of its own, seconds, its suite's unless it says. On a machine that kept the run from
+//   running it has three times that and all the machine kept from it, up to ten times its limit, where one that hangs
+//   on a busy machine still fails. A wait on the page fails ahead of it, saying what it waited for.
 // - A judgment of real time (`inTime`) that fails while the machine kept the run from running is inconclusive, and fails
 //   nothing: it measured the machine.
 // - Each part is reported as it ends, in the file NERD_REPORT names. The options a suite can say are `Options`, below;
@@ -277,9 +278,20 @@ export class Skip extends Error {}
  * tightest margin, an event stamped 30 ms from now. A part on a quiet machine is kept a few ms. */
 export const STALLED = 30;
 
-/** How far a limit stretches on a machine that kept a part from running: with every core busy a chip also runs slower,
- * which no count sees, so it stretches to its most. A part that hangs on a busy machine still fails. */
+/** How far a limit stretches at once on a machine that kept a part from running: with every core busy a chip also runs
+ * slower, which no count sees. What the machine kept from it comes on top (`reach`). */
 export const STRETCH = 3;
+
+/** How far a limit stretches at its most: a page spinning on a busy machine keeps its own run waiting, so what was kept
+ * grows as fast as the clock, and this is the end of it. zx-spectrum's web-page at 18:15 on Oct 31, waiting 76% of its
+ * 8m33s, took 11 times what it takes on a quiet machine, which a part within its limit there would have just done. */
+export const FURTHEST = 10;
+
+/** How long, in ms, a limit of `seconds` gives a part the machine has kept from running for `waited` ms. */
+export function reach(seconds: number, waited: number): number {
+  const limit = seconds * 1000;
+  return waited < STALLED ? limit : Math.min(limit * STRETCH + waited, limit * FURTHEST);
+}
 
 /** What this run has waited for a CPU, in ms: Linux's pressure stall information for its cgroup, which holds what nerd's
  * scope holds, its Chrome too. Null where the system does not say. */
@@ -338,8 +350,8 @@ export function took(ms: number): string {
 /** What `within` fails with: past its limit. */
 export class Overran extends Error {}
 
-/** `work`, or a failure once it has had `seconds`, or STRETCH times that where the machine has kept the run from running
- * since it began. What `work` does after that is left to it. */
+/** `work`, or a failure once it has had `seconds`, or as far as `reach` takes that where the machine has kept the run
+ * from running since it began. What `work` does after that is left to it. */
 export function within<T>(work: Promise<T>, seconds: number, what: string, waited: () => number = kept): Promise<T> {
   let timer: NodeJS.Timeout;
   work.catch(() => undefined);
@@ -349,13 +361,16 @@ export function within<T>(work: Promise<T>, seconds: number, what: string, waite
   let settled = false;
   const late = new Promise<never>((_, reject) => {
     const look = () => {
-      const stretched = waited() - from >= STALLED;
-      const left = seconds * 1000 * (stretched ? STRETCH : 1) - (performance.now() - t0);
-      if (left > 0) timer = setTimeout(look, Math.min(left, 250)); // the limit, looked at again as the machine may stretch it
-      else if (!stretched && !looked) {
+      const stalled = waited() - from;
+      const ran = performance.now() - t0;
+      const left = reach(seconds, stalled) - ran;
+      if (left > 0) {
+        looked = false;
+        timer = setTimeout(look, Math.min(left, 250)); // the limit, looked at again as the machine may stretch it
+      } else if (!looked) {
         looked = true;
         void counted().then(() => settled || look()); // a stall that ended just now
-      } else if (stretched) reject(new Overran(`${what} after ${took(seconds * 1000 * STRETCH)}: its ${seconds}s limit, stretched ${STRETCH} times as the machine kept it from running`));
+      } else if (stalled >= STALLED) reject(new Overran(`${what} after ${took(ran)}: its ${seconds}s limit, stretched as the machine kept it from running ${took(stalled)}`));
       else reject(new Overran(`${what} after ${seconds}s, its limit`));
     };
     timer = setTimeout(look, seconds * 1000); // the limit, not a wait
@@ -634,11 +649,12 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
         const limit = limitOf(p);
         const t0 = performance.now();
         const kept0 = kept();
-        // A wait on the page that never ends fails before the part's limit, saying what it waited for: the limit
-        // stretched, on a machine that kept the run from running lately or does as the part runs.
+        // A wait on the page that never ends fails before the part's limit, saying what it waited for. On a machine that
+        // kept the run from running lately or does as the part runs, it waits as far as a limit can stretch, as it cannot
+        // be told more of what is kept once it has begun: the limit itself ends it, and `waitedFor` says what it was.
         let stretched = busyLately;
         const waitsUpTo = () => {
-          const seconds = limit * (stretched ? STRETCH : 1);
+          const seconds = limit * (stretched ? FURTHEST : 1);
           here.context?.setDefaultTimeout(Math.max(seconds - 0.5, seconds * 0.75) * 1000);
         };
         waitsUpTo();
