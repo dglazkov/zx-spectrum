@@ -102,26 +102,36 @@ picture('the television keeps BRIGHT brighter than normal: no colour clips at th
   return `normal ${normal.toFixed(0)}, bright ${bright.toFixed(0)} (${((bright / normal - 1) * 100).toFixed(0)}% apart)`;
 });
 
-picture('switching on warms the tube up (a fade where motion is reduced), and the footer says Amstrad’s words', async ({ page, context }) => {
-  await open(page);
+/**
+ * Presses the power button, and says which animation the canvas took up for it, read in the page as `warming` is set.
+ * page.clock does not hold a CSS animation, which runs on the wall: read after the click, on a machine that keeps the
+ * test waiting, it may be over, its class gone (the fade takes 0.35 s).
+ */
+async function switchOffAndOn(page) {
   await page.evaluate(() => {
-    window.warmed = 0;
-    new MutationObserver(() => window.zx.renderer.canvas.classList.contains('warming') && window.warmed++).observe(window.zx.renderer.canvas, { attributes: true, attributeFilter: ['class'] });
+    const canvas = window.zx.renderer.canvas;
+    new MutationObserver(() => {
+      if (canvas.classList.contains('warming')) window.warmedWith = getComputedStyle(canvas).animationName;
+    }).observe(canvas, { attributes: true, attributeFilter: ['class'] });
   });
   await page.locator('button[title="Switch it off and on again"]').click();
-  const anim = await page.evaluate(() => ({ warmed: window.warmed, name: getComputedStyle(window.zx.renderer.canvas).animationName }));
+  return page.evaluate(() => window.warmedWith);
+}
+
+picture('switching on warms the tube up (a fade where motion is reduced), and the footer says Amstrad’s words', async ({ page, context }) => {
+  await open(page);
+  const warm = await switchOffAndOn(page);
   const foot = await page.evaluate(() => document.querySelector('.foot')?.textContent ?? '');
   await page.close();
   const still = await context.newPage();
   await still.emulateMedia({ reducedMotion: 'reduce' });
   await open(still);
-  await still.locator('button[title="Switch it off and on again"]').click();
-  const reduced = await still.evaluate(() => getComputedStyle(window.zx.renderer.canvas).animationName);
-  assert(anim.warmed >= 1 && anim.name === 'warm-up', JSON.stringify(anim));
-  assert(reduced === 'warm-fade', `with reduced motion: ${reduced}`);
+  const fade = await switchOffAndOn(still);
+  assert(warm === 'warm-up', `the tube warmed up with: ${warm}`);
+  assert(fade === 'warm-fade', `with reduced motion: ${fade}`);
   assert(foot.includes(AMSTRAD), `the footer: ${foot}`);
   assert(/Spectrum Computing/.test(foot) && /ZXDB/.test(foot), 'the archive is not credited');
-  return `${anim.name}; ${reduced}`;
+  return `${warm}; ${fade}`;
 });
 
 sound('sounds once clicked: the worklet plays the frames', async ({ page }) => {
