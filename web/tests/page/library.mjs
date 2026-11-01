@@ -7,6 +7,13 @@ import { SABOTEUR_ZIP, SHARP, assert, borderColours, open, openFile, ready, scre
 
 const test = group('library', { covers: ['web/src/library', 'web/src/ui/library.ts', 'web/src/ui/game.ts', 'web/src/ui/overlay.ts', 'web/src/ui/howto.ts', 'web/tests/fixtures', 'web/zxdb.mjs', 'web/tools/zxdb-index.mjs'], why: 'a game found, fetched and loaded as a person does, on the real machine' });
 
+/** What the controls over the screen show now. */
+const overlay = (page) =>
+  page.evaluate(() => {
+    const o = document.querySelector('.controls-overlay');
+    return { shown: !o.hidden, mode: o.querySelector('.ov-mode')?.textContent, caps: [...o.querySelectorAll('.ov-row kbd')].map((k) => k.textContent), button: document.querySelector('.controls-button').getAttribute('aria-expanded') };
+  });
+
 test('Saboteur from the library: searched, fetched, loaded flat out to its £100 REWARD screen, with its inlay, manual and card; its Start button to play, and the controls over the screen', async ({ page }) => {
   if (!SABOTEUR_ZIP) throw new Skip('no saboteur.tzx.zip in the fixture cache');
   await open(page, { storage: { ...SHARP, loading: 'accelerated' }, realSaboteur: true });
@@ -60,42 +67,50 @@ test('Saboteur from the library: searched, fetched, loaded flat out to its £100
   });
   assert(started.panel, 'no game panel on the screen after the Start button');
   assert(await page.evaluate(() => document.querySelector('.start-prompt').hidden), 'the start button stayed on the picture once the game began');
-  // Play has begun: the controls over the screen, as the keys chosen press them, for a few seconds of the game.
-  const overlay = () =>
-    page.evaluate(() => {
-      const o = document.querySelector('.controls-overlay');
-      return { shown: !o.hidden, mode: o.querySelector('.ov-mode')?.textContent, caps: [...o.querySelectorAll('.ov-row kbd')].map((k) => k.textContent), button: document.querySelector('.controls-button').getAttribute('aria-expanded') };
-    });
-  const first = await overlay();
+  // Play has begun: the controls over the screen, as the keys chosen press them (how long, and all else of them: the next part).
+  const first = await overlay(page);
   assert(first.shown && first.mode === 'Keys' && ['N', 'M', 'A', 'Z', 'Space'].every((k) => first.caps.includes(k)), `the controls when play began: ${JSON.stringify(first)}`);
-  await wait(page, 9000);
-  const gone = await overlay();
-  assert(!gone.shown, 'the controls stayed over the screen past their few seconds');
-  // F3 brings them back, as they are pressed now (the joystick chosen: the arrows and Left Alt); F3 again hides them.
-  await page.locator('.start-how .seg', { hasText: 'Joystick' }).click();
-  await page.mouse.click(5, 400);
-  await page.keyboard.press('F3');
-  const asked = await overlay();
-  assert(asked.shown && asked.mode === 'Joystick' && asked.caps.includes('Left Alt') && asked.caps.includes('←') && asked.button === 'true', `F3: ${JSON.stringify(asked)}`);
-  await wait(page, 9000);
-  assert((await overlay()).shown, 'the controls asked for went by themselves');
-  await page.keyboard.press('F3');
-  assert(!(await overlay()).shown, 'F3 did not hide the controls');
-  // The button on the set shows them; their × closes them, and that is remembered for the game.
-  await page.locator('.controls-button').click();
-  assert((await overlay()).shown, 'the button did not show the controls');
-  await page.locator('.ov-close').click();
-  const closed = await page.evaluate(() => ({ shown: !document.querySelector('.controls-overlay').hidden, kept: localStorage.getItem('zx-spectrum.controls-closed') }));
-  assert(!closed.shown && JSON.parse(closed.kept ?? '[]').includes('zxdb:0004293'), `after the ×: ${JSON.stringify(closed)}`);
   // What nerd was told (web/src/telemetry.ts): a game found by searching, its play begun by the Start button, and, as
   // the page goes, how long it was played.
+  await wait(page, 1000);
   await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide')));
   await wait(page, 100);
   const told = page.nerd.filter((n) => n.path === '/nerd/event').map((n) => n.body);
   const names = told.map((b) => [b.name, b.kind].filter(Boolean).join(' '));
   assert(JSON.stringify(names) === JSON.stringify(['game.loaded search', 'game.started button', 'game.played']), `the events: ${JSON.stringify(names)}`);
-  assert(told[1].ms > 0 && told[2].ms >= 18_000, `game.started after ${told[1].ms} ms, played ${told[2].ms} ms`);
+  assert(told[1].ms > 0 && told[2].ms >= 1_000, `game.started after ${told[1].ms} ms, played ${told[2].ms} ms`);
   return `REWARD ${frames} frames after the tape went in; keys ${after.keys.join(' ')}; the game ${started.frames - s0} frames after Start; the controls over it`;
+});
+
+// A part of its own, on the test's tape: the part above has the real load to pay for, and with these 18 s of the page's
+// clock on top it took 16 s of its 30 on a quiet machine, and ran out of its 90 on a busy one (#25).
+test('the controls over the screen go by themselves after their few seconds; F3 brings them back as they are pressed now, the button on the set too, and their × is remembered for the game', async ({ page }) => {
+  await open(page, { query: '?game=4293', storage: { ...SHARP, loading: 'accelerated' } });
+  assert(await until(page, () => document.querySelector('.game-title')?.textContent === 'Saboteur!' && document.querySelector('.start-how'), null, { step: 100, max: 5_000 }), 'no card for the game');
+  await page.locator('.start-how .seg', { hasText: 'Keys' }).click();
+  await page.evaluate(() => window.zx.app.showControls(true));
+  const first = await overlay(page);
+  assert(first.shown && first.mode === 'Keys', `the controls as play begins: ${JSON.stringify(first)}`);
+  await wait(page, 9000);
+  const gone = await overlay(page);
+  assert(!gone.shown, 'the controls stayed over the screen past their few seconds');
+  // F3 brings them back, as they are pressed now (the joystick chosen: the arrows and Left Alt); F3 again hides them.
+  await page.locator('.start-how .seg', { hasText: 'Joystick' }).click();
+  await page.mouse.click(5, 400);
+  await page.keyboard.press('F3');
+  const asked = await overlay(page);
+  assert(asked.shown && asked.mode === 'Joystick' && asked.caps.includes('Left Alt') && asked.caps.includes('←') && asked.button === 'true', `F3: ${JSON.stringify(asked)}`);
+  await wait(page, 9000);
+  assert((await overlay(page)).shown, 'the controls asked for went by themselves');
+  await page.keyboard.press('F3');
+  assert(!(await overlay(page)).shown, 'F3 did not hide the controls');
+  // The button on the set shows them; their × closes them, and that is remembered for the game.
+  await page.locator('.controls-button').click();
+  assert((await overlay(page)).shown, 'the button did not show the controls');
+  await page.locator('.ov-close').click();
+  const closed = await page.evaluate(() => ({ shown: !document.querySelector('.controls-overlay').hidden, kept: localStorage.getItem('zx-spectrum.controls-closed') }));
+  assert(!closed.shown && JSON.parse(closed.kept ?? '[]').includes('zxdb:0004293'), `after the ×: ${JSON.stringify(closed)}`);
+  return `${first.caps.join(' ')}, then ${asked.caps.join(' ')}`;
 });
 
 test('with ZXInfo down (its nginx’s 502 for every path), Saboteur is found in the ZXDB’s own index and loads, and a link to a game not on the shelf (?game=2514) opens from it', async ({ page, context }) => {

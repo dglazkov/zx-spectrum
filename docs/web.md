@@ -810,7 +810,7 @@ code) is already the bar and the set with its tube dark, which the page then swi
 | `server` | the server's Rust tests (`crates/app/tests/`): the pass-through against origins of their own, the ZXDB's index, the binary on a built directory | 2 s |
 | `web-types` | `tsc --noEmit` (TypeScript 7), strict, over src, vite.config.ts, app.d.mts | 1 s |
 | `web-unit` | Vitest, 148 tests in 20 files (below) | 6 s |
-| `web-page` | Chrome (crux's part chrome, `CHROME` with `CHROME_ARGS`, WebGL on the GPU) on the real machine, 42 parts, 4 at a time | 40 s |
+| `web-page` | Chrome (crux's part chrome, `CHROME` with `CHROME_ARGS`, WebGL on the GPU) on the real machine, 43 parts, 4 at a time | 40 s |
 | `web-build` | the production build (vite build, the module as tested), served by the server on a port of its own, with the smoke test's checks but those needing the network (`tests/build.mjs`) | 8 s |
 
 **wasm**. Natively (`crates/wasm/src/tests.rs`): a model out of range is a null handle and a null handle is harmless;
