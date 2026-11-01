@@ -9,11 +9,15 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node
 import { createServer, type IncomingHttpHeaders } from "node:http";
 import type { AddressInfo } from "node:net";
 import { join } from "node:path";
-import { after, before, test, type TestContext } from "node:test";
+import { after, before, suite, test as one, type TestContext } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { chromeProcess, hide, launch, type Options, readerAgent } from "./launch.ts";
 
-/** Runs `f` with these in the environment, as `nerd test` would give them. */
+// What uses the environment goes first, by `one`, with nothing beside it; the rest are held as the file is read, and run side by side at its end: node:test goes one at a time but in a suite that says otherwise.
+const cases: [string, (t: TestContext) => void | Promise<void>][] = [];
+const test = (name: string, fn: (t: TestContext) => void | Promise<void>) => void cases.push([name, fn]);
+
+/** Runs `f` with these in the environment, as `nerd test` would give them: in a case of `one`, as every launch reads it. */
 async function withEnv<T>(env: Record<string, string | undefined>, f: () => Promise<T>): Promise<T> {
   const was = Object.fromEntries(Object.keys(env).map((k) => [k, process.env[k]]));
   const set = (e: Record<string, string | undefined>) => {
@@ -61,9 +65,9 @@ async function gone<T>(f: () => T): Promise<T> {
 }
 
 // A page as a reader reaches one, on loopback, which a browser counts as secure and so tells its client hints.
-let asked: IncomingHttpHeaders | undefined;
+const asked = new Map<string | undefined, IncomingHttpHeaders>();
 const server = createServer((request, response) => {
-  if (request.url === "/") asked = request.headers;
+  asked.set(request.url, request.headers);
   // As strict as a product's pages are, which refuses what a test might run in the page by a string.
   if (request.url === "/strict") response.setHeader("Content-Security-Policy", "default-src 'none'");
   response.setHeader("Content-Type", "text/html");
@@ -76,7 +80,7 @@ before(async () => {
 });
 after(() => server.close());
 
-test("a Chrome that is not there fails, saying so", async () => {
+one("a Chrome that is not there fails, saying so", async () => {
   await withEnv({ CHROME: "/nowhere/chrome" }, () =>
     assert.rejects(launch(), (e: Error) => /no Chrome at \/nowhere\/chrome/.test(e.message) && !/playwright install/.test(e.message)),
   );
@@ -85,7 +89,7 @@ test("a Chrome that is not there fails, saying so", async () => {
   await withEnv({ CHROME: "/bin/true" }, () => assert.rejects(launch(), /no Chrome at \/bin\/true/));
 });
 
-test("CHROME_ARGS and the test's own flags reach Chrome, and its sandbox stays on", async (t) => {
+one("CHROME_ARGS and the test's own flags reach Chrome, and its sandbox stays on", async (t) => {
   await withEnv({ CHROME_ARGS: "--user-agent=from-chrome-args  --crux-from-machine" }, async () => {
     for (const reader of [false, true]) {
       const browser = await chrome(t, { reader, args: ["--crux-from-test"] });
@@ -105,23 +109,24 @@ test("CHROME_ARGS and the test's own flags reach Chrome, and its sandbox stays o
 test("Chrome as automation leaves it says so", async (t) => {
   const browser = await chrome(t);
   const page = await (await browser.newContext()).newPage();
-  await page.goto(base);
+  await page.goto(`${base}automation`);
   assert.equal(await page.evaluate("navigator.webdriver"), true);
   assert.match(await page.evaluate<string>("navigator.userAgent"), /HeadlessChrome/);
-  assert.match(asked!["user-agent"]!, /HeadlessChrome/);
+  assert.match(asked.get("/automation")!["user-agent"]!, /HeadlessChrome/);
 });
 
 test("a reader's Chrome is not automation and not headless, in every context", async (t) => {
   const browser = await chrome(t, { reader: true });
   for (const context of [browser.contexts()[0], await browser.newContext()]) {
     const page = await context.newPage();
-    await page.goto(base);
+    await page.goto(`${base}reader`);
     assert.equal(await page.evaluate("navigator.webdriver"), false);
+    const headers = asked.get("/reader")!;
     const said = [
       await page.evaluate<string>("navigator.userAgent"),
       await page.evaluate<string>("JSON.stringify(navigator.userAgentData.brands)"),
-      asked!["user-agent"]!,
-      String(asked!["sec-ch-ua"]),
+      headers["user-agent"]!,
+      String(headers["sec-ch-ua"]),
     ];
     assert.match(said[0], /Chrome\/\d+\.0\.0\.0/);
     assert.match(said[3], /Google Chrome/);
@@ -211,3 +216,7 @@ for (const as of ["automation", "reader"]) {
     await death(t, as, "wait", "SIGKILL");
   });
 }
+
+suite("side by side", { concurrency: 6 }, () => {
+  for (const [name, fn] of cases) one(name, fn);
+});

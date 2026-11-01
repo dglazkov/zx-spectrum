@@ -147,7 +147,7 @@ export interface Weighed {
 export interface WeighOptions {
   /** Chrome's binary: $CHROME, or google-chrome. */
   chrome?: string;
-  /** How long Chrome may take to start, and each page to be weighed, in milliseconds. */
+  /** How long each page may take to be weighed, in milliseconds. */
   deadline?: number;
   /** How long nothing is fetched before the page is taken as whole, in milliseconds. */
   quiet?: number;
@@ -160,7 +160,7 @@ export interface MarkOptions {
   chrome?: string;
   /** How many times each page is loaded. */
   loads?: number;
-  /** How long Chrome may take to start, and each load to have its marks, in milliseconds. */
+  /** How long each load may take to have its marks, in milliseconds. */
   deadline?: number;
   /** More of Chrome's flags. */
   flags?: string[];
@@ -346,7 +346,7 @@ export async function probe(options: ProbeOptions): Promise<Measured[]> {
   } finally {
     fetcher.close();
   }
-  const timed = marks.length
+  const timed: Record<string, number[]>[] = marks.length
     ? await (options.time ?? ((url, pages, marks) => timeMarks(url, pages, marks, { loads: options.loads })))(options.url, options.pages, marks)
     : options.pages.map(() => ({}));
   const weighed = await (options.weigh ?? ((url, pages) => weigh(url, pages)))(options.url, options.pages);
@@ -389,7 +389,7 @@ export async function timeMarks(url: string, pages: Page[], marks: Mark[], optio
   const deadline = options.deadline ?? 60000;
   const timed: Record<string, number[]>[] = pages.map((page) => Object.fromEntries(marksOf(marks, page).map((m) => [m.name, []])));
   if (!pages.some((page) => marksOf(marks, page).length)) return timed;
-  const chrome = await Chrome.start(options.chrome ?? process.env.CHROME ?? 'google-chrome', deadline, options.flags ?? []);
+  const chrome = await Chrome.start(options.chrome ?? process.env.CHROME ?? 'google-chrome', options.flags ?? []);
   try {
     for (const [i, page] of pages.entries()) {
       const own = marksOf(marks, page);
@@ -504,7 +504,7 @@ export async function weigh(url: string, pages: Page[], options: WeighOptions = 
   // None of Chrome's own fetches beside the page's, as its updates of what it has: its net log, traced for each page,
   // took seconds to end with them in it (crux#47).
   const quiet = ['--disable-background-networking', '--disable-component-update'];
-  const chrome = await Chrome.start(options.chrome ?? process.env.CHROME ?? 'google-chrome', options.deadline ?? 60000, [...quiet, ...options.flags ?? []]);
+  const chrome = await Chrome.start(options.chrome ?? process.env.CHROME ?? 'google-chrome', [...quiet, ...options.flags ?? []]);
   try {
     const weighed: Weighed[] = [];
     for (const page of pages) {
@@ -649,8 +649,9 @@ export type Stream = { frames: number[]; told: number };
  *
  * With them, how many Chrome had when it told of the answer: those it had before its request began to tell of it
  * (URL_REQUEST_DELEGATE_RESPONSE_STARTED), which it counted with the answer's headers. A request is told from the
- * stream it was answered on by its URL and the stream's id, which it logs as it reads its body (crux#51). Where its
- * request is not found, none.
+ * stream it was answered on by its URL and the stream's id, which it logs as its window changes, as its body comes or
+ * as it reads it (crux#51): the first after it told, or, where its body had all come by then and its stream closed, so
+ * that there is none after, the last before (crux#137). Where its request is not found, none.
  */
 export function framesOf(events: any[]): Map<string, Stream[]> {
   const sockets = new Map<string, number>();
@@ -658,9 +659,17 @@ export function framesOf(events: any[]): Map<string, Stream[]> {
   type Asked = { frames: number[]; at: number[]; id: string; sent: number };
   const streams = new Map<string, Asked>();
   const asked = new Map<string, Asked[]>();
-  // Of each request: its URL and when it began to tell of its answer; and when the request of each URL and stream id did.
-  const requests = new Map<string, { url: string; told?: number }>();
+  // Of each request: its URL, when it began to tell of its answer, and the stream it heard of last; and when the
+  // request of each URL and stream id did.
+  type Told = { url: string; told?: number; stream?: number };
+  const requests = new Map<string, Told>();
   const told = new Map<string, number[]>();
+  const tell = (r: Told) => {
+    if (r.told === undefined || r.stream === undefined) return;
+    const key = `${r.url} ${r.stream}`;
+    told.set(key, [...(told.get(key) ?? []), r.told]);
+    r.told = undefined;
+  };
   // Of each session, the frame it had last, and what it took from its window and gave back since.
   const last = new Map<string, { s: Asked; i: number; window: number[] }>();
   const unpad = ({ s, i, window }: { s: Asked; i: number; window: number[] }) => {
@@ -674,12 +683,13 @@ export function framesOf(events: any[]): Map<string, Stream[]> {
       const url = URL.parse(p.url);
       if (url) requests.set(session, { url: `${url.host}${url.pathname}${url.search}` });
     } else if (e.name === 'URL_REQUEST_DELEGATE_RESPONSE_STARTED' && e.ph === 'b' && requests.has(session)) {
-      requests.get(session)!.told = e.ts;
-    } else if (e.name === 'HTTP2_STREAM_UPDATE_RECV_WINDOW' && requests.get(session)?.told !== undefined) {
       const r = requests.get(session)!;
-      const key = `${r.url} ${p.stream_id}`;
-      told.set(key, [...(told.get(key) ?? []), r.told!]);
-      r.told = undefined;
+      r.told = e.ts;
+      tell(r);
+    } else if (e.name === 'HTTP2_STREAM_UPDATE_RECV_WINDOW' && requests.has(session)) {
+      const r = requests.get(session)!;
+      r.stream = p.stream_id;
+      tell(r);
     }
     if (e.name === 'HTTP2_SESSION_INITIALIZED') sockets.set(session, p.source_dependency?.id);
     if (!sockets.has(session)) continue;
@@ -896,6 +906,9 @@ async function weighOne(chrome: Chrome, href: string, quiet: number, stop: { now
   }
 }
 
+// How long Chrome may take to start: the machine's, whatever a page is given, as a busy one starts it in seconds.
+const START = 60000;
+
 /** Chrome, headless, with a profile of its own, spoken to over its DevTools socket. */
 class Chrome {
   listeners = new Set<(m: any) => void>();
@@ -927,10 +940,10 @@ class Chrome {
     this.failed.catch(() => {});
   }
 
-  static async start(binary: string, deadline: number, flags: string[]): Promise<Chrome> {
+  static async start(binary: string, flags: string[]): Promise<Chrome> {
     const chrome = new Chrome(binary, flags);
     try {
-      const ws = await chrome.within(deadline, `Chrome did not start in ${deadline} ms`, new Promise<string>((resolve) => {
+      const ws = await chrome.within(START, `Chrome did not start in ${START} ms`, new Promise<string>((resolve) => {
         let err = '';
         chrome.process.stderr!.on('data', (d) => {
           err += d;
@@ -939,7 +952,7 @@ class Chrome {
         });
       }));
       const socket = new WebSocket(ws);
-      await chrome.within(deadline, 'Chrome\'s DevTools socket did not open', new Promise((resolve, reject) => {
+      await chrome.within(START, 'Chrome\'s DevTools socket did not open', new Promise((resolve, reject) => {
         socket.onopen = resolve;
         socket.onerror = () => reject(new Error('Chrome\'s DevTools socket would not open'));
       }));

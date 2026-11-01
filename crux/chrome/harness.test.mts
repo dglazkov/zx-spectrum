@@ -1,6 +1,7 @@
 // The harness, over a stand-in product of the part's own (standin/, its runner at tests/ and another in web/tests), run as
 // nerd runs a product's page test, with real Chrome: what each part reported, and how the run ended. Then what takes no
-// run to judge. No check here holds the wall clock to a number, so that `nerd test chrome --stalls` passes.
+// run to judge. No check here holds the wall clock to a number, so that `nerd test chrome --stalls` passes. The cases
+// share nothing but the runs that several read, each asked for once: a stand-in's run is a process and a Chrome of its own.
 //
 // npm ci && CHROME=... npx --yes tsx@4.20.6 --test harness.test.mts    (as `nerd test chrome` runs it)
 
@@ -9,9 +10,13 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import { after, test } from "node:test";
+import { after, describe, test as one, type TestContext } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
-import { chooseGroups, covered, longestFirst, ordered, RealTime, Skip, STRETCH, took, verdict, vite, within } from "./harness.ts";
+import { cannotTab, chooseGroups, counted, covered, longestFirst, ordered, RealTime, Skip, STRETCH, took, verdict, vite, within } from "./harness.ts";
+
+// Held as the file is read, and run side by side at its end: node:test goes one at a time but in a suite that says otherwise.
+const cases: [string, (t: TestContext) => void | Promise<void>][] = [];
+const test = (name: string, fn: (t: TestContext) => void | Promise<void>) => void cases.push([name, fn]);
 
 const here = import.meta.dirname;
 const scratch = mkdtempSync(join(tmpdir(), "crux-harness-"));
@@ -23,9 +28,14 @@ const { NODE_TEST_CONTEXT: _, NERD_CHANGED: _c, NERD_USUAL: _u, NERD_REPORT: _r,
 type Reported = { part: string; seconds: number; outcome: string; said?: string };
 let runs = 0;
 
+/** How many stand-ins run at once, each with a Chrome. */
+let free = 8;
+const waiting: (() => void)[] = [];
+
 /** The stand-in's runner, with these words and environment, as nerd runs it: how it ended, what it printed, and what it
  * reported, in the order it did. */
 async function stand(args: string[], given: Record<string, string> = {}, runner = "tests/run.mjs") {
+  if (free-- <= 0) await new Promise<void>((go) => waiting.push(go));
   const report = join(scratch, `report-${++runs}`);
   const child = spawn(process.execPath, [...process.execArgv, join(here, "standin", runner), ...args], {
     env: { ...env, NERD_TEST: "stand-in", NERD_REPORT: report, ...given },
@@ -35,6 +45,8 @@ async function stand(args: string[], given: Record<string, string> = {}, runner 
   child.stdout.on("data", (d) => (out += d));
   child.stderr.on("data", (d) => (out += d));
   const code = await new Promise((resolve) => child.on("close", resolve));
+  free++;
+  waiting.shift()?.();
   const lines = existsSync(report) ? readFileSync(report, "utf8").split("\n").filter(Boolean) : [];
   const parts: Reported[] = lines.map((l) => JSON.parse(l));
   const one = (name: string) => {
@@ -136,6 +148,51 @@ test("a suite that says its Chrome is a reader's has one", async () => {
   assert.deepEqual(outcomes, { "reader › a reader's says no webdriver": "passed" }, out);
 });
 
+// The stand-in's suite of a reader's tabs, run once: each case reads it. `open` fails any part whose tab finds another
+// tab, or ears, left by the one before.
+let tabs: ReturnType<typeof stand> | undefined;
+const tabbed = () => (tabs ??= stand(["tabs", "--seed", "3"]));
+
+test("an error thrown or written in a reader's tab fails the part it came in, saying it", async () => {
+  const { one, code } = await tabbed();
+  assert.equal(code, 1);
+  assert.match(one("tabs › throws in its page").said!, /^the page reported: pageerror: thrown in the page$/);
+  assert.match(one("tabs › writes a console error").said!, /^the page reported: console error: written to the console$/);
+  assert.equal(one("tabs › makes its page throw on purpose").outcome, "passed", one("tabs › makes its page throw on purpose").said);
+  assert.match(one("tabs › opens a popup that throws, and leaves it").said!, /^the page reported: pageerror: thrown in the page$/);
+});
+
+test("a tab is held to its limit, and neither it nor what it leaves is found by the next", async () => {
+  const { one, parts } = await tabbed();
+  assert.match(one("tabs › waits for what never comes").said!, /#never/);
+  assert.match(one("tabs › never ends").said!, /still going after [\d.]+s/);
+  assert.equal(one("tabs › is hidden, and leaves the tab over it").outcome, "passed", one("tabs › is hidden, and leaves the tab over it").said);
+  const order = parts.map((p) => p.part);
+  assert.ok(order.indexOf("tabs › leaves a route on its context") < order.indexOf("tabs › meets no route left"), `the seed has to put it after: ${order}`);
+  assert.equal(one("tabs › meets no route left").outcome, "passed", one("tabs › meets no route left").said);
+});
+
+test("tabs go one at a time, each shown, and a group that says otherwise is on a page of its own beside them", async () => {
+  const { one, out } = await tabbed();
+  for (const name of ["a", "b", "c", "d", "e"]) assert.equal(one(`one at a time › tab ${name}`).outcome, "passed", one(`one at a time › tab ${name}`).said);
+  for (const part of ["not a tab › is on a page of its own", "nor this › takes the other's turn", "beside › meets a group not on a tab"]) assert.equal(one(part).outcome, "passed", one(part).said);
+  assert.match(out, /2 at a time, one of them a reader's tab/);
+});
+
+test("recordings answer a group's tab, what none answers fails its part, and tabs alone go one at a time", async () => {
+  const { one, out } = await stand(["tabrecorded", "--seed", "1"]);
+  assert.equal(one("answers › answers from recordings").outcome, "passed", one("answers › answers from recordings").said);
+  assert.match(one("answers › asks what none answers").said!, /it asked https:\/\/unrecorded\.example\/x, which no recording answers/);
+  assert.match(out, /2 parts in 1 groups: every group\./);
+});
+
+test("a suite that says a tab with no reader's Chrome is refused, not run on a page", async () => {
+  const { code, out, parts } = await stand(["tabplain"]);
+  assert.notEqual(code, 0);
+  assert.match(out, /parts\.mjs: its group is on a tab, which only a reader's Chrome has: say `chrome: \{ reader: true \}`/);
+  assert.deepEqual(parts, []);
+});
+
 test("what a page asks of other servers is answered from recordings, and what none answers fails the part", async () => {
   const { one, code, out } = await stand(["recorded"]);
   assert.equal(code, 1);
@@ -162,8 +219,8 @@ test("a shared file runs all, as does what no group claims, which is said", asyn
     ["src/shared.ts", "which they all share"],
     ["tests/narrow/suite.mjs", "which they all share"],
     ["tests/run.mjs", "which they all share"],
-    ["src/nobody.ts", "which no group covers"],
-    ["src/one/README.md", "which no group covers"],
+    ["src/nobody.ts", "which no part covers"],
+    ["src/one/README.md", "which no part covers"],
   ]) {
     const { outcomes, out } = await narrow(file);
     assert.deepEqual(outcomes, all, file);
@@ -196,6 +253,60 @@ test("a harness in web/tests works as one at tests/, its covers from the product
   assert.deepEqual(outcomes, { "playback › opens": "skipped", "library › opens": "passed" });
   const shared = await stand(["nested"], { NERD_CHANGED: "web/tests/run.mjs\n" }, "web/tests/run.mjs");
   assert.deepEqual(shared.outcomes, { "library › opens": "passed", "playback › opens": "passed" });
+});
+
+const apart = (changed: string) => stand(["apart"], { NERD_CHANGED: `${changed}\n` });
+const ofApart = (ran: string[]) => Object.fromEntries(["apart › says one file", "apart › says more", "apart › says none", "wide › says its own", "other › says its own"].map((p) => [p, ran.includes(p) ? "passed" : "skipped"]));
+
+test("a change to what a part says runs that part of its group, and the group's others are reported skipped", async () => {
+  for (const [file, ran] of [
+    ["src/mine.ts", ["apart › says one file", "apart › says more"]],
+    ["src/more/deep/a.ts", ["apart › says more"]],
+    ["src/wide/a.ts", ["wide › says its own"]],
+    ["src/apart/a.ts", ["apart › says none"]],
+  ] as const) {
+    const { code, outcomes, out } = await apart(file);
+    assert.equal(code, 0, out);
+    assert.deepEqual(outcomes, ofApart([...ran]), file);
+  }
+  const some = (await apart("src/more/deep/a.ts")).out;
+  assert.ok(some.includes("1 parts in 1 groups") && some.includes("apart (1 of its 3), for src/more/deep/a.ts"), some);
+  assert.ok((await apart("src/wide/a.ts")).out.includes("wide, for src/wide/a.ts"), "a group all of whose parts run is named alone");
+});
+
+test("a part's file is its own too: a change to it runs every part in it and no other, and what all share runs all", async () => {
+  const all = ofApart(Object.keys(ofApart([])));
+  assert.deepEqual((await apart("tests/apart/parts.mjs")).outcomes, ofApart(["apart › says one file", "apart › says more", "apart › says none", "wide › says its own"]));
+  assert.deepEqual((await apart("tests/apart/other.mjs")).outcomes, ofApart(["other › says its own"]));
+  for (const [file, why] of [
+    ["src/shared.ts", "which they all share"],
+    ["tests/apart/suite.mjs", "which they all share"],
+    ["src/nobody.ts", "which no part covers"],
+    ["src/more/README.md", "which no part covers"],
+    // The group's covers, which its one part put aside: nothing would run for it.
+    ["src/wide/b.ts", "which no part covers"],
+  ]) {
+    const { outcomes, out } = await apart(file);
+    assert.deepEqual(outcomes, all, file);
+    assert.ok(out.includes(`every group, for ${file}, ${why}`), `${file} in ${out}`);
+  }
+});
+
+test("a part's covers hold in a suite that goes each, and words and nothing changed run it as ever", async () => {
+  const { code, outcomes } = await stand(["apartall"], { NERD_CHANGED: "src/mine.ts\n" });
+  assert.equal(code, 0);
+  assert.deepEqual(outcomes, { "suite's › says none": "skipped", "suite's › says its own": "passed" });
+  assert.deepEqual((await stand(["apartall"], { NERD_CHANGED: "" })).outcomes, { "suite's › says its own": "passed", "suite's › says none": "passed" });
+  assert.deepEqual((await stand(["apartall", "says none"], { NERD_CHANGED: "src/mine.ts\n" })).outcomes, { "suite's › says its own": "skipped", "suite's › says none": "passed" });
+});
+
+test("a part that says its covers in a group that shares a page is refused, not run with the rest", async () => {
+  for (const suite of ["together", "together-each"]) {
+    const { code, out, parts } = await stand([suite], { NERD_CHANGED: "src/mine.ts\n" });
+    assert.notEqual(code, 0, suite);
+    assert.match(out, /shares\.mjs: a part says its covers, and its group shares one page: say `each`/, suite);
+    assert.deepEqual(parts, [], suite);
+  }
 });
 
 const order = async (seed: string) => (await stand(["order", "--seed", seed])).parts.map((p) => p.part);
@@ -282,6 +393,9 @@ test("run outside nerd, it says so; --list needs no nerd", async () => {
   assert.equal(listed.code, 0);
   assert.match(listed.out, /narrow: 2 groups, 2 parts/);
   assert.match(listed.out, /covers src\/one\/\*\*, !src\/one\/README\.md, tests\/narrow\/one\.mjs/);
+  const each = await run(["apart", "--list"]);
+  assert.match(each.out, /says one file\n\s+why: a stand-in's; covers src\/mine\.ts, tests\/apart\/parts\.mjs\n/);
+  assert.match(each.out, /says none\n\s+why: a stand-in's\n/);
 });
 
 // What takes no run to judge.
@@ -289,11 +403,11 @@ test("run outside nerd, it says so; --list needs no nerd", async () => {
 const suite = {
   shared: ["src/shared.ts", "crux/chrome"],
   groups: [
-    { name: "one", own: ["src/one/**"] },
-    { name: "two", own: ["src/{two,three}.ts", "!src/two.ts"] },
+    { name: "one", parts: [{ own: ["src/one/**"] }] },
+    { name: "two", parts: [{ own: ["src/{two,three}.ts", "!src/two.ts"] }] },
   ],
 };
-const names = (changed: string[]) => chooseGroups(suite, changed).groups.map((g) => g.name);
+const names = (changed: string[]) => chooseGroups(suite, changed).chosen.map((c) => c.group.name);
 
 test("chooseGroups: the harness's own files are shared, and patterns read as nerd's", () => {
   assert.deepEqual(names(["src/one/deep/a.ts"]), ["one"]);
@@ -302,6 +416,40 @@ test("chooseGroups: the harness's own files are shared, and patterns read as ner
   assert.deepEqual(names(["src/two.ts"]), ["one", "two"], "taken back by !, it is claimed by no group");
   assert.deepEqual(names([]), ["one", "two"]);
   assert.deepEqual(names(["src/one/a.ts", "src/three.ts"]), ["one", "two"]);
+});
+
+test("chooseGroups: each part by its own patterns, and only what a part claims is claimed", () => {
+  const [wide, narrow, both, took] = [{ own: ["src/a"] }, { own: ["src/a/one.ts"] }, { own: ["src/a/one.ts", "src/b", "!src/b/old.ts"] }, { own: ["src/c.ts"] }];
+  const suite = { shared: ["src/shared.ts"], groups: [{ name: "first", parts: [wide, narrow, both] }, { name: "second", parts: [took] }] };
+  const parts = (...changed: string[]) => chooseGroups(suite, changed).chosen.flatMap((c) => c.parts);
+  const all = [wide, narrow, both, took];
+  assert.deepEqual(parts("src/a/one.ts"), [wide, narrow, both]);
+  assert.deepEqual(parts("src/a/two.ts"), [wide]);
+  assert.deepEqual(parts("src/b/new.ts"), [both]);
+  assert.deepEqual(parts("src/a/two.ts", "src/c.ts"), [wide, took], "more than one file, each its parts");
+  assert.deepEqual(parts("src/b/new.ts", "src/a/two.ts"), [wide, both], "and in the group's order");
+  assert.deepEqual(parts("src/b/old.ts"), all, "taken back by !, it is claimed by no part");
+  assert.deepEqual(parts("src/a/two.ts", "src/nobody.ts"), all, "one no part claims, beside one that is");
+  assert.deepEqual(parts("src/a/two.ts", "src/shared.ts"), all, "one all share, beside one that is not");
+  assert.deepEqual(parts(), all);
+  assert.deepEqual(chooseGroups(suite, ["src/c.ts"]).chosen.map((c) => c.group.name), ["second"], "a group with no part called for is not chosen");
+});
+
+test("cannotTab: what a tab cannot be", () => {
+  const [reader, group, size] = [{ chrome: { reader: true } }, { parts: [{}] }, { width: 390, height: 844 }];
+  assert.equal(cannotTab(reader, group), null);
+  assert.match(cannotTab({}, group)!, /only a reader's Chrome/);
+  assert.match(cannotTab({ chrome: { reader: false } }, group)!, /only a reader's Chrome/);
+  assert.match(cannotTab({ ...reader, browser: false }, group)!, /only a reader's Chrome/);
+  for (const [suite, of] of [
+    [{ ...reader, context: {} }, group],
+    [{ ...reader, viewport: size }, group],
+    [reader, { ...group, context: {} }],
+    [reader, { ...group, viewport: size }],
+    [reader, { parts: [{}, { context: {} }] }],
+  ] satisfies Parameters<typeof cannotTab>[]) {
+    assert.match(cannotTab(suite, of)!, /takes no context or viewport/);
+  }
 });
 
 test("covered: as nerd.toml's", () => {
@@ -357,6 +505,22 @@ test("within: a stall counted just after the limit came still stretches it", asy
   assert.equal(await within(work, 0.2, "still going", () => (looks++ < 2 ? 0 : 100)), "done");
 });
 
+test("counted: only once the thread has gone round twice, as its first turn from here may have read the clock before", async () => {
+  await counted(null);
+  const turns = new Int32Array(new SharedArrayBuffer(8));
+  turns[1] = 7;
+  let done = false;
+  const waiting = counted(turns).then(() => (done = true));
+  const round = async () => {
+    await sleep(5); // room to end too soon, where it would
+    assert.equal(done, false);
+    Atomics.add(turns, 1, 1);
+  };
+  await round();
+  await round();
+  await waiting;
+});
+
 test("took: as nerd says it", () => {
   assert.equal(took(1900), "1.9s");
   assert.equal(took(24_000), "24s");
@@ -376,4 +540,9 @@ test("vite: on a port it chooses, watching nothing and reloading nothing, whatev
   assert.equal(served.base, "http://localhost:5199/");
   served.close();
   assert.equal(closed, true);
+});
+
+// As many as there are, as many wait on one run: `stand` counts what runs.
+describe("side by side", { concurrency: cases.length }, () => {
+  for (const [name, fn] of cases) one(name, fn);
 });

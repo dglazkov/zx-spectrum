@@ -13,20 +13,20 @@
 // Chrome is the part chrome's reader (crux#117), which a product takes beside this one. Each page is a tab of that
 // Chrome's first context, where a tab is hidden as a reader's is, and automation's are that same Chrome, told so.
 //
-// npm ci in ../chrome, then: CHROME=... npx --yes tsx@4.20.6 load.test.mts   (from anywhere: it runs `cargo run -p load
+// sh ../chrome/ready.sh, then: CHROME=... npx --yes tsx@4.20.6 load.test.mts   (from anywhere: it runs `cargo run -p load
 // --example page` in its directory)
 // Prints what it checked and exits 0 where all is so; else says what was not, and exits 1.
 
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
-import type { Browser } from "playwright-core";
+import { hide as hidden, launch, readerAgent } from "../chrome/launch.ts";
 
 const here = import.meta.dirname;
 const problems: string[] = [];
 // What end() stops, once each is started.
-let server: ChildProcess | undefined, browser: Browser | undefined;
+let server: ChildProcess | undefined, browser: Awaited<ReturnType<typeof launch>> | undefined;
 let ending: Promise<never> | undefined;
 let deadline: NodeJS.Timeout | undefined;
 
@@ -45,15 +45,6 @@ let deadline: NodeJS.Timeout | undefined;
     );
   }
 }
-
-// A product that runs this test and does not take the part chrome yet has what is above and no more, until its move
-// onto it: blog's is dglazkov/blog#113 (crux#117), and once that is closed this goes.
-if (!existsSync(join(here, "../chrome/launch.ts"))) {
-  if (problems.length) await fail(problems.join("\n"));
-  console.log("load: its script is what load.ts builds to; no load was tried, as this product does not take the part chrome");
-  process.exit(0);
-}
-const { hide: hidden, launch, readerAgent } = await import("../chrome/launch.ts");
 
 // The pages' server, and the telemetry lines it prints, as they come.
 server = spawn("cargo", ["run", "--locked", "-q", "-p", "load", "--example", "page"], {
@@ -116,7 +107,7 @@ async function tab(phone: boolean, probe = false, automated = probe) {
     await cdp.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
     await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
   }
-  const run = <T = any>(expression: string) => page.evaluate<T>(expression);
+  const run = <T = any,>(expression: string) => page.evaluate<T>(expression);
   return { page, run, beacons };
 }
 type Tab = Awaited<ReturnType<typeof tab>>;

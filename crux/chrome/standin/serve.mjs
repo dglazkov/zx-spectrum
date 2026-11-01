@@ -4,7 +4,6 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { createServer } from "node:http";
-import { setTimeout as sleep } from "node:timers/promises";
 
 const PAGES = {
   "/throws": `<script>throw new Error("thrown in the page")</script>`,
@@ -28,11 +27,9 @@ export async function stall(ms) {
   await once(held, "exit");
 }
 
-/** A stall of `ms` that ends in this very moment: a timer that came due while the process was held, whose part goes on
- * as it wakes, beside what counts the stall. Where this process reads late, the timer comes after, and that is a stall
- * that ended a while ago. */
+/** A stall of `ms` that ends in this very moment: what wakes this process was written while it was held, so that its part
+ * goes on as it wakes, beside what counts the stall. */
 export async function stallEnding(ms) {
-  const held = spawn("sh", ["-c", `echo; sleep 0.02; kill -STOP ${process.pid}; sleep ${ms / 1000}; kill -CONT ${process.pid}`], { stdio: ["ignore", "pipe", "ignore"] });
+  const held = spawn("sh", ["-c", `kill -STOP ${process.pid}; sleep ${ms / 1000}; echo; kill -CONT ${process.pid}`], { stdio: ["ignore", "pipe", "ignore"] });
   await once(held.stdout, "data");
-  await sleep(30);
 }

@@ -354,8 +354,9 @@ test('--json prints what nerd reads, and --write-baseline writes the baseline it
 /**
  * A page as a phone reads it, its server counting the bytes it writes for each answer, headers with them: a
  * picture of a srcset, for 1x and 2x; one far down, loaded lazily as it comes into view; one hidden, which a
- * lazy picture never is loaded as; and one its script fetches a second and a half after the far one has come,
- * within the two seconds the weighing waits for. The pictures are noise, as large as the test says.
+ * lazy picture never is loaded as; and one its script fetches half a second after the far one has come, within what
+ * the weighing is told to wait for, ten times that, as a busy machine holds a page's timer up by seconds next to the
+ * test's clock (crux#137). The pictures are noise, as large as the test says.
  */
 /** A PNG of noise, which compresses to nothing less: about bytes long, a picture Chrome reads whole. */
 function png(bytes: number): Buffer {
@@ -386,7 +387,7 @@ async function phonePage(): Promise<{ url: string; wrote: Map<string, number>; c
     <img src="/hidden.png" loading="lazy" width="300" height="200" style="display: none">
     <img src="/far.png" loading="lazy" width="300" height="200" onload="later()" onerror="later()">
     <script>
-      function later() { setTimeout(() => { const i = new Image(); i.src = '/late.png'; document.body.append(i); }, 1500); }
+      function later() { setTimeout(() => { const i = new Image(); i.src = '/late.png'; document.body.append(i); }, 500); }
     </script>
     <img src="/moved.png" width="10" height="10">`;
   const wrote = new Map<string, number>();
@@ -421,7 +422,7 @@ async function phonePage(): Promise<{ url: string; wrote: Map<string, number>; c
 test('a page\'s weight is every byte a phone fetched to show it whole, scrolled to its end, and no other', async () => {
   const s = await phonePage();
   try {
-    const [w] = await weigh(s.url, [{ name: 'home', path: '/' }]);
+    const [w] = await weigh(s.url, [{ name: 'home', path: '/' }], { quiet: 5000 });
     // What Chrome fetched, as the server saw it: the 2x of the srcset, the lazy picture far down and what came after
     // it, the redirect and where it led; and neither the 1x nor the hidden picture.
     assert.deepEqual([...s.wrote.keys()].sort(), ['/', '/far.png', '/late.png', '/moved.png', '/near-2x.png', '/redirected.png']);
@@ -454,7 +455,7 @@ test('a page that starts a Worker is weighed with the worker\'s script and what 
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const { port } = server.address() as AddressInfo;
   try {
-    const weighed = await weigh(`http://127.0.0.1:${port}`, [{ name: 'home', path: '/' }], { quiet: 300, deadline: 20000 })
+    const weighed = await weigh(`http://127.0.0.1:${port}`, [{ name: 'home', path: '/' }], { quiet: 300, deadline: 60000 })
       .catch((e: Error) => e);
     assert.ok(!(weighed instanceof Error), `the page was not weighed: ${weighed instanceof Error ? weighed.message : ''}`);
     const [w] = weighed;
@@ -642,6 +643,12 @@ test('each stream\'s frames are found in Chrome\'s net log by its socket, its au
     data('0x40', 3, 894), data('0x40', 3, 766), told('0x85'), read('0x85', 3), data('0x40', 3, 1153), data('0x40', 3, 0),
     request('0x85', 'https://a.run.app/b.png?x=1'), asked('0x40', 5, 'a.run.app', '/b.png?x=1'),
     told('0x85'), data('0x40', 5, 2000), read('0x85', 5), data('0x40', 5, 0),
+    // A worker's script whose body had all come before it was told of, its stream closed by then: it logged the stream
+    // as its frames came, and nothing after (crux#137); and another of the same name, on a later stream.
+    request('0x86', 'https://a.run.app/x.js'), asked('0x40', 7, 'a.run.app', '/x.js'),
+    read('0x86', 7), data('0x40', 7, 300), data('0x40', 7, 0), told('0x86'),
+    request('0x86', 'https://a.run.app/x.js'), asked('0x40', 9, 'a.run.app', '/x.js'),
+    read('0x86', 9), data('0x40', 9, 400), told('0x86'), read('0x86', 9), data('0x40', 9, 0),
     // A stylesheet padded as Google pads its frames (crux#52): of each frame, its padding's length's byte and its
     // padding taken from the window and given back at once, its data taken until it is read; and one not padded,
     // whose data was read at once, after it.
@@ -662,6 +669,7 @@ test('each stream\'s frames are found in Chrome\'s net log by its socket, its au
     '433 a.run.app/a.png': [none([16384, 1])],
     '433 a.run.app/w.js': [{ frames: [894, 766, 1153, 0], told: 2 }],
     '433 a.run.app/b.png?x=1': [none([2000, 0])],
+    '433 a.run.app/x.js': [{ frames: [300, 0], told: 2 }, { frames: [400, 0], told: 1 }],
     '458 fonts.googleapis.com/css2?family=x': [none([492, 10, 0])],
     '458 fonts.googleapis.com/css2?family=y': [none([300, 0])],
   });
@@ -675,7 +683,8 @@ test('each stream\'s frames are found in Chrome\'s net log by its socket, its au
  * to 13 frames from one visit to the next (crux#29). The page, compressed as it is sent, says no content-length. With
  * early, each answer says Clear-Site-Data, which Chrome's network service asks its browser of before it tells of the
  * answer, so that the first frames of the body are there by then, and counted with the headers it tells of (crux#47):
- * as a busy machine had it now and then.
+ * as a busy machine had it now and then. Every other worker's script is sent at once, so that its whole body has come
+ * before Chrome tells of it, as a busy machine has it however it is sent (crux#137).
  */
 async function frontEnd(early = false): Promise<{ url: string; answers: string[]; dates: string[]; worker: number; close(): Promise<void> }> {
   const dir = mkdtempSync(join(tmpdir(), 'crux-front-'));
@@ -688,6 +697,7 @@ async function frontEnd(early = false): Promise<{ url: string; answers: string[]
   const answers: string[] = [];
   const dates: string[] = [];
   let n = 0;
+  let workers = 0;
   let second = 0;
   // Larger than a frame, so that it takes two however it is framed.
   const picture = png(20000);
@@ -728,7 +738,8 @@ async function frontEnd(early = false): Promise<{ url: string; answers: string[]
       void inFrames(res, picture, n);
     } else if (path === '/w.js') {
       res.writeHead(200, { ...head, 'content-type': 'text/javascript', 'content-encoding': 'br' });
-      void inFrames(res, worker, n);
+      if (workers++ % 2) res.end(worker);
+      else void inFrames(res, worker, n);
     } else if (path.startsWith('/?')) {
       res.writeHead(200, { ...head, 'content-type': 'text/html', 'content-encoding': 'br' });
       void inFrames(res, page, n);
@@ -766,8 +777,12 @@ async function visits(early: boolean) {
     assert.ok(new Set(s.answers.map((a) => valueBytes(a, 'h2'))).size > 3, s.answers.join(' '));
     assert.equal(new Set(s.dates.map((d) => valueBytes(d, 'h2'))).size, 2, s.dates.join(', '));
     assert.ok(weighed.every((w) => w.fetched.length === 4 && w.fetched.every((f) => f.bytes > 0)));
-    // The worker's script with its body, which Chrome counts its head alone of (crux#39).
-    for (const w of weighed) assert.ok(w.fetched.find((f) => f.url.endsWith('/w.js'))!.bytes > s.worker, `early: ${early}`);
+    // The worker's script with its body, which Chrome counts its head alone of (crux#39), and that once, however much
+    // of it Chrome had counted with its head (crux#137).
+    for (const w of weighed) {
+      const { bytes } = w.fetched.find((f) => f.url.endsWith('/w.js'))!;
+      assert.ok(bytes > s.worker && bytes < s.worker + 500, `early: ${early}: ${bytes} B of a script of ${s.worker} B`);
+    }
     assert.deepEqual(weighed.map((w) => w.bytes), weighed.map(() => weighed[0].bytes), `early: ${early}: ${weighed.map((w) => w.fetched.map((f) => f.bytes).join('+')).join(', ')}`);
     // The picture is weighed as the stylesheet is, its headers and its frames with its body (crux#28): they differ by
     // their types alone.
@@ -877,7 +892,7 @@ test('each mark is a number of its page\'s, after its weight: the median of its 
     const pages = [{ name: 'home', path: '/' }, { name: 'post', path: '/post' }];
     const marks: Mark[] = [{ name: 'ready', selector: 'body[data-ready]' }, { name: 'instruments', page: 'home' }];
     const timedWith: [Page[], Mark[]][] = [];
-    const time = async (_url: string, pages: Page[], marks: Mark[]) => {
+    const time = async (_url: string, pages: Page[], marks: Mark[]): Promise<Record<string, number[]>[]> => {
       timedWith.push([pages, marks]);
       return [{ ready: [1700, 1600, 1800, 9000, 1650], instruments: [1500, 1400, 1550, 1450, 1500] }, { ready: [300, 310, 320] }];
     };
@@ -978,7 +993,9 @@ test('a page\'s marks are timed in Chrome from navigation, a first visit each lo
   try {
     const pages = [{ name: 'home', path: '/' }, { name: 'plain', path: '/nothing' }, { name: 'again', path: '/again' }];
     const marks: Mark[] = [{ name: 'instruments' }, { name: 'ready', selector: 'body[data-ready]' }];
-    const timed = await timeMarks(s.url, pages, marks.map((m) => ({ ...m, page: 'home' })).concat([{ name: 'ready', page: 'again', selector: 'body[data-ready]' }]), { loads: 3, deadline: 20000 });
+    const began = performance.now();
+    const timed = await timeMarks(s.url, pages, marks.map((m) => ({ ...m, page: 'home' })).concat([{ name: 'ready', page: 'again', selector: 'body[data-ready]' }]), { loads: 3 });
+    const took = performance.now() - began;
     assert.equal(timed.length, 3);
     assert.deepEqual(timed[1], {});
     for (const [i, own] of [[0, ['instruments', 'ready']], [2, ['ready']]] as const) {
@@ -986,9 +1003,10 @@ test('a page\'s marks are timed in Chrome from navigation, a first visit each lo
       for (const t of Object.values(timed[i])) assert.equal(t.length, 3);
     }
     for (let n = 0; n < 3; n++) {
-      // No sooner than the server's answer to what the page waits for, and not long after: Chrome running here.
+      // No sooner than the server's answer to what the page waits for, and from its own navigation: a load took less
+      // than all of them did, however long a busy machine makes that.
       const { instruments, ready } = { instruments: timed[0].instruments[n], ready: timed[0].ready[n] };
-      assert.ok(instruments >= 300 && instruments < 5000, `instruments at ${instruments}`);
+      assert.ok(instruments >= 300 && instruments < took, `instruments at ${instruments}, of ${took} ms in all`);
       assert.ok(ready >= instruments, `ready at ${ready}, before instruments at ${instruments}`);
       assert.ok(timed[2].ready[n] >= 300, `again ready at ${timed[2].ready[n]}`);
     }
@@ -1012,9 +1030,9 @@ test('a page that never sets its mark is given up at the deadline, saying what i
     await assert.rejects(timeMarks(s.url, [{ name: 'bad', path: '/bad' }], [{ name: 'instruments' }], { loads: 1, deadline: 20000, clock }),
       /\/bad had no instruments in 20000 ms \(the page threw: Error: no instruments\)/);
     assert.ok(read > 0, 'the deadline was not counted on the clock given');
-    await assert.rejects(timeMarks(s.url, [{ name: 'gone', path: '/gone' }], [{ name: 'ready', selector: 'body' }], { loads: 1, deadline: 20000 }),
+    await assert.rejects(timeMarks(s.url, [{ name: 'gone', path: '/gone' }], [{ name: 'ready', selector: 'body' }], { loads: 1 }),
       /\/gone answered 404 to Chrome/);
-    await assert.rejects(timeMarks(s.url, [{ name: 'home', path: '/' }], [{ name: 'ready', selector: 'body[' }], { loads: 1, deadline: 20000 }),
+    await assert.rejects(timeMarks(s.url, [{ name: 'home', path: '/' }], [{ name: 'ready', selector: 'body[' }], { loads: 1 }),
       /the selector of ready: SyntaxError/);
   } finally {
     await s.close();

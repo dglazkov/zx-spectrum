@@ -10,7 +10,7 @@
 //
 // It reads the Chrome to run from CHROME and the flags that suit this machine from CHROME_ARGS, as `nerd test` gives
 // them (`nerd guide chrome`), and depends on playwright-core alone, at the version package.json fixes, which brings no
-// browser. Its node_modules are the part's own: `npm ci` in this directory.
+// browser. Its node_modules are the part's own: `sh ready.sh` in this directory.
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";

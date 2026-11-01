@@ -189,5 +189,5 @@ when = ["deploy"]
 baseline = "probe/speed.json"
 
 [crux]
-commit = "fa16921e2f86b2820b605253fcbc4f36334216c4"
+commit = "c97c1761cc008318a0453e8e02549690cf119a5f"
 parts = ["server", "telemetry", "widget", "load", "probe", "wasm", "chrome"]

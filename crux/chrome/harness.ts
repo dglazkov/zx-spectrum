@@ -18,16 +18,28 @@
 //   const test = group("library", { covers: ["web/src/library"], why: "what a person does with it" });
 //   test("a search narrows the list", async ({ page }) => { ... });
 //
+//   // a part of an `each` group that tests other files than its group: it says them, in place of the group's
+//   test("the tape deck plays", { covers: ["web/src/tape"] }, async ({ page }) => { ... });
+//
+//   // a suite whose parts are each a reader's tab, as a test of what a page sends as it is hidden needs
+//   export default { chrome: { reader: true }, tab: true, each: true, open: (page, base) => page.goto(base) };
+//   test("its load is sent as it is hidden", async ({ page }) => { const over = await hide(page); ... }); // launch's hide
+//
 //   tests/run.mjs SUITE [words…] [--seed N] [--list]
 //
 // - words: only the parts whose group and title have every one of them.
-// - Without words, NERD_CHANGED chooses the groups that cover what changed; a change to what every group shares, or to a
-//   file no group claims, runs them all, and those not run are reported skipped.
+// - Without words, NERD_CHANGED chooses the parts that cover what changed, each by its group's covers, or by its own where
+//   it says them, and always its file; a change to what every group shares, or to a file no part claims, runs them all,
+//   and those not run are reported skipped.
 // - One Chrome for the run. Each group starts on a fresh page in a context of its own, or each part does (`each`). A page
 //   a part failed on, or left otherwise than it found it, is closed, and the next part starts on a fresh one.
 // - Groups, and the parts in each, go in an order shuffled from a seed the run says, to run it again.
 // - Groups run side by side (`parallel`, four when not said), the longest first by NERD_USUAL, a part not timed yet by
 //   its limit, in one process. A group that says `alone` runs first, with nothing beside it.
+// - A group that says `tab` opens a tab of a reader's Chrome, in the context it starts with, which the rest of its suite
+//   may run beside. Those tabs share a window, and only one of them is shown, so they go one at a time, of the four side
+//   by side; a tab, and what it opened, is closed where a page would be, and its context's routes go with it. The context
+//   stays, with its cookies and storage: what a part leaves there is the next tab's.
 // - What a suite's module keeps for the group running, as its page, it takes from `current()`.
 // - An error thrown in a page or written to its console fails the part it came in, in any page of the part's context.
 // - Each part is held to a limit of its own, seconds, its suite's unless it says, and to three times that on a machine
@@ -43,10 +55,10 @@ import { isAbsolute, join, relative } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Worker } from "node:worker_threads";
-import type { Browser, BrowserContext, BrowserContextOptions, Page, Request, Route } from "playwright-core";
+import type { Browser, BrowserContext, BrowserContextOptions, ConsoleMessage, Page, Request, Route, WebError } from "playwright-core";
 import { launch, type Options as ChromeOptions } from "./launch.ts";
 
-type Fulfilled = Parameters<Route["fulfill"]>[0];
+type Fulfilled = NonNullable<Parameters<Route["fulfill"]>[0]>;
 
 /** What answers a request to another server: `url`, as `page.route` takes it, and how Playwright's `route.fulfill` is
  * told to answer, or `answer`, which says that for each request. A `path` is read from the suite's directory. */
@@ -90,10 +102,12 @@ export type Options = {
   browser?: false;
   /** How launch starts Chrome, as `args` or `reader`. */
   chrome?: ChromeOptions;
+  /** A tab of a reader's first context, not a context of its own: the only page launch's `hide` can hide. */
+  tab?: boolean;
 };
 
-type GroupOptions = Pick<Options, "open" | "viewport" | "context" | "warnings" | "each"> & {
-  /** The files it tests, from the root, patterns as nerd.toml's: a change to one has it run. */
+type GroupOptions = Pick<Options, "open" | "viewport" | "context" | "warnings" | "each" | "tab"> & {
+  /** The files its parts test, from the root, patterns as nerd.toml's: a change to one has them run, but for a part that says its own. */
   covers?: string[];
   /** Why its parts need a browser, where each would say the same. */
   why?: string;
@@ -110,10 +124,12 @@ type PartOptions = {
   reports?: RegExp[];
   /** The context of a part of an `each` group, over its suite's and group's. */
   context?: BrowserContextOptions;
+  /** The files a part of an `each` group tests, in place of its group's: a change to one runs it, and not the group's other parts. */
+  covers?: string[];
 };
 
 type Fn = (here: Here) => unknown;
-type Part = { title: string; why: string; limit?: number; reports: RegExp[]; context?: BrowserContextOptions; fn: Fn };
+type Part = { title: string; why: string; limit?: number; reports: RegExp[]; context?: BrowserContextOptions; covers?: string[]; own: string[]; fn: Fn };
 type Group = GroupOptions & { name: string; file: string; covers: string[]; own: string[]; parts: Part[] };
 type Suite = Options & { name: string; dir: string; shared: string[]; groups: Group[] };
 type Unit = { group: Group; parts: Part[] };
@@ -131,7 +147,7 @@ export const current = (): Here => {
 let reading: string | null = null;
 const registered: Group[] = [];
 
-/** A group of parts, in the file that calls it. Gives its `test`: test(title, { why, limit, reports, context }, fn), or
+/** A group of parts, in the file that calls it. Gives its `test`: test(title, { why, limit, reports, context, covers }, fn), or
  * test(title, fn) where the group says why, and fn takes what `Here` says and may give a line to say beside its ok. */
 export function group(name: string, options: GroupOptions = {}) {
   const file = reading;
@@ -144,8 +160,15 @@ export function group(name: string, options: GroupOptions = {}) {
     const why = options.why ?? made.why;
     if (!why) throw new Error(`${file}: "${title}" does not say why it needs a browser ({ why: "…" }). If it does not need one, it is a unit test.`);
     if (made.parts.some((p) => p.title === title)) throw new Error(`${file}: two parts called "${title}"`);
-    made.parts.push({ title, why, limit: options.limit, reports: options.reports ?? [], context: options.context, fn: run });
+    made.parts.push({ title, why, limit: options.limit, reports: options.reports ?? [], context: options.context, covers: options.covers, own: [], fn: run });
   };
+}
+
+/** Why a group cannot be on a tab, where it cannot: said, as it would otherwise run on something else than it says. */
+export function cannotTab(suite: Options, group: Pick<Options, "context" | "viewport"> & { parts: { context?: BrowserContextOptions }[] }): string | null {
+  if (!suite.chrome?.reader || suite.browser === false) return "its group is on a tab, which only a reader's Chrome has: say `chrome: { reader: true }`";
+  const said = suite.context ?? suite.viewport ?? group.context ?? group.viewport ?? group.parts.find((p) => p.context);
+  return said ? "its group is on a tab, of a context Chrome made, which takes no context or viewport: say it to the page" : null;
 }
 
 /** A suite's options and groups, read from `dir`. `shared` gets what every group runs on. */
@@ -160,13 +183,20 @@ async function load(name: string, dir: string, root: string, defaults: Options, 
     await import(pathToFileURL(reading).href);
     const read = registered.splice(0);
     if (!read.length) throw new Error(`${reading} registers no group: a file in a suite is a group of parts, or its suite.mjs`);
-    for (const g of read) groups.push({ ...g, own: [...g.covers, fromRoot(g.file)] });
+    for (const g of read) {
+      const file = fromRoot(g.file);
+      for (const p of g.parts) p.own = [...(p.covers ?? g.covers), file];
+      groups.push({ ...g, own: [...g.covers, file] });
+    }
   }
   reading = null;
   for (const [i, g] of groups.entries()) {
     if (groups.findIndex((other) => other.name === g.name) !== i) throw new Error(`${g.file}: two groups called "${g.name}"`);
     const shares = !(g.each ?? options.each);
     if (shares && g.parts.some((p) => p.context)) throw new Error(`${g.file}: a part says its context, and its group shares one page: say \`each\``);
+    if (shares && g.parts.some((p) => p.covers)) throw new Error(`${g.file}: a part says its covers, and its group shares one page: say \`each\``);
+    const refused = (g.tab ?? options.tab) && cannotTab(options, g);
+    if (refused) throw new Error(`${g.file}: ${refused}`);
   }
   const shared = [...(options.shared ?? []), fromRoot(join(dir, "suite.mjs")), fromRoot(import.meta.dirname), fromRoot(runner)];
   return { ...options, name, dir, shared, groups };
@@ -174,17 +204,19 @@ async function load(name: string, dir: string, root: string, defaults: Options, 
 
 const short = (list: string[]) => (list.length > 3 ? `${list.slice(0, 3).join(", ")} and ${list.length - 3} more` : list.join(", "));
 
-/** The groups `changed` (the changed files a test covers, as nerd gives them) call for, and why: those that cover one of
- * them; all of them for a file every group shares, or one no group claims, which is said, so that it is given to the
- * groups that test it. Nothing changed: all of them. */
-export function chooseGroups<G extends { name: string; own: string[] }>(suite: { shared: string[]; groups: G[] }, changed: string[]) {
-  if (!changed.length) return { groups: suite.groups, because: "every group" };
+/** The parts `changed` (the changed files a test covers, as nerd gives them) call for, by group, and why: those that
+ * cover one of them; all of them for a file every group shares, or one no part claims, which is said, so that it is given
+ * to the parts that test it. Nothing changed: all of them. */
+export function chooseGroups<G extends { name: string; parts: { own: string[] }[] }>(suite: { shared: string[]; groups: G[] }, changed: string[]) {
+  const whole = suite.groups.map((group) => ({ group, parts: group.parts as G["parts"] }));
+  if (!changed.length) return { chosen: whole, because: "every group" };
   const everyone = changed.filter((p) => covered(suite.shared, p));
-  const nobody = changed.filter((p) => !covered(suite.shared, p) && !suite.groups.some((g) => covered(g.own, p)));
-  if (everyone.length) return { groups: suite.groups, because: `every group, for ${short(everyone)}, which they all share` };
-  if (nobody.length) return { groups: suite.groups, because: `every group, for ${short(nobody)}, which no group covers: give it to the groups that test it (in their covers)` };
-  const groups = suite.groups.filter((g) => changed.some((p) => covered(g.own, p)));
-  return { groups, because: `${groups.map((g) => g.name).join(", ")}, for ${short(changed)}` };
+  const nobody = changed.filter((p) => !covered(suite.shared, p) && !suite.groups.some((g) => g.parts.some((part) => covered(part.own, p))));
+  if (everyone.length) return { chosen: whole, because: `every group, for ${short(everyone)}, which they all share` };
+  if (nobody.length) return { chosen: whole, because: `every group, for ${short(nobody)}, which no part covers: give it to the parts that test it (in their covers, or their group's)` };
+  const chosen = whole.map((c) => ({ ...c, parts: c.parts.filter((part) => changed.some((p) => covered(part.own, p))) as G["parts"] })).filter((c) => c.parts.length);
+  const said = chosen.map(({ group, parts }) => (parts.length < group.parts.length ? `${group.name} (${parts.length} of its ${group.parts.length})` : group.name));
+  return { chosen, because: `${said.join(", ")}, for ${short(changed)}` };
 }
 
 /** A generator of numbers in [0, 1) from a seed (mulberry32). */
@@ -261,28 +293,36 @@ function cpuWaited(): number | null {
   }
 }
 
-/** What this process has overslept, in ms, by the thread `watch` starts. */
+/** What this process has overslept, in ms, and the turns taken at counting it, by the thread `watch` starts. */
 let overslept: Int32Array | null = null;
 
 /** Starts a thread that sleeps 10 ms at a time and counts what it overslept. A stall, as `nerd test --stalls` makes one
  * and a frozen machine does, holds a process with nothing waiting for a CPU, so the pressure above never sees it; and a
  * thread of its own is not late for what a part's synchronous code keeps the main thread from. */
 function watch() {
-  overslept = new Int32Array(new SharedArrayBuffer(4));
+  overslept = new Int32Array(new SharedArrayBuffer(8));
   const counts = `
     const { workerData: overslept } = require("node:worker_threads");
     const idle = new Int32Array(new SharedArrayBuffer(4));
-    for (;;) {
-      const from = performance.now();
+    for (let from = performance.now(); ; ) {
       Atomics.wait(idle, 0, 0, 10);
-      const late = performance.now() - from - 10;
+      const now = performance.now();
+      const late = now - from - 10;
+      from = now;
       if (late >= 5) Atomics.add(overslept, 0, Math.round(late));
+      Atomics.add(overslept, 1, 1);
     }`;
   new Worker(counts, { eval: true, workerData: overslept, execArgv: [] }).unref();
 }
 
-/** How long the thread needs to have counted a stall that has just ended: what wakes a part after one may wake first. */
-const COUNTED = 25;
+/** Once the thread has counted all that has kept this run so far: what wakes a part as a stall ends may wake ahead of
+ * it, by as long as a busy machine likes. It counts a turn after it read the clock, so the first turn from here may have
+ * read it before now, and the second has not. */
+export async function counted(turns = overslept) {
+  if (!turns) return;
+  const from = Atomics.load(turns, 1);
+  while (Atomics.load(turns, 1) - from < 2) await sleep(1); // the thread looked for, not a wait
+}
 
 /** How long, in ms, this run has been kept from running, all told. */
 const kept = () => (cpuWaited() ?? 0) + (overslept?.[0] ?? 0);
@@ -306,6 +346,7 @@ export function within<T>(work: Promise<T>, seconds: number, what: string, waite
   const from = waited();
   const t0 = performance.now();
   let looked = false;
+  let settled = false;
   const late = new Promise<never>((_, reject) => {
     const look = () => {
       const stretched = waited() - from >= STALLED;
@@ -313,13 +354,16 @@ export function within<T>(work: Promise<T>, seconds: number, what: string, waite
       if (left > 0) timer = setTimeout(look, Math.min(left, 250)); // the limit, looked at again as the machine may stretch it
       else if (!stretched && !looked) {
         looked = true;
-        timer = setTimeout(look, COUNTED); // a stall that ended just now, not a wait
+        void counted().then(() => settled || look()); // a stall that ended just now
       } else if (stretched) reject(new Overran(`${what} after ${took(seconds * 1000 * STRETCH)}: its ${seconds}s limit, stretched ${STRETCH} times as the machine kept it from running`));
       else reject(new Overran(`${what} after ${seconds}s, its limit`));
     };
     timer = setTimeout(look, seconds * 1000); // the limit, not a wait
   });
-  return Promise.race([work, late]).finally(() => clearTimeout(timer));
+  return Promise.race([work, late]).finally(() => {
+    settled = true;
+    clearTimeout(timer);
+  });
 }
 
 /** What became of a part that threw `failure` (null: nothing) while the run was kept from running for `waited` ms. */
@@ -461,7 +505,7 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
     console.log(`${name}: ${suite.groups.length} groups, ${count} parts; a part may take ${suite.limit ?? 10}s unless it says`);
     for (const g of suite.groups) {
       console.log(`\n${g.name}  (covers ${g.own.join(", ")})`);
-      for (const p of g.parts) console.log(`  ${p.title}\n      why: ${p.why}${p.limit ? `; limit ${p.limit}s` : ""}`);
+      for (const p of g.parts) console.log(`  ${p.title}\n      why: ${p.why}${p.limit ? `; limit ${p.limit}s` : ""}${p.covers ? `; covers ${p.own.join(", ")}` : ""}`);
     }
     process.exit(0);
   }
@@ -480,14 +524,16 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
   } else {
     // (nerd gives only the changed files this test covers: none, when it is to run whole.)
     const narrowed = chooseGroups(suite, (process.env.NERD_CHANGED ?? "").split("\n").filter(Boolean));
-    chosen = chosen.filter((c) => narrowed.groups.includes(c.group));
+    chosen = narrowed.chosen;
     because = narrowed.because;
   }
 
   // In what order, and in what units: a group that shares a page goes as one, and one that does not, part by part.
   const seed = given !== undefined ? Number(given) : Math.floor(Math.random() * 100000);
   const units = ordered(chosen, seed).flatMap((c) => ((c.group.each ?? suite.each) ? c.parts.map((p) => ({ group: c.group, parts: [p] })) : [c]));
-  const sideBySide = Math.min(parallel, units.length);
+  const tabs = units.filter((u) => (u.group.tab ?? suite.tab) && !u.group.alone);
+  const free = units.filter((u) => !tabs.includes(u));
+  const sideBySide = Math.min(parallel, free.length + Math.min(tabs.length, 1));
 
   const report = process.env.NERD_REPORT;
   const part = (label: string, seconds: number, outcome: string, said?: string) => {
@@ -498,7 +544,7 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
   for (const g of suite.groups) for (const p of g.parts) if (!units.some((u) => u.parts.includes(p))) part(`${g.name} › ${p.title}`, 0, "skipped");
   const count = units.reduce((n, u) => n + u.parts.length, 0);
   const alone = units.filter((u) => u.group.alone).map((u) => u.group.name);
-  console.log(`${name}: ${count} parts in ${chosen.length} groups${sideBySide > 1 ? `, ${sideBySide} at a time${alone.length ? ` (${alone.join(", ")} first, alone)` : ""}` : ""}: ${because}. Seed ${seed} (\`nerd test ${process.env.NERD_TEST ?? name} -- --seed ${seed}\` runs each group's parts in this order again).`);
+  console.log(`${name}: ${count} parts in ${chosen.length} groups${sideBySide > 1 ? `, ${sideBySide} at a time${alone.length ? ` (${alone.join(", ")} first, alone)` : ""}${tabs.length ? ", one of them a reader's tab" : ""}` : ""}: ${because}. Seed ${seed} (\`nerd test ${process.env.NERD_TEST ?? name} -- --seed ${seed}\` runs each group's parts in this order again).`);
 
   // A part stopped at its limit may fail later, on its own, on a page closed by then.
   process.on("unhandledRejection", () => undefined);
@@ -514,32 +560,49 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
   /** A unit's parts, in their order, on a fresh page, and on another after a part that failed or left it changed. */
   async function runUnit({ group, parts }: Unit) {
     const here = { page: null, context: null, browser, base } as unknown as Here;
+    /** Takes away what `fresh` made. */
+    let away: (() => Promise<unknown>) | null = null;
     let start: unknown = null;
     let errors: string[] = [];
     /** Whether the machine kept the run from running in what was done last: a limit stretches from the first. */
     let busyLately = false;
     const closing = async () => {
-      await (here.context ? within(here.context.close(), 10, "the page was still closing") : null)?.catch(() => undefined);
+      await (away ? within(away(), 10, "the page was still closing") : null)?.catch(() => undefined);
+      away = null;
       here.page = here.context = null as never;
     };
     const fresh = async () => {
       const from = kept();
       await closing();
       if (browser) {
-        const context = await browser.newContext({
-          viewport: group.viewport ?? suite.viewport ?? { width: 1280, height: 800 },
-          ...suite.context,
-          ...group.context,
-          ...(parts.length === 1 ? parts[0].context : {}),
-        });
+        const tab = group.tab ?? suite.tab;
+        const context = tab
+          ? browser.contexts()[0]
+          : await browser.newContext({
+              viewport: group.viewport ?? suite.viewport ?? { width: 1280, height: 800 },
+              ...suite.context,
+              ...group.context,
+              ...(parts.length === 1 ? parts[0].context : {}),
+            });
         here.context = context;
         const said: string[] = (errors = []);
         const counted = (group.warnings ?? suite.warnings) ? ["error", "warning"] : ["error"];
         // By the context, not the page: the part's popups and its own pages are the part's too.
-        context.on("weberror", (e) => said.push(`pageerror: ${e.error().message}`));
-        context.on("console", (m) => {
+        const threw = (e: WebError) => said.push(`pageerror: ${e.error().message}`);
+        const wrote = (m: ConsoleMessage) => {
           if (counted.includes(m.type()) && !/favicon/.test(`${m.text()} ${m.location().url}`)) said.push(`console ${m.type()}: ${m.text()}`);
-        });
+        };
+        context.on("weberror", threw);
+        context.on("console", wrote);
+        // A tab's context outlives it, and its tabs go one at a time: all it holds now is this unit's.
+        away = !tab
+          ? () => context.close()
+          : async () => {
+              await Promise.all(context.pages().map((tab) => tab.close()));
+              await context.unrouteAll({ behavior: "ignoreErrors" });
+              context.off("weberror", threw);
+              context.off("console", wrote);
+            };
         if (suite.recordings) await answerFrom(context, base, suite.recordings, suite.dir, said);
         here.page = await context.newPage();
       }
@@ -597,6 +660,7 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
         // A wait begun late in the part outlives its limit: it says what it waited for once its page is gone.
         if (failure instanceof Overran) failure.message += await waitedFor(work, closing);
         const ms = performance.now() - t0;
+        if (failure instanceof RealTime) await counted();
         const waited = Math.round(kept() - kept0);
         busyLately = waited >= STALLED;
         const said = errors.splice(0).filter((e) => !p.reports.some((r) => r.test(e)));
@@ -673,7 +737,7 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
   }
   if (sideBySide > 1) {
     await sideways(units.filter((u) => u.group.alone), 1);
-    await sideways(units.filter((u) => !u.group.alone), sideBySide);
+    await Promise.all([sideways(tabs, 1), sideways(free.filter((u) => !u.group.alone), sideBySide - Math.min(tabs.length, 1))]);
   } else {
     for (const u of units) await runUnit(u);
   }
