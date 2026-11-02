@@ -5,9 +5,10 @@ import { readFileSync } from 'node:fs';
 import { group } from '../../../crux/chrome/harness.ts';
 import { PHONE, SHARP, assert, borderColours, header, keyLog, open, openFile, pixel, playing, programTape, ready, screen, until, wait } from '../harness.mjs';
 
-const test = group('tapes', { covers: ['web/src/ui/deck.ts', 'web/src/input', 'web/src/ui/settings.ts', 'web/src/ui/help.ts'], why: 'tapes through the page’s deck, on the real machine' });
+const DECK = ['web/src/ui/deck.ts', 'web/src/ui/tapebar.ts'];
+const test = group('tapes', { covers: DECK, why: 'tapes through the page’s deck, on the real machine' });
 
-test('a tape from a file loads: LOAD "" typed when the ROM is ready, stripes in the border, then its screen, flat out', async ({ page }) => {
+test('a tape from a file loads: LOAD "" typed when the ROM is ready, stripes in the border, then its screen, flat out', { covers: [...DECK, 'web/src/input/typer.ts', 'web/src/video'] }, async ({ page }) => {
   await open(page, { storage: SHARP });
   await wait(page, 1000);
   await openFile(page, 'test.tap', programTape('PICTURE'));
@@ -34,7 +35,7 @@ test('a tape from a file loads: LOAD "" typed when the ROM is ready, stripes in 
   return `border ${colours.size} colours; the rest in ${loadedIn} frames flat out; the screen ink ${ink} on ${paper}`;
 });
 
-test('a 128 loads a tape from its menu: ENTER on Tape Loader once the menu shows', async ({ page }) => {
+test('a 128 loads a tape from its menu: ENTER on Tape Loader once the menu shows', { covers: [...DECK, 'web/src/input/typer.ts'] }, async ({ page }) => {
   await open(page, { storage: { ...SHARP, model: '128k', loading: 'accelerated' } });
   await wait(page, 500);
   const f0 = await page.evaluate(() => window.zx.emulator.frameCount);
@@ -72,7 +73,7 @@ test('a SAVE from BASIC comes out of the deck as a TAP to download', async ({ pa
   return `${file.suggestedFilename()}, ${tap.length} bytes`;
 });
 
-test('a tape playing leaves the page where it is: the deck’s list follows the head, the window does not', { context: PHONE }, async ({ page }) => {
+test('a tape playing leaves the page where it is: the deck’s list follows the head, the window does not', { covers: [...DECK, 'web/src/style.css'], context: PHONE }, async ({ page }) => {
   // On a phone the deck is under the keyboard: the screen is what is watched while the tape loads.
   await open(page);
   await wait(page, 1000);
@@ -83,7 +84,7 @@ test('a tape playing leaves the page where it is: the deck’s list follows the 
   assert(y === 0, `the window scrolled to ${y} as the tape went on`);
 });
 
-test('a file the machine cannot load changes nothing: a tape with nothing to play, a file too large', async ({ page }) => {
+test('a file the machine cannot load changes nothing: a tape with nothing to play, a file too large', { covers: [...DECK, 'web/src/ui/toast.ts'] }, async ({ page }) => {
   await open(page);
   await wait(page, 2000);
   await page.mouse.click(5, 300);
@@ -100,7 +101,7 @@ test('a file the machine cannot load changes nothing: a tape with nothing to pla
   assert(after.toasts.length === 2 && /nothing on it|no block that plays/.test(after.toasts[0]) && /larger than any Spectrum file/.test(after.toasts[1]), JSON.stringify(after.toasts));
 });
 
-test('a loader’s stripes drawn calmly when asked: the border one colour while the tape plays; F8 reads the screen; F1 the keys', async ({ page }) => {
+test('a loader’s stripes drawn calmly when asked: the border one colour while the tape plays; F8 reads the screen; F1 the keys', { covers: [...DECK, 'web/src/ui/help.ts', 'web/src/input/pc-keyboard.ts', 'web/src/video'] }, async ({ page }) => {
   await open(page, { storage: { ...SHARP, calmStripes: 'on' } });
   await wait(page, 2000);
   await page.mouse.click(5, 300);

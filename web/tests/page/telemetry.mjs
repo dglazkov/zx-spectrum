@@ -5,12 +5,12 @@
 import { group } from '../../../crux/chrome/harness.ts';
 import { assert, open, until, wait } from '../harness.mjs';
 
-const test = group('telemetry', { covers: ['web/src/telemetry.ts', 'web/src/state/saves.ts', 'web/src/ui/settings.ts', 'web/src/ui/help.ts', 'web/src/input/pc-keyboard.ts', 'crux/widget'], why: 'what the page sends as a person uses it' });
+const test = group('telemetry', { covers: ['web/src/telemetry.ts', 'crux/widget'], why: 'what the page sends as a person uses it' });
 
 /** The events the page sent so far, as `name kind` each. */
 const events = (page) => page.nerd.filter((n) => n.path === '/nerd/event').map((n) => [n.body.name, n.body.kind].filter(Boolean).join(' '));
 
-test('tells nerd what was played and how it went, and nothing of who or which: a game from a link, its slots, a rewind', async ({ page }) => {
+test('tells nerd what was played and how it went, and nothing of who or which: a game from a link, its slots, a rewind', { covers: ['web/src/telemetry.ts', 'web/src/state/saves.ts', 'web/src/state/rewind.ts', 'crux/widget'] }, async ({ page }) => {
   await open(page, { query: '?game=4293', storage: { loading: 'accelerated' } });
   assert(await until(page, () => window.zx.emulator.peek(0x5800) === 0x4f && !window.zx.emulator.tape.state().playing, null, { step: 200, max: 20_000 }), 'the game did not load');
   await page.mouse.click(5, 300);
@@ -37,7 +37,7 @@ test('tells nerd what was played and how it went, and nothing of who or which: a
   return said.join(', ');
 });
 
-test('nerd’s feedback card: F7 and Settings open it, what is typed in it is not the machine’s, and it is sent as one line', async ({ page }) => {
+test('nerd’s feedback card: F7 and Settings open it, what is typed in it is not the machine’s, and it is sent as one line', { covers: ['web/src/telemetry.ts', 'web/src/ui/settings.ts', 'web/src/ui/help.ts', 'web/src/input/pc-keyboard.ts', 'crux/widget'] }, async ({ page }) => {
   await open(page);
   await wait(page, 2000);
   const bottom = () => page.evaluate(() => window.zx.emulator.screenText().split('\n')[23]);

@@ -942,8 +942,10 @@ The two parts about sound run on the sound card's clock, which page.clock does n
 the wall's clock, and a wait that runs out says the part could not judge (inconclusive, not failed). The test's Vite
 server watches no files and reloads nothing: a file saved meanwhile (another agent's) changes no page under test.
 
-Parts a change cannot touch are skipped (by NERD_CHANGED; a change to the machine, `crates/`, runs them all); one
-whose fixture cannot be had says it was skipped. The page's clock is paused a moment ahead of its own time, and asked
+Parts a change cannot touch are skipped (by NERD_CHANGED; a change to the machine, the crates in the module, or to
+`web/src/app.ts`, which wires the page, runs them all), and the suite is held to that by crux's `granular`: a file it
+tests that is neither shared nor claimed by a part, or that is not shared and runs more than a quarter of the parts,
+fails the run before Chrome starts. One whose fixture cannot be had says it was skipped. The page's clock is paused a moment ahead of its own time, and asked
 again if a busy machine let the clock pass it first (`pauseAt` refuses a time gone by). `tests/smoke.mjs` checks a
 running server against the real archive and API: the page, Saboteur's tape and manual through `/archive`, the ZXDB
 through `/zxinfo`, the module served as `application/wasm` and **the very module built and tested here** (its SHA-256 the

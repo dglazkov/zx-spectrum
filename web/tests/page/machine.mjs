@@ -5,10 +5,10 @@ import { group } from '../../../crux/chrome/harness.ts';
 import { AMSTRAD, SHARP, assert, open, pixel, ready, screen, until, wait, waitReal } from '../harness.mjs';
 
 const picture = group('picture', { covers: ['web/src/video', 'web/src/style.css', 'web/src/fonts'], why: 'what the page draws, in WebGL and on the 2D canvas' });
-const sound = group('sound', { covers: ['web/src/audio', 'web/src/clock'], why: 'the page’s sound card, on its own clock' });
-const test = group('machine', { covers: ['web/src/keyboard', 'web/src/ui/library.ts', 'web/src/library', 'web/public', 'crux/widget', 'web/src/input/typer.ts'], why: 'the real machine in the page, drawn in WebGL' });
+const sound = group('sound', { covers: ['web/src/audio'], why: 'the page’s sound card, on its own clock' });
+const test = group('machine', { covers: ['web/src/video'], why: 'the real machine in the page, drawn in WebGL' });
 
-test('becomes ready on the real machine, drawn in WebGL 2', async ({ page }) => {
+test('becomes ready on the real machine, drawn in WebGL 2', { covers: ['web/src/video', 'web/src/keyboard', 'web/src/ui/library.ts', 'web/src/library/featured.json', 'web/public'] }, async ({ page }) => {
   await open(page);
   const ready = await page.evaluate(() => ({ emulator: document.body.dataset.emulator, renderer: document.body.dataset.renderer, keys: document.querySelectorAll('.kb-key').length, cards: document.querySelectorAll('.card').length }));
   assert(ready.emulator === 'wasm' && ready.renderer === 'webgl2', JSON.stringify(ready));
@@ -44,7 +44,7 @@ test('switches on to the ROM’s copyright: the white border, “© 1982 Sinclai
   return `${frames} frames in 3 s, border ${border}`;
 });
 
-test('the stand-in still runs for tests of the page alone (?emulator=stub)', async ({ page }) => {
+test('the stand-in still runs for tests of the page alone (?emulator=stub)', { covers: ['web/src/emulator/stub.ts', 'web/src/emulator/stub'] }, async ({ page }) => {
   await open(page, { query: '?emulator=stub' });
   await wait(page, 2000);
   const kind = await page.evaluate(() => document.body.dataset.emulator);
@@ -164,7 +164,7 @@ sound('follows the sound card when it stops and starts again: the display’s cl
   return `${queued.toFixed(1)} frames queued on its return`;
 });
 
-test('a frame that throws stops the machine and says so; started again, it goes back to the last moment, in a new module', { reports: [/machine stopped/i] }, async ({ page }) => {
+test('a frame that throws stops the machine and says so; started again, it goes back to the last moment, in a new module', { covers: ['web/src/ui/toast.ts'], reports: [/machine stopped/i] }, async ({ page }) => {
   await open(page, { storage: SHARP });
   await wait(page, 3000);
   // The module traps once, in a frame (as it would out of memory): every call into it is refused from then on.
@@ -193,7 +193,7 @@ test('a frame that throws stops the machine and says so; started again, it goes 
   return `${after.frames - f0} frames in the second after it started again`;
 });
 
-test('when the machine will not start, the page says so with a way to try again, and runs no stand-in', { reports: [/ERR_FAILED/, /Failed to fetch/] }, async ({ page }) => {
+test('when the machine will not start, the page says so with a way to try again, and runs no stand-in', { covers: [], reports: [/ERR_FAILED/, /Failed to fetch/] }, async ({ page }) => {
   await page.route(/\/zx\.wasm$/, (r) => r.abort('failed'));
   await open(page, { ready: false });
   await page.waitForSelector('body[data-failed]', { state: 'attached' });

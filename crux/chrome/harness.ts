@@ -30,7 +30,7 @@
 // - words: only the parts whose group and title have every one of them.
 // - Without words, NERD_CHANGED chooses the parts that cover what changed, each by its group's covers, or by its own where
 //   it says them, and always its file; a change to what every group shares, or to a file no part claims, runs them all,
-//   and those not run are reported skipped.
+//   and those not run are reported skipped. A suite's `granular` fails instead where a file that is there would run too much.
 // - One Chrome for the run. Each group starts on a fresh page in a context of its own, or each part does (`each`). A page
 //   a part failed on, or left otherwise than it found it, is closed, and the next part starts on a fresh one.
 // - Groups, and the parts in each, go in an order shuffled from a seed the run says, to run it again.
@@ -52,7 +52,7 @@
 //   a runner's are the defaults of all its suites, and suite.mjs says what is its own.
 
 import { AsyncLocalStorage } from "node:async_hooks";
-import { appendFileSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -81,6 +81,11 @@ export type Options = {
   parallel?: number;
   /** Files every group shares, from the root: a change to one runs them all. */
   shared?: string[];
+  /** Holds the suite to run only what a change touches (crux#168): every file `files` says, patterns as nerd.toml's, is
+   * claimed by a part or shared, and none but what is shared has more than `most` of the parts run for it, a quarter when
+   * not said. Each is judged before Chrome starts, by what a change would run and not by how long that takes, and a run
+   * that breaks one fails. */
+  granular?: { files: string[]; most?: number };
   /** Starts what serves the pages, on a port it chooses, never one written down: `vite` for a dev server. */
   serve?: () => Promise<Served>;
   /** The page made ready, before each group's parts, or each part's. */
@@ -219,6 +224,30 @@ export function chooseGroups<G extends { name: string; parts: { own: string[] }[
   const chosen = whole.map((c) => ({ ...c, parts: c.parts.filter((part) => changed.some((p) => covered(part.own, p))) as G["parts"] })).filter((c) => c.parts.length);
   const said = chosen.map(({ group, parts }) => (parts.length < group.parts.length ? `${group.name} (${parts.length} of its ${group.parts.length})` : group.name));
   return { chosen, because: `${said.join(", ")}, for ${short(changed)}` };
+}
+
+/** The files under `root` that `patterns` take, by their paths from there, what is built or installed left out. */
+export function claimable(root: string, patterns: string[]): string[] {
+  const walk = (from: string): string[] =>
+    readdirSync(join(root, from), { withFileTypes: true }).flatMap((entry) => {
+      const path = from ? `${from}/${entry.name}` : entry.name;
+      if (!entry.isDirectory()) return [path];
+      return ["node_modules", "target", ".git", "build", ".gradle"].includes(entry.name) ? [] : walk(path);
+    });
+  return walk("").filter((path) => covered(patterns, path));
+}
+
+/** What keeps a suite from running only what a change touches, a line each: of `files`, one neither shared nor claimed
+ * by a part, and one not shared that more than `most` of the parts claim. */
+export function coarse(suite: { shared: string[]; groups: { parts: { own: string[] }[] }[] }, files: string[], most = 0.25): string[] {
+  const parts = suite.groups.flatMap((g) => g.parts);
+  return [...new Set(files)].flatMap((file) => {
+    if (covered(suite.shared, file)) return [];
+    const claims = parts.filter((p) => covered(p.own, file)).length;
+    if (!claims) return [`${file} is claimed by no part: name it in the covers of the parts that test it`];
+    if (claims > parts.length * most) return [`${file} runs ${claims} of the ${parts.length} parts, more than ${Math.floor(most * 100)}%: split what holds them, or say it is shared`];
+    return [];
+  });
 }
 
 /** A generator of numbers in [0, 1) from a seed (mulberry32). */
@@ -526,6 +555,19 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
       for (const p of g.parts) console.log(`  ${p.title}\n      why: ${p.why}${p.limit ? `; limit ${p.limit}s` : ""}${p.covers ? `; covers ${p.own.join(", ")}` : ""}`);
     }
     process.exit(0);
+  }
+
+  // Whether what a change touches is all it runs: asked before anything starts, as it says what is wrong with the suite.
+  if (suite.granular && !words.length) {
+    // A file a change removed is claimed by nothing and is no fault: it runs all, as chooseGroups says.
+    const changed = (process.env.NERD_CHANGED ?? "").split("\n").filter((file) => file && existsSync(join(root, file)));
+    const wrong = coarse(suite, [...claimable(root, suite.granular.files), ...changed], suite.granular.most);
+    if (wrong.length) {
+      const said = `${name} runs more than a change touches:\n${wrong.map((line) => `  ${line}`).join("\n")}`;
+      if (process.env.NERD_REPORT) writeFileSync(process.env.NERD_REPORT, `${JSON.stringify({ part: "granular", seconds: 0, outcome: "failed", said: wrong.join("; ") })}\n`);
+      console.error(said);
+      process.exit(1);
+    }
   }
 
   // Which parts.

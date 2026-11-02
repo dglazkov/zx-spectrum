@@ -7,7 +7,10 @@
 import { group } from '../../../crux/chrome/harness.ts';
 import { PHONE, assert, open, until, wait } from '../harness.mjs';
 
-const test = group('language', { covers: ['web/src/i18n', 'web/src/library/games', 'web/src/ui', 'web/src/state/settings.ts', 'web/src/fonts/golos-text-cyrillic.woff2'], why: 'what the page shows, in the language it chose' });
+const WORDS = ['web/src/i18n', 'web/src/state/settings.ts'];
+// What reads every word of the page, shown or not: any file of the page's own that says something.
+const EVERYTHING = [...WORDS, 'web/src/library/games', 'web/src/ui', 'web/src/fonts/golos-text-cyrillic.woff2'];
+const test = group('language', { covers: WORDS, why: 'what the page shows, in the language it chose' });
 
 /**
  * What the page says in the other language than it speaks: in Russian, each run of three English words or more (the
@@ -61,7 +64,7 @@ async function everythingShowing(page) {
   await wait(page, 200);
 }
 
-test('in Russian from the address: nothing of the page’s own left in English, the address tidied, the choice kept across a reload', { context: { locale: 'en-US' } }, async ({ page }) => {
+test('in Russian from the address: nothing of the page’s own left in English, the address tidied, the choice kept across a reload', { covers: EVERYTHING, context: { locale: 'en-US' } }, async ({ page }) => {
   await open(page, { query: '?lang=ru&game=4293' });
   await everythingShowing(page);
   const now = await said(page);
@@ -84,7 +87,7 @@ test('in Russian from the address: nothing of the page’s own left in English, 
   return `${now.goal}; ${now.open}; ${now.overlay.slice(0, 40)}…`;
 });
 
-test('opens in the browser’s language, changes at once from the menu and from Settings, and keeps a choice over the browser’s', { context: { locale: 'ru-RU' } }, async ({ page }) => {
+test('opens in the browser’s language, changes at once from the menu and from Settings, and keeps a choice over the browser’s', { covers: EVERYTHING, context: { locale: 'ru-RU' } }, async ({ page }) => {
   await open(page, { query: '?game=4293' });
   await everythingShowing(page);
   const first = await said(page);
@@ -125,7 +128,7 @@ test('a browser in another language opens it in English', { context: { locale: '
   return 'de-DE: English';
 });
 
-test('a phone in Russian: no sideways scroll, the language in Settings', { context: PHONE }, async ({ page }) => {
+test('a phone in Russian: no sideways scroll, the language in Settings', { covers: [...WORDS, 'web/src/ui/settings.ts', 'web/src/ui/touch.ts', 'web/src/style.css'], context: PHONE }, async ({ page }) => {
   await open(page, { query: '?lang=ru&game=4293' });
   await until(page, () => !document.querySelector('.panel.game').hidden);
   await wait(page, 500);

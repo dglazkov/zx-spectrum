@@ -133,8 +133,10 @@ limit = "1m"
 # frame that throws and the machine started again, files refused, the machine that will not start, the warm-up,
 # settings, sound, a phone upright and sideways; any console error fails a part. On crux's harness (crux/chrome), run by
 # web/tests/run.mjs, its suite web/tests/page/: four parts at a time, the longest first, each reported; those a change
-# cannot touch are skipped (each group in it covers its own file and what it says, and what they all share,
-# web/tests/harness.mjs among it, runs them all). About 25 s; Chrome is launched from nerd's CHROME and CHROME_ARGS, so
+# cannot touch are skipped (each part covers its file and what it says, and what they all share, web/tests/harness.mjs
+# among it, runs them all), and the suite is held `granular` to that: every file below shared or claimed, and none but
+# what is shared running over a quarter of the parts; a new file a change brings claimed or the run fails, before Chrome
+# starts (suite.mjs's `files` is this list). About 25 s; Chrome is launched from nerd's CHROME and CHROME_ARGS, so
 # WebGL is drawn on the GPU, and Saboteur's 9,200 frames are the longest part.
 # Not covered: what the page never loads (how.html's sheet and its Plex Mono, the fonts' licences) and the
 # crates' unit tests, which are not in the WebAssembly module.
@@ -189,5 +191,5 @@ when = ["deploy"]
 baseline = "probe/speed.json"
 
 [crux]
-commit = "6dc7ce18a1dc1bbeed6cf37e7be56b15286566e2"
+commit = "2de3ac642a9414016f42abf7f4e293a136b8d294"
 parts = ["server", "telemetry", "widget", "load", "probe", "wasm", "chrome"]

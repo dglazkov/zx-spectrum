@@ -5,7 +5,8 @@ import { readFileSync } from 'node:fs';
 import { group, Skip } from '../../../crux/chrome/harness.ts';
 import { SABOTEUR_ZIP, SHARP, assert, borderColours, open, openFile, ready, screen, until, wait, zxinfo } from '../harness.mjs';
 
-const test = group('library', { covers: ['web/src/library', 'web/src/ui/library.ts', 'web/src/ui/game.ts', 'web/src/ui/overlay.ts', 'web/src/ui/howto.ts', 'web/tests/fixtures', 'web/zxdb.mjs', 'web/tools/zxdb-index.mjs'], why: 'a game found, fetched and loaded as a person does, on the real machine' });
+const LIBRARY = ['web/src/library', 'web/src/ui/library.ts', 'web/src/ui/game.ts', 'web/src/ui/overlay.ts', 'web/src/ui/howto.ts', 'web/tests/fixtures'];
+const test = group('library', { covers: LIBRARY, why: 'a game found, fetched and loaded as a person does, on the real machine' });
 
 /** What the controls over the screen show now. */
 const overlay = (page) =>
@@ -14,7 +15,7 @@ const overlay = (page) =>
     return { shown: !o.hidden, mode: o.querySelector('.ov-mode')?.textContent, caps: [...o.querySelectorAll('.ov-row kbd')].map((k) => k.textContent), button: document.querySelector('.controls-button').getAttribute('aria-expanded') };
   });
 
-test('Saboteur from the library: searched, fetched, loaded flat out to its £100 REWARD screen, with its inlay, manual and card; its Start button to play, and the controls over the screen', async ({ page }) => {
+test('Saboteur from the library: searched, fetched, loaded flat out to its £100 REWARD screen, with its inlay, manual and card; its Start button to play, and the controls over the screen', { covers: [...LIBRARY, 'fixtures.txt', 'web/src/telemetry.ts', 'web/src/ui/deck.ts', 'web/src/keyboard/keyboard.ts'] }, async ({ page }) => {
   if (!SABOTEUR_ZIP) throw new Skip('no saboteur.tzx.zip in the fixture cache');
   await open(page, { storage: { ...SHARP, loading: 'accelerated' }, realSaboteur: true });
   await wait(page, 500);
@@ -113,7 +114,7 @@ test('the controls over the screen go by themselves after their few seconds; F3 
   return `${first.caps.join(' ')}, then ${asked.caps.join(' ')}`;
 });
 
-test('with ZXInfo down (its nginx’s 502 for every path), Saboteur is found in the ZXDB’s own index and loads, and a link to a game not on the shelf (?game=2514) opens from it', async ({ page, context }) => {
+test('with ZXInfo down (its nginx’s 502 for every path), Saboteur is found in the ZXDB’s own index and loads, and a link to a game not on the shelf (?game=2514) opens from it', { covers: [...LIBRARY, 'web/zxdb.mjs', 'web/tools/zxdb-index.mjs', 'crates/app', 'crux/server', 'crux/telemetry', 'crux/load'] }, async ({ page, context }) => {
   // The page's ZXDB requests go to the server, as they do when deployed; its ZXInfo is the harness's stand-in.
   const through = (page) => page.route('**/zxinfo/v3/**', (r) => r.continue());
   const asked = zxinfo.asked.length;

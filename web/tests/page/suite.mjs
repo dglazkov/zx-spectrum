@@ -23,9 +23,18 @@ export default {
   context: { permissions: ['clipboard-read', 'clipboard-write'] },
   chrome: { args: ['--autoplay-policy=user-gesture-required'] },
   recordings,
-  // What every group runs on, the machine itself among it. The server (crates/app, beside the dev server: web/app.mjs) is
-  // answered for by the recordings but where a part lets a request through to it: starting is its test.
-  shared: ['web/src/app.ts', 'web/src/main.ts', 'web/src/style.css', 'web/index.html', 'web/vite.config.ts', 'web/app.mjs', 'web/tests/harness.mjs', 'web/src/emulator', 'web/src/video', 'web/src/ui/dom.ts', 'web/src/ui/controls.ts', 'web/src/ui/toast.ts', 'web/src/clock', 'web/package-lock.json', 'roms', 'crates', 'scripts/build-wasm.sh', 'Cargo.toml', 'Cargo.lock', 'fixtures.txt'],
+  // What every part stands on, each as the page does: app.ts, which wires all of it, and what starts it (main.ts,
+  // index.html, the dev server and web/app.mjs, which starts the server beside it); the machine, as every crate but the
+  // server's is in the module, and what builds it; the clock each part's frames run on; what the page's controls are made
+  // of; the parts' own harness. The rest is claimed by the parts that test it: the server (crates/app) is answered for by
+  // the recordings but in the one part that lets a request through to it, the picture is judged by those that read it,
+  // and style.css by those that measure the page.
+  shared: ['web/src/app.ts', 'web/src/main.ts', 'web/index.html', 'web/vite.config.ts', 'web/app.mjs', 'web/tests/harness.mjs', 'web/src/emulator', '!web/src/emulator/stub.ts', '!web/src/emulator/stub', 'web/src/ui/dom.ts', 'web/src/ui/controls.ts', 'web/src/clock', 'web/package-lock.json', 'roms', 'crates', '!crates/app', 'crux/wasm', 'scripts/build-wasm.sh', 'Cargo.toml', 'Cargo.lock'],
+  // What the suite tests: nerd.toml's covers of web-page, every file of it shared or claimed, none but what is shared
+  // running more than a quarter of the parts (crux#168).
+  granular: {
+    files: ['web/src/**', '!web/src/**/*.test.ts', '!web/src/how/**', '!web/src/fonts/plex-mono-*', '!web/src/fonts/*.txt', 'web/index.html', 'web/public/**', 'web/tests/run.mjs', 'web/tests/harness.mjs', 'web/tests/page/**', 'web/tests/fixtures/**', 'web/vite.config.ts', 'web/app.mjs', 'web/zxdb.mjs', 'web/tools/zxdb-index.mjs', 'web/package-lock.json', 'crates/app/**', 'crux/chrome/**', '!crux/chrome/standin/**', '!crux/chrome/*.test.mts', 'crux/server/**', 'crux/telemetry/**', 'crux/widget/**', 'crux/load/**', 'crux/wasm/**', 'roms/**', 'crates/wasm/src/**', 'crates/wasm/Cargo.toml', 'crates/spectrum/src/**', 'crates/z80/src/**', 'crates/audio/src/**', 'crates/ay/src/**', 'crates/tape/src/**', 'crates/snapshot/src/**', 'crates/unzip/src/**', '!crates/**/tests.rs', 'Cargo.toml', 'Cargo.lock', 'scripts/build-wasm.sh', 'fixtures.txt'],
+  },
   serve: async () => {
     // The machine, built if it is missing or stale (cargo is incremental: a moment when nothing changed): the module the
     // deploy serves, byte for byte (scripts/build-wasm.sh).

@@ -5,9 +5,9 @@ import { readFileSync } from 'node:fs';
 import { group, pause } from '../../../crux/chrome/harness.ts';
 import { assert, open, ready, screen, until, wait } from '../harness.mjs';
 
-const test = group('state', { covers: ['web/src/state', 'web/src/ui/game.ts', 'web/src/ui/timeline.ts', 'web/src/ui/inspector.ts', 'web/src/keyboard/keyboard.ts', 'web/src/ui/settings.ts'], why: 'what the page keeps of the machine, across reloads' });
+const test = group('state', { covers: ['web/src/state/saves.ts'], why: 'what the page keeps of the machine, across reloads' });
 
-test('save slots: F2 keeps the machine, F4 puts it back, after a reload too, with the game’s tape in the deck', async ({ page }) => {
+test('save slots: F2 keeps the machine, F4 puts it back, after a reload too, with the game’s tape in the deck', { covers: ['web/src/state/saves.ts', 'web/src/ui/game.ts'] }, async ({ page }) => {
   await open(page, { query: '?game=4293', storage: { loading: 'accelerated' } });
   assert(await until(page, () => window.zx.emulator.peek(0x5800) === 0x4f && !window.zx.emulator.tape.state().playing, null, { step: 200, max: 20_000 }), 'the game did not load');
   await page.evaluate(() => window.zx.emulator.poke(0x8000, 0x5a));
@@ -62,7 +62,7 @@ test('saves a snapshot, and loads one dropped on the page', async ({ page }) => 
   return files.map((f) => `${f.name} ${f.bytes.length} bytes`).join(', ');
 });
 
-test('rewinds: a moment every half second, its picture shown while choosing, and the machine put back to it', async ({ page }) => {
+test('rewinds: a moment every half second, its picture shown while choosing, and the machine put back to it', { covers: ['web/src/state/rewind.ts', 'web/src/ui/timeline.ts', 'web/src/ui/osd.ts'] }, async ({ page }) => {
   await open(page);
   await wait(page, 4000);
   const before = await page.evaluate(() => ({ moments: window.zx.app.rewind.length, history: window.zx.app.history, first: Array.from(window.zx.app.rewind.list()[0].colours).reduce((a, b) => a + b, 0) }));
@@ -96,7 +96,7 @@ test('rewinds: a moment every half second, its picture shown while choosing, and
   return `back to frame ${after.history}`;
 });
 
-test('a breakpoint stops the machine, and the inspector shows where, disassembled', async ({ page }) => {
+test('a breakpoint stops the machine, and the inspector shows where, disassembled', { covers: ['web/src/ui/inspector.ts', 'web/src/ui/settings.ts'] }, async ({ page }) => {
   await open(page);
   await wait(page, 2000);
   await page.locator('button[title="Settings"]').click();
@@ -117,7 +117,7 @@ test('a breakpoint stops the machine, and the inspector shows where, disassemble
   return stopped.code.split('\n')[0].trim();
 });
 
-test('the keyboard button is lit while the keyboard shows, puts it away and brings it back, and is remembered', async ({ page }) => {
+test('the keyboard button is lit while the keyboard shows, puts it away and brings it back, and is remembered', { covers: ['web/src/keyboard/keyboard.ts', 'web/src/state/settings.ts', 'web/src/ui/icons.ts', 'web/src/style.css'] }, async ({ page }) => {
   await open(page);
   const state = () =>
     page.evaluate(() => ({
@@ -140,7 +140,7 @@ test('the keyboard button is lit while the keyboard shows, puts it away and brin
   return `lit ${on.lit}, put away ${off.lit}`;
 });
 
-test('remembers its settings across a reload', async ({ page }) => {
+test('remembers its settings across a reload', { covers: ['web/src/state/settings.ts', 'web/src/ui/settings.ts'] }, async ({ page }) => {
   await open(page);
   await page.locator('.display .seg', { hasText: 'Sharp' }).click();
   await page.reload();

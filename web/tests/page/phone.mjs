@@ -3,7 +3,7 @@
 import { group } from '../../../crux/chrome/harness.ts';
 import { PHONE, assert, open, screen, wait } from '../harness.mjs';
 
-const test = group('phone', { covers: ['web/src/ui/touch.ts', 'web/src/input/gamepad.ts'], why: 'how the page fits a phone, and takes touches' });
+const test = group('phone', { covers: ['web/src/ui/touch.ts', 'web/src/input/gamepad.ts', 'web/src/video/fit.ts', 'web/src/style.css'], why: 'how the page fits a phone, and takes touches' });
 
 test('fits a phone: no sideways scroll, a touch pad that is the joystick', { context: PHONE }, async ({ page }) => {
   await open(page, { query: '?game=4293' });

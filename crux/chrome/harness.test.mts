@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { after, describe, test as one, type TestContext } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
-import { cannotTab, chooseGroups, counted, covered, FURTHEST, longestFirst, ordered, reach, RealTime, Skip, STALLED, STRETCH, took, verdict, vite, within } from "./harness.ts";
+import { cannotTab, chooseGroups, claimable, coarse, counted, covered, FURTHEST, longestFirst, ordered, reach, RealTime, Skip, STALLED, STRETCH, took, verdict, vite, within } from "./harness.ts";
 
 // Held as the file is read, and run side by side at its end: node:test goes one at a time but in a suite that says otherwise.
 const cases: [string, (t: TestContext) => void | Promise<void>][] = [];
@@ -269,6 +269,67 @@ test("nothing changed runs all, and words run the parts that have them", async (
   const none = await stand(["narrow", "nothing-has-this"]);
   assert.equal(none.code, 1);
   assert.match(none.out, /No part of narrow has the words "nothing-has-this"\. Its groups: one, two/);
+});
+
+const granular = (held: string, given: Record<string, string> = {}, words: string[] = []) => stand(["granular", ...words], { STANDIN_GRANULAR: held, ...given });
+
+test("a granular suite with every file claimed runs, and narrows as any suite", async () => {
+  const whole = await granular("granular/**,!granular/loose.ts,!granular/wide.ts");
+  assert.equal(whole.code, 0, whole.out);
+  assert.deepEqual(Object.values(whole.outcomes), ["passed", "passed", "passed", "passed"]);
+  const one = await granular("granular/**,!granular/loose.ts,!granular/wide.ts", { NERD_CHANGED: "granular/a.ts\n" });
+  assert.equal(one.code, 0, one.out);
+  assert.equal(Object.values(one.outcomes).filter((o) => o === "passed").length, 1);
+});
+
+test("a granular suite fails on a file no part claims, whatever changed, before Chrome starts", async () => {
+  for (const given of [{}, { NERD_CHANGED: "granular/a.ts\n" }, { NERD_CHANGED: "granular/loose.ts\n" }] as Record<string, string>[]) {
+    const { code, out, parts } = await granular("granular/**,!granular/wide.ts", given);
+    assert.equal(code, 1, out);
+    assert.ok(out.includes("granular/loose.ts is claimed by no part"), out);
+    assert.deepEqual(parts.map((r) => [r.part, r.outcome]), [["granular", "failed"]]);
+    assert.match(parts[0].said!, /granular\/loose\.ts/);
+  }
+});
+
+test("a granular suite fails on a file changed that its files do not name and no part claims", async () => {
+  const { code, out } = await granular("granular/a.ts", { NERD_CHANGED: "granular/loose.ts\n" });
+  assert.equal(code, 1, out);
+  assert.ok(out.includes("granular/loose.ts is claimed by no part"), out);
+});
+
+test("a granular suite runs all for a file a change removed, as nothing is left to claim", async () => {
+  const { code, outcomes, out } = await granular("granular/**,!granular/loose.ts,!granular/wide.ts", { NERD_CHANGED: "granular/gone.ts\n" });
+  assert.equal(code, 0, out);
+  assert.deepEqual(Object.values(outcomes), ["passed", "passed", "passed", "passed"]);
+});
+
+test("a granular suite fails on a file that runs more than its share, but for one it shares, or what it says it may", async () => {
+  const wide = await granular("granular/**,!granular/loose.ts");
+  assert.equal(wide.code, 1, wide.out);
+  assert.ok(wide.out.includes("granular/wide.ts runs 2 of the 4 parts, more than 25%"), wide.out);
+  const shared = await granular("granular/**,!granular/loose.ts", { STANDIN_SHARED: "granular/wide.ts" });
+  assert.equal(shared.code, 0, shared.out);
+  const more = await granular("granular/**,!granular/loose.ts", { STANDIN_MOST: "0.5" });
+  assert.equal(more.code, 0, more.out);
+});
+
+test("words run what they say, however a granular suite stands", async () => {
+  const { code, outcomes } = await granular("granular/**", {}, ["one"]);
+  assert.equal(code, 0);
+  assert.equal(Object.values(outcomes).filter((o) => o === "passed").length, 1);
+});
+
+test("what granular reads and judges", () => {
+  const root = join(here, "standin");
+  assert.deepEqual(claimable(root, ["granular/**", "!granular/loose.ts", "!granular/wide.ts"]).filter((f) => !f.endsWith("/")).sort(), ["granular/a.ts", "granular/b.ts", "granular/c.ts", "granular/d.ts"]);
+  assert.deepEqual(claimable(here, ["node_modules/**"]), [], "what is installed is no file of a suite's");
+  const suite = { shared: ["s"], groups: [{ parts: [{ own: ["a", "t"] }, { own: ["b", "t"] }, { own: ["c"] }, { own: ["d"] }] }] };
+  assert.deepEqual(coarse(suite, ["a", "b", "c", "d", "s"]), []);
+  assert.equal(coarse(suite, ["t"]).length, 1, "half of them");
+  assert.deepEqual(coarse(suite, ["t"], 0.5), [], "exactly its share is allowed");
+  assert.equal(coarse(suite, ["t", "t"]).length, 1, "a file said twice is said once");
+  assert.equal(coarse(suite, ["nobody"]).length, 1);
 });
 
 test("a harness in web/tests works as one at tests/, its covers from the product's root", async () => {

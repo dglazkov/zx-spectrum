@@ -4,10 +4,10 @@
 import { group } from '../../../crux/chrome/harness.ts';
 import { assert, keyLog, open, screen, until, wait } from '../harness.mjs';
 
-const focus = group('focus', { covers: ['web/src/input', 'web/src/ui'], why: 'where the keyboard’s focus goes in a real page' });
-const test = group('keys', { covers: ['web/src/keyboard', 'web/src/input', 'web/src/ui/touch.ts'], why: 'keys go down in a real page, over what is drawn and what has the focus' });
+const focus = group('focus', { covers: ['web/src/input/pc-keyboard.ts'], why: 'where the keyboard’s focus goes in a real page' });
+const test = group('keys', { covers: ['web/src/input/pc-keyboard.ts', 'web/src/input/feeder.ts', 'web/src/input/keymap.ts', 'web/src/input/padkeys.ts'], why: 'keys go down in a real page, over what is drawn and what has the focus' });
 
-test('the keyboard is laid out as the case: no legend over another, each key’s on its face', async ({ page }) => {
+test('the keyboard is laid out as the case: no legend over another, each key’s on its face', { covers: ['web/src/keyboard', 'web/src/style.css'] }, async ({ page }) => {
   await open(page);
   const r = await page.evaluate(() => {
     const box = (el) => {
@@ -37,7 +37,7 @@ test('the keyboard is laid out as the case: no legend over another, each key’s
   return `${r.plate} legends on the plate, none over another`;
 });
 
-test('a drawn key presses the key, lit while it is down; a shift latches', async ({ page }) => {
+test('a drawn key presses the key, lit while it is down; a shift latches', { covers: ['web/src/keyboard', 'web/src/input/feeder.ts'] }, async ({ page }) => {
   await open(page);
   await wait(page, 2000);
   const key = page.locator('.kb-key[data-key="J"]');
