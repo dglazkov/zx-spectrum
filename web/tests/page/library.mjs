@@ -153,7 +153,8 @@ test('a link to a game loads it straight away (?game=4293), and the share button
   const panel = await page.evaluate(() => ({ title: document.querySelector('.game-title')?.textContent, start: document.querySelector('.game-start')?.textContent ?? '', shown: !document.querySelector('.panel.game').hidden }));
   assert(panel.shown && panel.title === 'Saboteur!' && panel.start.includes('REWARD'), JSON.stringify(panel));
   await page.locator('.game button', { hasText: 'Share' }).click();
-  await wait(page, 100);
+  // The link is copied, and said in a toast, once the clipboard has it.
+  await until(page, () => /\?game=4293/.test(document.querySelector('.toasts')?.textContent ?? ''), null, { step: 100, max: 10_000 });
   const shared = await page.evaluate(async () => {
     try {
       return await navigator.clipboard.readText();

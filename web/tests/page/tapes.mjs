@@ -12,7 +12,8 @@ test('a tape from a file loads: LOAD "" typed when the ROM is ready, stripes in 
   await open(page, { storage: SHARP });
   await wait(page, 1000);
   await openFile(page, 'test.tap', programTape('PICTURE'));
-  await wait(page, 100);
+  // The deck fills once the page has read the file, which is as soon as the machine gets to it.
+  await until(page, () => document.querySelectorAll('.block').length > 0, null, { step: 100, max: 10_000 });
   const blocks = await page.locator('.block').count();
   assert(blocks === 4, `${blocks} blocks in the deck`);
   assert(await until(page, () => window.zx.emulator.tape.state().playing, null, { step: 250, max: 10_000 }), 'the tape did not start');
@@ -95,7 +96,8 @@ test('a file the machine cannot load changes nothing: a tape with nothing to pla
   await openFile(page, 'broken.tzx', Buffer.from('ZXTape!\x1a\x01\x14\x10\x00\x00\xff\xff', 'latin1'));
   await wait(page, 300);
   await openFile(page, 'huge.tap', Buffer.alloc(17 * 1024 * 1024));
-  await wait(page, 300);
+  // The page reads the file before it can say it is too large, which takes as long as the machine is busy.
+  assert(await until(page, () => document.querySelectorAll('.toast-error .toast-text').length >= 2, null, { step: 100, max: 10_000 }), `no word on huge.tap: ${JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.toast-error .toast-text')].map((t) => t.textContent)))}`);
   const after = await page.evaluate(() => ({ bottom: window.zx.emulator.screenText().split('\n')[23], loaded: window.zx.emulator.tape.state().loaded, empty: document.querySelector('.deck').classList.contains('empty'), toasts: [...document.querySelectorAll('.toast-error .toast-text')].map((t) => t.textContent), frames: window.zx.emulator.frameCount }));
   assert(after.bottom.startsWith('LOAD') && !after.loaded && after.empty, `after the files: ${JSON.stringify(after)}`);
   assert(after.toasts.length === 2 && /nothing on it|no block that plays/.test(after.toasts[0]) && /larger than any Spectrum file/.test(after.toasts[1]), JSON.stringify(after.toasts));
