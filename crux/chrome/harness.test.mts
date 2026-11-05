@@ -6,13 +6,13 @@
 // npm ci && CHROME=... npx --yes tsx@4.20.6 --test harness.test.mts    (as `nerd test chrome` runs it)
 
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { after, describe, test as one, type TestContext } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
-import { cannotTab, chooseGroups, claimable, coarse, counted, covered, FURTHEST, longestFirst, ordered, reach, RealTime, Skip, STALLED, STRETCH, took, verdict, vite, within } from "./harness.ts";
+import { cannotTab, chooseGroups, claimable, coarse, counted, covered, FURTHEST, longestFirst, ordered, reach, RealTime, Skip, STALLED, STRETCH, standsFor, took, verdict, vite, within } from "./harness.ts";
 
 // Held as the file is read, and run side by side at its end: node:test goes one at a time but in a suite that says otherwise.
 const cases: [string, (t: TestContext) => void | Promise<void>][] = [];
@@ -23,7 +23,7 @@ const scratch = mkdtempSync(join(tmpdir(), "crux-harness-"));
 after(() => rmSync(scratch, { recursive: true, force: true }));
 
 // Under node's test runner, a child's test would report to it, not print.
-const { NODE_TEST_CONTEXT: _, NERD_CHANGED: _c, NERD_USUAL: _u, NERD_REPORT: _r, ...env } = process.env;
+const { NODE_TEST_CONTEXT: _, NERD_CHANGED: _c, NERD_BASE: _b, NERD_USUAL: _u, NERD_REPORT: _r, ...env } = process.env;
 
 type Reported = { part: string; seconds: number; outcome: string; said?: string };
 let runs = 0;
@@ -269,6 +269,41 @@ test("nothing changed runs all, and words run the parts that have them", async (
   const none = await stand(["narrow", "nothing-has-this"]);
   assert.equal(none.code, 1);
   assert.match(none.out, /No part of narrow has the words "nothing-has-this"\. Its groups: one, two/);
+});
+
+test("a file the suite narrows runs for what its change stands for, read from git at NERD_BASE", async () => {
+  const git = (...args: string[]) => execFileSync("git", ["-C", join(here, "standin"), ...args], { encoding: "utf8" }).trim();
+  const head = git("rev-parse", "HEAD");
+  const read = await stand(["narrow"], { NERD_CHANGED: "serve.mjs\n", NERD_BASE: head });
+  assert.equal(read.code, 0, read.out);
+  assert.deepEqual(read.outcomes, { "one › runs": "skipped", "two › runs": "passed" }, read.out);
+  assert.ok(read.out.includes("what changed stands for src/two/b.ts, of serve.mjs"), read.out);
+  // Before serve.mjs was as it is, its narrow is given what git had then, not the tree: it stands for itself, and runs all.
+  const before = `${git("log", "-1", "--format=%H", "--", "serve.mjs")}^`;
+  // No base, or one git cannot read: nothing stands for another, and serve.mjs, which no part claims, runs all.
+  for (const given of [{}, { NERD_BASE: "0".repeat(40) }, { NERD_BASE: before }] as Record<string, string>[]) {
+    const whole = await stand(["narrow"], { NERD_CHANGED: "serve.mjs\n", ...given });
+    assert.deepEqual(whole.outcomes, { "one › runs": "passed", "two › runs": "passed" }, whole.out);
+    assert.ok(whole.out.includes("every group, for serve.mjs, which no part covers"), whole.out);
+  }
+  // What stands for nothing runs nothing, and says so, every part skipped.
+  const none = await stand(["narrow"], { NERD_CHANGED: "src/nothing.ts\n", NERD_BASE: head });
+  assert.equal(none.code, 0, none.out);
+  assert.deepEqual(none.outcomes, { "one › runs": "skipped", "two › runs": "skipped" }, none.out);
+  assert.ok(none.out.includes("0 parts in 0 groups: nothing, for what changed stands for nothing"), none.out);
+});
+
+test("what a change stands for", () => {
+  const was = (file: string) => ({ "list.ts": "a\n", "kept.ts": "k\n" })[file] ?? null;
+  const now = (file: string) => ({ "list.ts": "a\nb\n", "kept.ts": "k\n" })[file] ?? null;
+  const narrow = {
+    "list.ts": (before: string | null, after: string | null) => (before === "a\n" && after === "a\nb\n" ? ["b.ts", "c.ts"] : ["wrong.ts"]),
+    "kept.ts": () => null,
+  };
+  assert.deepEqual(standsFor(["list.ts", "other.ts"], narrow, was, now), ["b.ts", "c.ts", "other.ts"], "each file in place of its own, as it was and is");
+  assert.deepEqual(standsFor(["kept.ts"], narrow, was, now), ["kept.ts"], "null keeps the file itself");
+  assert.deepEqual(standsFor(["list.ts", "b.ts"], narrow, was, now), ["b.ts", "c.ts"], "a file said twice is said once");
+  assert.deepEqual(standsFor(["list.ts"], undefined, was, now), ["list.ts"], "no narrow, nothing changes");
 });
 
 const granular = (held: string, given: Record<string, string> = {}, words: string[] = []) => stand(["granular", ...words], { STANDIN_GRANULAR: held, ...given });

@@ -31,6 +31,7 @@
 // - Without words, NERD_CHANGED chooses the parts that cover what changed, each by its group's covers, or by its own where
 //   it says them, and always its file; a change to what every group shares, or to a file no part claims, runs them all,
 //   and those not run are reported skipped. A suite's `granular` fails instead where a file that is there would run too much.
+//   A suite's `narrow` says what a change to a file stands for, read against NERD_BASE: a list of imports runs for its lines.
 // - One Chrome for the run. Each group starts on a fresh page in a context of its own, or each part does (`each`). A page
 //   a part failed on, or left otherwise than it found it, is closed, and the next part starts on a fresh one.
 // - Groups, and the parts in each, go in an order shuffled from a seed the run says, to run it again.
@@ -52,6 +53,7 @@
 //   a runner's are the defaults of all its suites, and suite.mjs says what is its own.
 
 import { AsyncLocalStorage } from "node:async_hooks";
+import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -81,6 +83,11 @@ export type Options = {
   parallel?: number;
   /** Files every group shares, from the root: a change to one runs them all. */
   shared?: string[];
+  /** What a change to a file stands for, by the file's path from the root: given it as it was at NERD_BASE (null where it
+   * was not there) and as it is (null where it is gone), the files whose parts run in its place, or null for what its
+   * claim or `shared` says. A shared file each of whose lines stands for one file, as a list of imports, runs only for
+   * the lines that changed (crux#195). Where nerd gives no NERD_BASE, or one git cannot read, nothing stands for another. */
+  narrow?: Record<string, (was: string | null, now: string | null) => string[] | null>;
   /** Holds the suite to run only what a change touches (crux#168): every file `files` says, patterns as nerd.toml's, is
    * claimed by a part or shared, and none but what is shared has more than `most` of the parts run for it, a quarter when
    * not said. Each is judged before Chrome starts, by what a change would run and not by how long that takes, and a run
@@ -224,6 +231,24 @@ export function chooseGroups<G extends { name: string; parts: { own: string[] }[
   const chosen = whole.map((c) => ({ ...c, parts: c.parts.filter((part) => changed.some((p) => covered(part.own, p))) as G["parts"] })).filter((c) => c.parts.length);
   const said = chosen.map(({ group, parts }) => (parts.length < group.parts.length ? `${group.name} (${parts.length} of its ${group.parts.length})` : group.name));
   return { chosen, because: `${said.join(", ")}, for ${short(changed)}` };
+}
+
+/** `changed` with each file `narrow` names in place of what it says the file's change stands for, a file it gives null
+ * for left as it is; `was` reads a file as it was at the base, null where it was not there. */
+export function standsFor(changed: string[], narrow: Options["narrow"], was: (file: string) => string | null, now: (file: string) => string | null): string[] {
+  const files = changed.flatMap((file) => (narrow?.[file] ? (narrow[file](was(file), now(file)) ?? [file]) : [file]));
+  return [...new Set(files)];
+}
+
+/** A file of the root's as it was at `base`, by git: null where it was not there. Undefined where git cannot read `base`
+ * itself, which then narrows nothing. */
+function atBase(root: string, base: string | undefined): ((file: string) => string | null) | undefined {
+  const git = (...args: string[]) => spawnSync("git", ["-C", root, ...args], { encoding: "utf8", maxBuffer: 1 << 26 });
+  if (!base || git("cat-file", "-e", `${base}^{commit}`).status !== 0) return undefined;
+  return (file) => {
+    const shown = git("show", `${base}:./${file}`);
+    return shown.status === 0 ? shown.stdout : null;
+  };
 }
 
 /** The files under `root` that `patterns` take, by their paths from there, what is built or installed left out. */
@@ -557,10 +582,18 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
     process.exit(0);
   }
 
+  // What changed, as nerd gives it (only the changed files this test covers: none, when it is to run whole), each file the
+  // suite narrows in place of what its change stands for.
+  const told = (process.env.NERD_CHANGED ?? "").split("\n").filter(Boolean);
+  const was = suite.narrow && told.some((file) => suite.narrow![file]) ? atBase(root, process.env.NERD_BASE) : undefined;
+  const now = (file: string) => (existsSync(join(root, file)) ? readFileSync(join(root, file), "utf8") : null);
+  const changes = was ? standsFor(told, suite.narrow, was, now) : told;
+  if (changes.join("\n") !== told.join("\n")) console.log(`${name}: what changed stands for ${changes.length ? short(changes) : "nothing"}, of ${short(told)}.`);
+
   // Whether what a change touches is all it runs: asked before anything starts, as it says what is wrong with the suite.
   if (suite.granular && !words.length) {
     // A file a change removed is claimed by nothing and is no fault: it runs all, as chooseGroups says.
-    const changed = (process.env.NERD_CHANGED ?? "").split("\n").filter((file) => file && existsSync(join(root, file)));
+    const changed = changes.filter((file) => existsSync(join(root, file)));
     const wrong = coarse(suite, [...claimable(root, suite.granular.files), ...changed], suite.granular.most);
     if (wrong.length) {
       const said = `${name} runs more than a change touches:\n${wrong.map((line) => `  ${line}`).join("\n")}`;
@@ -582,8 +615,7 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
     }
     because = `the parts with "${words.join(" ")}"`;
   } else {
-    // (nerd gives only the changed files this test covers: none, when it is to run whole.)
-    const narrowed = chooseGroups(suite, (process.env.NERD_CHANGED ?? "").split("\n").filter(Boolean));
+    const narrowed = told.length && !changes.length ? { chosen: [], because: "nothing, for what changed stands for nothing" } : chooseGroups(suite, changes);
     chosen = narrowed.chosen;
     because = narrowed.because;
   }
@@ -605,6 +637,7 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
   const count = units.reduce((n, u) => n + u.parts.length, 0);
   const alone = units.filter((u) => u.group.alone).map((u) => u.group.name);
   console.log(`${name}: ${count} parts in ${chosen.length} groups${sideBySide > 1 ? `, ${sideBySide} at a time${alone.length ? ` (${alone.join(", ")} first, alone)` : ""}${tabs.length ? ", one of them a reader's tab" : ""}` : ""}: ${because}. Seed ${seed} (\`nerd test ${process.env.NERD_TEST ?? name} -- --seed ${seed}\` runs each group's parts in this order again).`);
+  if (!count) process.exit(0);
 
   // A part stopped at its limit may fail later, on its own, on a page closed by then.
   process.on("unhandledRejection", () => undefined);
