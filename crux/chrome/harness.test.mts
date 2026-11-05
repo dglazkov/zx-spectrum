@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { after, describe, test as one, type TestContext } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
-import { cannotTab, chooseGroups, claimable, coarse, counted, covered, FURTHEST, longestFirst, ordered, reach, RealTime, Skip, STALLED, STRETCH, standsFor, took, verdict, vite, within } from "./harness.ts";
+import { cannotTab, chooseGroups, claimable, coarse, counted, covered, FURTHEST, longestFirst, ordered, ranOn, reach, RealTime, runsOn, Skip, STALLED, STRETCH, standsFor, took, verdict, vite, within } from "./harness.ts";
 
 // Held as the file is read, and run side by side at its end: node:test goes one at a time but in a suite that says otherwise.
 const cases: [string, (t: TestContext) => void | Promise<void>][] = [];
@@ -255,10 +255,24 @@ test("a shared file runs all, as does what no group claims, which is said", asyn
 
 test("the harness's own files are shared, as a product's copy of it is: a change to one runs all", async () => {
   // A root that holds the harness in a directory of its own, as a product's crux/chrome/harness.ts does.
-  const file = `${basename(here)}/harness.ts`;
-  const { outcomes, out } = await stand(["narrow"], { NERD_CHANGED: `${file}\n`, STANDIN_ROOT: dirname(here) });
-  assert.deepEqual(outcomes, { "one › runs": "passed", "two › runs": "passed" });
-  assert.ok(out.includes(`every group, for ${file}, which they all share`), out);
+  await Promise.all(
+    runsOn.map(async (name) => {
+      const file = `${basename(here)}/${name}`;
+      const { outcomes, out } = await stand(["narrow"], { NERD_CHANGED: `${file}\n`, STANDIN_ROOT: dirname(here) });
+      assert.deepEqual(outcomes, { "one › runs": "passed", "two › runs": "passed" }, file);
+      assert.ok(out.includes(`every group, for ${file}, which they all share`), out);
+    }),
+  );
+});
+
+test("the part's own tests and stand-ins run none of a product's parts, though its covers take the part whole", async () => {
+  const files = ["harness.test.mts", "report.mjs", "standin/tests/narrow/one.mjs"].map((f) => `${basename(here)}/${f}`);
+  const { code, outcomes, out } = await stand(["narrow"], { NERD_CHANGED: `${files.join("\n")}\n`, STANDIN_ROOT: dirname(here) });
+  assert.equal(code, 0, out);
+  assert.deepEqual(outcomes, { "one › runs": "skipped", "two › runs": "skipped" });
+  assert.ok(out.includes("what changed stands for nothing"), out);
+  const beside = await stand(["narrow"], { NERD_CHANGED: `${files[0]}\n${basename(here)}/launch.ts\n`, STANDIN_ROOT: dirname(here) });
+  assert.deepEqual(beside.outcomes, { "one › runs": "passed", "two › runs": "passed" }, "beside one it runs on, all run");
 });
 
 test("nothing changed runs all, and words run the parts that have them", async () => {
@@ -315,6 +329,13 @@ test("a granular suite with every file claimed runs, and narrows as any suite", 
   const one = await granular("granular/**,!granular/loose.ts,!granular/wide.ts", { NERD_CHANGED: "granular/a.ts\n" });
   assert.equal(one.code, 0, one.out);
   assert.equal(Object.values(one.outcomes).filter((o) => o === "passed").length, 1);
+});
+
+test("a granular suite that holds the harness's directory whole faults none of the part's own files", async () => {
+  // As a product's granular `files` of crux/** takes in the part's tests and stand-ins, which none of its parts claims.
+  const { code, out } = await granular(`${basename(here)}/**`, { STANDIN_ROOT: dirname(here) });
+  assert.equal(code, 0, out);
+  assert.ok(!out.includes("claimed by no part"), out);
 });
 
 test("a granular suite fails on a file no part claims, whatever changed, before Chrome starts", async () => {
@@ -588,6 +609,20 @@ test("chooseGroups: the harness's own files are shared, and patterns read as ner
   assert.deepEqual(names(["src/two.ts"]), ["one", "two"], "taken back by !, it is claimed by no group");
   assert.deepEqual(names([]), ["one", "two"]);
   assert.deepEqual(names(["src/one/a.ts", "src/three.ts"]), ["one", "two"]);
+});
+
+test("ranOn: of the part's directory, only what a suite runs on; the rest of the root as it was", () => {
+  const changed = ["crux/chrome/harness.ts", "crux/chrome/harness.test.mts", "crux/chrome/standin/web/index.html", "crux/chrome/package-lock.json", "crux/chromeless.ts", "src/a.ts"];
+  assert.deepEqual(ranOn(changed, "crux/chrome"), ["crux/chrome/harness.ts", "crux/chrome/package-lock.json", "crux/chromeless.ts", "src/a.ts"]);
+  assert.deepEqual(ranOn(changed, "../elsewhere"), changed, "a harness outside the root takes nothing of it");
+});
+
+test("runsOn: every file of the part's own that the harness imports, and each there", () => {
+  for (const name of ["harness.ts", "launch.ts"]) {
+    const imports = [...readFileSync(join(here, name), "utf8").matchAll(/^import [^;]*? from "\.\/([^"]+)";/gm)].map((m) => m[1]);
+    for (const imported of imports) assert.ok(runsOn.includes(imported), `${name} imports ${imported}, which runsOn leaves out`);
+  }
+  for (const name of runsOn) assert.ok(existsSync(join(here, name)), name);
 });
 
 test("chooseGroups: each part by its own patterns, and only what a part claims is claimed", () => {

@@ -32,6 +32,7 @@
 //   it says them, and always its file; a change to what every group shares, or to a file no part claims, runs them all,
 //   and those not run are reported skipped. A suite's `granular` fails instead where a file that is there would run too much.
 //   A suite's `narrow` says what a change to a file stands for, read against NERD_BASE: a list of imports runs for its lines.
+//   Of the harness's own directory, what every group shares is `runsOn`; the rest, the part's own tests, stands for nothing.
 // - One Chrome for the run. Each group starts on a fresh page in a context of its own, or each part does (`each`). A page
 //   a part failed on, or left otherwise than it found it, is closed, and the next part starts on a fresh one.
 // - Groups, and the parts in each, go in an order shuffled from a seed the run says, to run it again.
@@ -145,7 +146,18 @@ type PartOptions = {
 type Fn = (here: Here) => unknown;
 type Part = { title: string; why: string; limit?: number; reports: RegExp[]; context?: BrowserContextOptions; covers?: string[]; own: string[]; fn: Fn };
 type Group = GroupOptions & { name: string; file: string; covers: string[]; own: string[]; parts: Part[] };
-type Suite = Options & { name: string; dir: string; shared: string[]; groups: Group[] };
+type Suite = Options & { name: string; dir: string; shared: string[]; part: string; groups: Group[] };
+
+/** The files of the harness's own directory that a suite runs on: itself, launch, which it imports, and what installs
+ * their one dependency. The rest of the part, its own tests and their stand-ins, are its own test's, and run none of a
+ * product's parts: a change to them alone stands for nothing, however wide the covers that gave it (crux#201). */
+export const runsOn = ["harness.ts", "launch.ts", "ready.sh", "package.json", "package-lock.json"];
+
+/** `changed`, less the files of the part at `part` (its directory from the root) that no suite runs on. */
+export function ranOn(changed: string[], part: string): string[] {
+  if (!part || part.startsWith("..")) return changed;
+  return changed.filter((file) => !file.startsWith(`${part}/`) || runsOn.includes(file.slice(part.length + 1)));
+}
 type Unit = { group: Group; parts: Part[] };
 
 const places = new AsyncLocalStorage<Here>();
@@ -212,8 +224,8 @@ async function load(name: string, dir: string, root: string, defaults: Options, 
     const refused = (g.tab ?? options.tab) && cannotTab(options, g);
     if (refused) throw new Error(`${g.file}: ${refused}`);
   }
-  const shared = [...(options.shared ?? []), fromRoot(join(dir, "suite.mjs")), fromRoot(import.meta.dirname), fromRoot(runner)];
-  return { ...options, name, dir, shared, groups };
+  const shared = [...(options.shared ?? []), fromRoot(join(dir, "suite.mjs")), ...runsOn.map((f) => fromRoot(join(import.meta.dirname, f))), fromRoot(runner)];
+  return { ...options, name, dir, shared, part: fromRoot(import.meta.dirname), groups };
 }
 
 const short = (list: string[]) => (list.length > 3 ? `${list.slice(0, 3).join(", ")} and ${list.length - 3} more` : list.join(", "));
@@ -583,18 +595,18 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
   }
 
   // What changed, as nerd gives it (only the changed files this test covers: none, when it is to run whole), each file the
-  // suite narrows in place of what its change stands for.
+  // suite narrows in place of what its change stands for, and none of the harness's own that it does not run on.
   const told = (process.env.NERD_CHANGED ?? "").split("\n").filter(Boolean);
   const was = suite.narrow && told.some((file) => suite.narrow![file]) ? atBase(root, process.env.NERD_BASE) : undefined;
   const now = (file: string) => (existsSync(join(root, file)) ? readFileSync(join(root, file), "utf8") : null);
-  const changes = was ? standsFor(told, suite.narrow, was, now) : told;
+  const changes = ranOn(was ? standsFor(told, suite.narrow, was, now) : told, suite.part);
   if (changes.join("\n") !== told.join("\n")) console.log(`${name}: what changed stands for ${changes.length ? short(changes) : "nothing"}, of ${short(told)}.`);
 
   // Whether what a change touches is all it runs: asked before anything starts, as it says what is wrong with the suite.
   if (suite.granular && !words.length) {
     // A file a change removed is claimed by nothing and is no fault: it runs all, as chooseGroups says.
     const changed = changes.filter((file) => existsSync(join(root, file)));
-    const wrong = coarse(suite, [...claimable(root, suite.granular.files), ...changed], suite.granular.most);
+    const wrong = coarse(suite, ranOn([...claimable(root, suite.granular.files), ...changed], suite.part), suite.granular.most);
     if (wrong.length) {
       const said = `${name} runs more than a change touches:\n${wrong.map((line) => `  ${line}`).join("\n")}`;
       if (process.env.NERD_REPORT) writeFileSync(process.env.NERD_REPORT, `${JSON.stringify({ part: "granular", seconds: 0, outcome: "failed", said: wrong.join("; ") })}\n`);
