@@ -15,15 +15,22 @@ import { launch } from '../../crux/chrome/launch.ts';
 
 const LOCAL_MODULE = fileURLToPath(new URL('../src/emulator/zx.wasm', import.meta.url));
 
-/** The checks against `url`: `network` false leaves out what needs the archive and the ZXDB. Returns how many failed. */
-export async function smoke(url, { network = true, log = console.log } = {}) {
+/** The checks against `url`, by name: `network` false leaves out what needs the archive and the ZXDB, `only` what it
+ * says no to (tests/build.mjs runs those a change touches), and `done` is told how each went, and how long it took.
+ * Returns how many failed. */
+export async function smoke(url, { network = true, log = console.log, only = () => true, done = () => {} } = {}) {
   let failed = 0;
   const check = async (name, fn) => {
+    if (!only(name)) return;
+    const t0 = performance.now();
+    const seconds = () => (performance.now() - t0) / 1000;
     try {
       log(`ok    ${name}${(await fn()) ?? ''}`);
+      done(name, null, seconds());
     } catch (e) {
       failed++;
       log(`FAIL  ${name}: ${e.message}`);
+      done(name, e.message, seconds());
     }
   };
   const assert = (cond, message) => {

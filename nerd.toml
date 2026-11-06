@@ -152,11 +152,16 @@ limit = "3m"
 # The page built for production (vite build, with the module the tests ran) and served by the production server
 # (crates/app, by web/app.mjs), with
 # the smoke test's checks against it but the archive's and the ZXDB's, which need the network (web/tests/build.mjs): what
-# only the production build gets wrong is found before a deploy, not after. About 10 s.
+# only the production build gets wrong is found before a deploy, not after. About 10 s. Each of its seven parts claims
+# what it tests, and a change runs those it touches (#31): the build, kept under a hash of what it reads, only for what
+# goes into it, and the server's four checks for the server. What runs them all is what they all stand on: vite's
+# config and version, the workspace's Cargo files, and the test itself; and it fails, before it builds, on a file
+# below that no part claims, or that more than four claim (build.mjs's PARTS). Of crux, it runs on the server's parts as
+# they ship (nerd-load.js, not load.ts, which builds it), and of crux/chrome on launch.ts alone, not its harness.
 [[test]]
 name = "web-build"
 run = "cd web && npx --yes tsx@4.20.6 tests/build.mjs"
-covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/how.html", "web/public/**", "web/vite.config.ts", "web/app.mjs", "crates/app/**", "crux/server/**", "crux/telemetry/**", "crux/widget/**", "crux/load/**", "crux/wasm/**", "web/package.json", "web/package-lock.json", "web/tests/build.mjs", "web/tests/smoke.mjs", "crux/chrome/**", "!crux/chrome/standin/**", "!crux/chrome/*.test.mts", "roms/**", "scripts/build-wasm.sh", "Cargo.toml", "Cargo.lock"]
+covers = ["web/src/**", "!web/src/**/*.test.ts", "web/index.html", "web/how.html", "web/public/**", "web/vite.config.ts", "web/tsconfig.json", "web/app.mjs", "crates/app/**", "!crates/app/tests/**", "crux/server/**", "crux/telemetry/**", "crux/widget/**", "crux/load/**", "!crux/load/load.ts", "crux/wasm/**", "!crux/**/tests/**", "!crux/**/tests.rs", "!crux/**/examples/**", "!crux/**/*.test.mts", "!crux/**/Dockerfile.*", "web/package.json", "web/package-lock.json", "web/tests/build.mjs", "web/tests/smoke.mjs", "crux/chrome/launch.ts", "crux/chrome/package.json", "crux/chrome/package-lock.json", "roms/**", "scripts/build-wasm.sh", "Cargo.toml", "Cargo.lock"]
 inputs = ["web/src/emulator/zx.wasm"]
 limit = "2m"
 

@@ -951,7 +951,12 @@ running server against the real archive and API: the page, Saboteur's tape and m
 through `/zxinfo`, the module served as `application/wasm` and **the very module built and tested here** (its SHA-256 the
 local `zx.wasm`'s, the build being reproducible), and the machine starting in Chrome with no errors and the 48K's
 contention as tested (a NOP at 6000h from 14,335: 6, 5, 4, 3, 2, 1, 0, 0). `tests/build.mjs` (the `web-build` layer)
-runs the same against the production build served here, before a deploy.
+runs the same against the production build served here, before a deploy. Each of its seven parts claims the files it
+tests (`PARTS`), and a change runs only those it touches (#31): a change to the server runs the four checks that go through
+it, against the build kept in `target/web-build` under a hash of everything the build reads, and the build itself is
+skipped; a change to crux's Chrome launcher runs the Chrome check alone. What they all stand on (`SHARED`: vite's config
+and version, the workspace's Cargo files, the test itself) runs all seven. Before it builds, it fails on a file of its
+covers that no part claims, or that more than four of the seven claim.
 
 ## Pictures
 
