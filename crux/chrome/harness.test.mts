@@ -388,6 +388,24 @@ test("what granular reads and judges", () => {
   assert.equal(coarse(suite, ["nobody"]).length, 1);
 });
 
+test("granular makes each pattern once, however many files and parts it judges (crux#204)", () => {
+  // Dawn's suite, as synth-exp's #580 profiled it: 267 parts, each with patterns of its own and some every part has.
+  const parts = Array.from({ length: 267 }, (_, i) => ({ own: [`web/src/part${i}/**`, `web/tests/part${i}.mjs`, "web/src/common/{a,b}.ts", "!web/src/**/*.test.ts"] }));
+  const suite = { shared: ["web/tests/suite.mjs", "web/tests/run.mjs"], groups: [{ parts }] };
+  const files = parts.flatMap((_, i) => [`web/src/part${i}/x.ts`, `web/src/part${i}/y.ts`]);
+  const Real = globalThis.RegExp;
+  let made = 0;
+  globalThis.RegExp = new Proxy(Real, { construct: (target, args) => (made++, Reflect.construct(target, args)) });
+  try {
+    assert.deepEqual(coarse(suite, files), []);
+    coarse(suite, files);
+  } finally {
+    globalThis.RegExp = Real;
+  }
+  const distinct = new Set([...suite.shared, ...parts.flatMap((p) => p.own)]).size;
+  assert.ok(made <= distinct, `made ${made} expressions of ${distinct} patterns, for ${files.length} files of ${parts.length} parts, twice`);
+});
+
 test("a harness in web/tests works as one at tests/, its covers from the product's root", async () => {
   const changed = { NERD_CHANGED: "web/src/library/a.ts\n" };
   const { code, outcomes } = await stand(["nested"], changed, "web/tests/run.mjs");

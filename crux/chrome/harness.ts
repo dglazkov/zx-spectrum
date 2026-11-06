@@ -488,10 +488,22 @@ function glob(given: string) {
   return { re: new RegExp(`${re}(?:/.*)?$`), back };
 }
 
+/** Each pattern made once (crux#204): a whole run of a suite of 267 parts asks `covered` of every file for every part,
+ * and making each pattern again on every call spent 7.5 s of synth-exp's before Chrome started. */
+const made = new Map<string, ReturnType<typeof glob>>();
+const compiled = (given: string) => {
+  let one = made.get(given);
+  if (!one) made.set(given, (one = glob(given)));
+  return one;
+};
+
 /** Whether `patterns` cover `path`: the last of them that matches it says. */
 export function covered(patterns: string[], path: string): boolean {
   let yes = false;
-  for (const { re, back } of patterns.map(glob)) if (re.test(path)) yes = !back;
+  for (const given of patterns) {
+    const { re, back } = compiled(given);
+    if (re.test(path)) yes = !back;
+  }
   return yes;
 }
 
