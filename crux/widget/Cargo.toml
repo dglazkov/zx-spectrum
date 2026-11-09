@@ -5,7 +5,7 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
-description = "nerd's feedback widget, as `nerd telemetry widget` prints it, served by the part server at /nerd-feedback.js."
+description = "nerd's feedback widget, as `nerd machine telemetry widget` prints it, served by the part server at /nerd-feedback.js."
 
 [dependencies]
 # The part server, where the product's workspace says it is: `server = { path = "crux/server" }` in its

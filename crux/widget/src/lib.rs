@@ -1,10 +1,10 @@
 //! nerd's feedback widget, served by the part `server` (crux#3).
 //!
-//! `nerd-feedback.js`, beside this directory's `Cargo.toml`, is the script `nerd telemetry widget`
+//! `nerd-feedback.js`, beside this directory's `Cargo.toml`, is the script `nerd machine telemetry widget`
 //! prints, written out and committed under that name, so that nerd's look at each product's main
 //! finds it, and files an issue to write it out again when nerd's widget changes. It is nerd's:
-//! mend it in nerd, never here (`nerd guide telemetry`, The feedback widget). Write it out again
-//! with `nerd telemetry widget > ts/widget/nerd-feedback.js` in crux, from where a product holds the
+//! mend it in nerd, never here (`nerd help machine telemetry`). Write it out again
+//! with `nerd machine telemetry widget > ts/widget/nerd-feedback.js` in crux, from where a product holds the
 //! part, `crux/widget/nerd-feedback.js`, when nerd files that issue there; the test `the_copy_is_nerds`
 //! fails while the copy is not the widget nerd prints.
 //!
@@ -30,7 +30,7 @@ pub const PATH: &str = "/nerd-feedback.js";
 /// What it is served as.
 pub const CONTENT_TYPE: &str = "text/javascript; charset=utf-8";
 
-/// The widget, as `nerd telemetry widget` printed it.
+/// The widget, as `nerd machine telemetry widget` printed it.
 pub const SCRIPT: &[u8] = include_bytes!("../nerd-feedback.js");
 
 /// The widget, for the product's table: served at [`PATH`], with its type, and compressed as the

@@ -1,4 +1,4 @@
-//! The copy against the widget `nerd telemetry widget` prints, and the part `server` answering
+//! The copy against the widget `nerd machine telemetry widget` prints, and the part `server` answering
 //! `/nerd-feedback.js` with it, compressed, over HTTP.
 
 use std::io::{Read, Write};
@@ -11,22 +11,22 @@ use super::*;
 #[test]
 fn the_copy_is_nerds() {
     let out = std::process::Command::new("nerd")
-        .args(["telemetry", "widget"])
+        .args(["machine", "telemetry", "widget"])
         .output()
         .expect("nerd, to print its widget: is it installed?");
     assert!(
         out.status.success(),
-        "nerd telemetry widget: {}",
+        "nerd machine telemetry widget: {}",
         String::from_utf8_lossy(&out.stderr)
     );
     assert!(
         String::from_utf8_lossy(&out.stdout).contains("window.nerdFeedback"),
-        "nerd telemetry widget printed no widget"
+        "nerd machine telemetry widget printed no widget"
     );
     assert!(
         SCRIPT == out.stdout.as_slice(),
         "nerd-feedback.js is not the widget nerd prints: write it out again with \
-         `nerd telemetry widget > nerd-feedback.js` in the part's directory"
+         `nerd machine telemetry widget > nerd-feedback.js` in the part's directory"
     );
 }
 
