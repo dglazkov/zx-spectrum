@@ -141,7 +141,9 @@ limit = "1m"
 # Not covered: what the page never loads (how.html's sheet and its Plex Mono, the fonts' licences) and the
 # crates' unit tests, which are not in the WebAssembly module, nor crux's own tests, examples and test tools, which the
 # page never runs: a take of crux that changes only them runs no part (#29). What runs every part is crux/chrome's
-# harness and launch, which every part runs on.
+# harness and launch, which every part runs on, and which only nerd's takes of crux's chrome change: such a take is the
+# new harness tried on every part, which is what it is for, so it runs them all on purpose (#35). Since the suite was
+# held granular (#27), every other change narrows: crux/server/src/lib.rs runs 1 part of 43, crux/widget 2.
 [[test]]
 name = "web-page"
 run = "cd web && npx --yes tsx@4.20.6 tests/run.mjs page"
