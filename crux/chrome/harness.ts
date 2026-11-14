@@ -42,6 +42,8 @@
 //   may run beside. Those tabs share a window, and only one of them is shown, so they go one at a time, of the four side
 //   by side; a tab, and what it opened, is closed where a page would be, and its context's routes go with it. The context
 //   stays, with its cookies and storage: what a part leaves there is the next tab's.
+// - Chrome keeps one trace for the whole browser, so a part takes it in turn: a Tracing.start on a CDP session its
+//   context made waits until the trace before it completes, and a trace a part leaves going is ended as the part ends.
 // - What a suite's module keeps for the group running, as its page, it takes from `current()`.
 // - An error thrown in a page or written to its console fails the part it came in, in any page of the part's context.
 // - Each part is held to a limit of its own, seconds, its suite's unless it says. On a machine that kept the run from
@@ -60,7 +62,7 @@ import { isAbsolute, join, relative } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Worker } from "node:worker_threads";
-import type { Browser, BrowserContext, BrowserContextOptions, ConsoleMessage, Page, Request, Route, WebError } from "playwright-core";
+import type { Browser, BrowserContext, BrowserContextOptions, CDPSession, ConsoleMessage, Page, Request, Route, WebError } from "playwright-core";
 import { launch, type Options as ChromeOptions } from "./launch.ts";
 
 type Fulfilled = NonNullable<Parameters<Route["fulfill"]>[0]>;
@@ -168,6 +170,99 @@ export const current = (): Here => {
   if (!here) throw new Error("current() outside a part");
   return here;
 };
+
+// --- Chrome's one trace ----------------------------------------------------------------------------------------------
+
+/** Chrome keeps one trace for the whole browser: a second Tracing.start, from any session of any page, is refused,
+ * "Tracing has already been started (possibly in another tab)". Groups run side by side in one Chrome, so two parts that
+ * trace failed one of them whenever their traces met: synth-exp's playback and topbar, in crux's products at 4:19 AM on
+ * Nov 6 and 1:18 AM on Nov 14 (crux#211). So each part takes the trace in turn: a Tracing.start on a session a part's
+ * context made waits for the trace before it to complete, and holds it until its own completes, its session detaches,
+ * or the part ends, which ends a trace it left going. */
+let lastTrace: Promise<void> = Promise.resolve();
+
+/** Waits its turn at Chrome's trace, and gives what lets it go, once however often it is called. */
+async function takeTrace(): Promise<() => void> {
+  const before = lastTrace;
+  let free!: () => void;
+  lastTrace = new Promise<void>((resolve) => (free = resolve));
+  await before;
+  let held = true;
+  return () => {
+    if (held) (held = false), free();
+  };
+}
+
+/** What ends each trace a part still holds, by the part. */
+const tracesOf = new WeakMap<Here, Set<() => Promise<void>>>();
+
+/** The traces `here` holds, as a set its end empties. */
+const tracesHeld = (here: Here | undefined) => {
+  if (!here) return new Set<() => Promise<void>>();
+  let held = tracesOf.get(here);
+  if (!held) tracesOf.set(here, (held = new Set()));
+  return held;
+};
+
+/** `session`, its Tracing.start taking its turn at Chrome's trace, which it gives back as the trace completes, as it
+ * detaches, or as `held` is ended. */
+function oneTrace(session: CDPSession, held: Set<() => Promise<void>>): CDPSession {
+  const send = session.send.bind(session) as (method: string, params?: object) => Promise<unknown>;
+  const detach = session.detach.bind(session);
+  let free: (() => void) | null = null;
+  let completed: () => void = () => undefined;
+  const done = () => {
+    free?.();
+    free = null;
+    held.delete(end);
+    completed();
+  };
+  /** Ends the trace it holds, and waits for Chrome to say it is complete, as a new one is refused until then. */
+  const end = async () => {
+    if (!free) return;
+    const complete = new Promise<void>((resolve) => (completed = resolve));
+    await send("Tracing.end").catch(() => undefined);
+    await within(complete, 10, "Chrome's trace was still completing").catch(() => undefined);
+    done();
+  };
+  session.on("Tracing.tracingComplete", done);
+  session.send = (async (method: string, params?: object) => {
+    if (method !== "Tracing.start" || free) return send(method, params);
+    free = await takeTrace();
+    held.add(end);
+    try {
+      return await send(method, params);
+    } catch (e) {
+      done();
+      throw e;
+    }
+  }) as CDPSession["send"];
+  // (Chrome ends a trace whose session detaches: the next may begin once it has.)
+  session.detach = async () => {
+    try {
+      await detach();
+    } finally {
+      done();
+    }
+  };
+  return session;
+}
+
+const tracing = new WeakSet<BrowserContext>();
+
+/** `context`, each CDP session it makes taking its turn at Chrome's trace, for the part that makes it: once, as a reader's
+ * tabs share theirs. */
+function tracesInTurn(context: BrowserContext) {
+  if (tracing.has(context)) return;
+  tracing.add(context);
+  const make = context.newCDPSession.bind(context);
+  context.newCDPSession = async (page) => oneTrace(await make(page), tracesHeld(places.getStore()));
+}
+
+/** Ends each trace the part running in `here` left going. */
+async function endTraces(here: Here) {
+  for (const end of [...tracesHeld(here)]) await end();
+}
 
 /** The file being read, and the groups read: a group belongs to the file that made it. */
 let reading: string | null = null;
@@ -703,6 +798,7 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
               ...(parts.length === 1 ? parts[0].context : {}),
             });
         here.context = context;
+        tracesInTurn(context);
         const said: string[] = (errors = []);
         const counted = (group.warnings ?? suite.warnings) ? ["error", "warning"] : ["error"];
         // By the context, not the page: the part's popups and its own pages are the part's too.
@@ -769,6 +865,8 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
         }
         // A wait outlives the part's limit: it says what it waited for once its page is gone.
         if (failure instanceof Overran) failure.message += await waitedFor(work, closing);
+        // A trace it left going is no trace for the next part to wait on.
+        await endTraces(here);
         const ms = performance.now() - t0;
         if (failure instanceof RealTime) await counted();
         const waited = Math.round(kept() - kept0);

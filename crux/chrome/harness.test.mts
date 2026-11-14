@@ -510,6 +510,20 @@ test("about four side by side on one Chrome, each on a page of its own, what goe
   assert.deepEqual(longest.slice(2, 6).map((b) => b.name).filter((name) => last.includes(name)).sort(), [...last].sort(), "the longest first");
 });
 
+test("parts side by side take Chrome's one trace in turn, each whole, and one a part left going or detached from is ended for the next (crux#211)", async () => {
+  const log = join(scratch, "traces");
+  const { code, out, outcomes, one } = await stand(["traces", "--seed", "1"], { STANDIN_LOG: log });
+  assert.equal(code, 1, out);
+  assert.match(one("left › leaves its trace going").said ?? "", /left going on purpose/);
+  const passed = ["a", "b", "c", "d"].map((g) => `${g} › traces`).concat(["detached › detaches with its trace going"]);
+  for (const part of passed) assert.equal(outcomes[part], "passed", `${part}: ${out}`);
+  // No trace began while another was going: each one's from is followed by its own to.
+  const traces = readFileSync(log, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  assert.equal(traces.length, 12, JSON.stringify(traces));
+  assert.deepEqual(traces.slice(0, 4).map((t) => t.name).sort(), ["detached", "detached", "left", "left"], "the two alone first");
+  for (let i = 0; i < traces.length; i += 2) assert.deepEqual([traces[i].trace, traces[i + 1].trace, traces[i + 1].name], ["from", "to", traces[i].name], JSON.stringify(traces));
+});
+
 test("a stall made on purpose reports inconclusive, and fails nothing", async () => {
   const { code, out, one } = await stand(["stalls", "judges"]);
   assert.equal(code, 0, out);
