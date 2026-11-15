@@ -649,10 +649,17 @@ async function answerFrom(context: BrowserContext, base: string, recordings: Rec
 }
 
 /** What a part stopped at its limit was waiting for, from the wait's own failure as `closing` takes its page away: its
- * log, under "Call log:" or a line of its own as a wait for an event writes it, or which call it was, for one with none. */
+ * log, under "Call log:" or a line of its own as a wait for an event writes it, or which call it was, for one with none.
+ * The part has a second to end, stretched as its limit was by what the machine keeps from it: synth-exp's dawn at a load
+ * of 67 said nothing of a part held 1m56s (crux#226). One that has not ended by then says so, as nothing read is no news. */
 async function waitedFor(work: Promise<unknown>, closing: () => Promise<void>): Promise<string> {
   await closing();
-  const ended = await Promise.race([work.then(() => null, (e: Error) => e), sleep(1000, null)]);
+  const ended = await within(
+    work.then(() => null, (e: Error) => e),
+    1,
+    "",
+  ).catch(() => undefined);
+  if (ended === undefined) return ", and still going after its page closed, so what it waited for is not known";
   const waiting = ended?.message.match(/^\s*(?:- )?((?:waiting for|navigating to) .*)$/m)?.[1];
   const call = ended?.message.match(/^(\w+\.\w+): /)?.[1];
   return waiting ? `, ${waiting}` : call ? `, in ${call}` : "";
@@ -660,7 +667,157 @@ async function waitedFor(work: Promise<unknown>, closing: () => Promise<void>): 
 
 // --- Running a suite -------------------------------------------------------------------------------------------------
 
+/** What changed, as nerd gives it (only the changed files this test covers: none, when it is to run whole), and what it
+ * stands for: each file the suite narrows in place of what its change stands for, and none of the harness's own that it
+ * does not run on. */
+function changesFor(suite: Suite, name: string, root: string): { told: string[]; changes: string[] } {
+  const told = (process.env.NERD_CHANGED ?? "").split("\n").filter(Boolean);
+  const was = suite.narrow && told.some((file) => suite.narrow![file]) ? atBase(root, process.env.NERD_BASE) : undefined;
+  const now = (file: string) => (existsSync(join(root, file)) ? readFileSync(join(root, file), "utf8") : null);
+  const changes = ranOn(was ? standsFor(told, suite.narrow, was, now) : told, suite.part);
+  if (changes.join("\n") !== told.join("\n")) console.log(`${name}: what changed stands for ${changes.length ? short(changes) : "nothing"}, of ${short(told)}.`);
+  return { told, changes };
+}
+
+/** Whether what a change touches is all a granular suite runs: asked before anything starts, as it says what is wrong
+ * with the suite, which exits saying so. */
+function holdGranular(suite: Suite & { granular: NonNullable<Options["granular"]> }, name: string, root: string, changes: string[]) {
+  // A file a change removed is claimed by nothing and is no fault: it runs all, as chooseGroups says.
+  const changed = changes.filter((file) => existsSync(join(root, file)));
+  const wrong = coarse(suite, ranOn([...claimable(root, suite.granular.files), ...changed], suite.part), suite.granular.most);
+  if (wrong.length) {
+    const said = `${name} runs more than a change touches:\n${wrong.map((line) => `  ${line}`).join("\n")}`;
+    if (process.env.NERD_REPORT) writeFileSync(process.env.NERD_REPORT, `${JSON.stringify({ part: "granular", seconds: 0, outcome: "failed", said: wrong.join("; ") })}\n`);
+    console.error(said);
+    process.exit(1);
+  }
+}
+
+/** The parts a run is for, by group, and why: those with every one of `words`, or else those what changed touches. Exits
+ * where no part has the words. */
+function choose(suite: Suite, name: string, root: string, words: string[]): { chosen: Unit[]; because: string } {
+  if (words.length) {
+    const has = (g: Group, p: Part) => words.every((w) => `${g.name} ${p.title}`.toLowerCase().includes(w.toLowerCase()));
+    const chosen = suite.groups.map((group) => ({ group, parts: group.parts.filter((p) => has(group, p)) })).filter((c) => c.parts.length);
+    if (!chosen.length) {
+      console.log(`No part of ${name} has the words "${words.join(" ")}". Its groups: ${suite.groups.map((g) => g.name).join(", ")}.`);
+      process.exit(1);
+    }
+    return { chosen, because: `the parts with "${words.join(" ")}"` };
+  }
+  const { told, changes } = changesFor(suite, name, root);
+  if (suite.granular) holdGranular({ ...suite, granular: suite.granular }, name, root, changes);
+  return told.length && !changes.length ? { chosen: [], because: "nothing, for what changed stands for nothing" } : chooseGroups(suite, changes);
+}
+
 type Result = { label: string; outcome: ReturnType<typeof verdict>; ms: number; message?: string };
+
+/** Tells a wait on the page to wait past where a limit of `seconds` can stretch, as it is told its timeout as it begins,
+ * before the machine can be looked at, and cannot be told more of what is kept after: the limit itself ends it, and
+ * `waitedFor` says what it was. */
+const waitsPast = (here: Here, seconds: number) => here.context?.setDefaultTimeout(seconds * (FURTHEST + 1) * 1000);
+
+/** The context a unit's page opens in: on a tab, the reader's first; or one of its own, made as the suite, the group and
+ * a part that goes alone say. */
+async function contextFor(browser: Browser, suite: Suite, group: Group, parts: Part[]): Promise<BrowserContext> {
+  if (group.tab ?? suite.tab) return browser.contexts()[0];
+  return browser.newContext({
+    viewport: group.viewport ?? suite.viewport ?? { width: 1280, height: 800 },
+    ...suite.context,
+    ...group.context,
+    ...(parts.length === 1 ? parts[0].context : {}),
+  });
+}
+
+/** Hears, in `said`, what fails a part in any page of `context`, as its popups and its own pages are the part's too: an
+ * error thrown, and an error written to the console, or a warning where `warnings` says. Gives what stops hearing. */
+function hear(context: BrowserContext, warnings: boolean | undefined, said: string[]): () => void {
+  const kinds = warnings ? ["error", "warning"] : ["error"];
+  const threw = (e: WebError) => said.push(`pageerror: ${e.error().message}`);
+  const wrote = (m: ConsoleMessage) => {
+    if (kinds.includes(m.type()) && !/favicon/.test(`${m.text()} ${m.location().url}`)) said.push(`console ${m.type()}: ${m.text()}`);
+  };
+  context.on("weberror", threw);
+  context.on("console", wrote);
+  return () => {
+    context.off("weberror", threw);
+    context.off("console", wrote);
+  };
+}
+
+/** Opens a unit's page as its group or suite says, and gives how `start` found it, each held to the suite's `opening` as a
+ * part is to its limit, saying what it waited for where it ran out. */
+async function opened(here: Here, suite: Suite, group: Group, closing: () => Promise<void>): Promise<unknown> {
+  const opening = suite.opening ?? 60;
+  waitsPast(here, opening);
+  const inOpening = async <T>(work: Promise<T>, what: string) => {
+    try {
+      return await within(work, opening, what);
+    } catch (e) {
+      if (e instanceof Overran) e.message += await waitedFor(work, closing);
+      throw e;
+    }
+  };
+  const open = group.open ?? suite.open;
+  if (open) await inOpening(Promise.resolve(open(here.page, here.base)), "the page was still opening");
+  return suite.start ? await inOpening(Promise.resolve(suite.start(here.page)), "the page was still starting") : null;
+}
+
+/** What a part's work came to within its limit: what it gave, or what it failed with, which says, where the limit ended
+ * it, what it waited for, as a wait outlives the part's limit and says so once its page is gone. */
+async function ranOut(work: Promise<unknown>, limit: number, closing: () => Promise<void>): Promise<{ detail: unknown; failure: Error | null }> {
+  try {
+    return { detail: await within(work, limit, "still going"), failure: null };
+  } catch (e) {
+    const failure = e as Error;
+    if (failure instanceof Overran) failure.message += await waitedFor(work, closing);
+    return { detail: undefined, failure };
+  }
+}
+
+/** A part's failure, given what its page reported (`said`) that its `reports` do not say it means: an error the page
+ * reported is the part's, whatever it judged of real time. */
+function heard(failure: Error | null, said: string[], reports: RegExp[]): Error | null {
+  const reported = [...new Set(said.filter((e) => !reports.some((r) => r.test(e))))].join("; ");
+  if (!reported) return failure;
+  if (!failure) return new Error(`the page reported: ${reported}`);
+  if (failure instanceof RealTime) return new Error(`${failure.message} (and the page reported: ${reported})`);
+  return failure;
+}
+
+/** A part's failure, with what it left otherwise than `start` found it, where the suite says what that is: not for a part
+ * past its limit, which is no part to ask. */
+async function leftBy(suite: Suite, page: Page | null, start: unknown, failure: Error | null): Promise<Error | null> {
+  if (failure instanceof Overran || !suite.neutral || !page) return failure;
+  let left: string[];
+  try {
+    left = await within(Promise.resolve(suite.neutral(page, start)), 5, "the check of what it left was still going");
+  } catch (e) {
+    left = [(e as Error).message];
+  }
+  if (!left.length) return failure;
+  const leftText = `it left ${suite.neutralName ?? "the page"} not as it found it: ${left.join("; ")}`;
+  if (!failure) return new Error(leftText);
+  failure.message += ` (and ${leftText})`;
+  return failure;
+}
+
+/** How a part that ended is reported, and the line that says it: inconclusive where it measured the machine, and how long
+ * it took, and what kept it, where it failed or passed. */
+function endOf(label: string, outcome: Result["outcome"], ms: number, waited: number, limit: number, failure: Error | null, detail: unknown): { result: Result; line: string } {
+  if (outcome === "inconclusive") {
+    const message = `inconclusive: ${failure!.message}; while it ran, the machine kept it from running ${waited} ms, so this measured the machine`;
+    return { result: { label, outcome, ms, message }, line: `INCONCLUSIVE  ${label}  (${took(ms)})\n      ${message}` };
+  }
+  const busy = `${waited ? `, kept from running ${waited} ms` : ""}${ms > limit * 1000 ? `: past its ${limit}s limit, stretched as the machine kept it` : ""}`;
+  const line =
+    outcome === "skipped"
+      ? `skip  ${label}: ${failure!.message}`
+      : failure
+        ? `FAIL  ${label}  (${took(ms)}${busy})\n      ${failure.message.split("\n").join("\n      ")}`
+        : `ok    ${label}${detail ? `  — ${detail}` : ""}  (${took(ms)}${busy})`;
+  return { result: { label, outcome, ms, message: failure?.message }, line };
+}
 
 const asPath = (at: string | URL) => (at instanceof URL || at.startsWith("file:") ? fileURLToPath(at) : at);
 
@@ -701,43 +858,7 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
     process.exit(0);
   }
 
-  // What changed, as nerd gives it (only the changed files this test covers: none, when it is to run whole), each file the
-  // suite narrows in place of what its change stands for, and none of the harness's own that it does not run on.
-  const told = (process.env.NERD_CHANGED ?? "").split("\n").filter(Boolean);
-  const was = suite.narrow && told.some((file) => suite.narrow![file]) ? atBase(root, process.env.NERD_BASE) : undefined;
-  const now = (file: string) => (existsSync(join(root, file)) ? readFileSync(join(root, file), "utf8") : null);
-  const changes = ranOn(was ? standsFor(told, suite.narrow, was, now) : told, suite.part);
-  if (changes.join("\n") !== told.join("\n")) console.log(`${name}: what changed stands for ${changes.length ? short(changes) : "nothing"}, of ${short(told)}.`);
-
-  // Whether what a change touches is all it runs: asked before anything starts, as it says what is wrong with the suite.
-  if (suite.granular && !words.length) {
-    // A file a change removed is claimed by nothing and is no fault: it runs all, as chooseGroups says.
-    const changed = changes.filter((file) => existsSync(join(root, file)));
-    const wrong = coarse(suite, ranOn([...claimable(root, suite.granular.files), ...changed], suite.part), suite.granular.most);
-    if (wrong.length) {
-      const said = `${name} runs more than a change touches:\n${wrong.map((line) => `  ${line}`).join("\n")}`;
-      if (process.env.NERD_REPORT) writeFileSync(process.env.NERD_REPORT, `${JSON.stringify({ part: "granular", seconds: 0, outcome: "failed", said: wrong.join("; ") })}\n`);
-      console.error(said);
-      process.exit(1);
-    }
-  }
-
-  // Which parts.
-  let chosen: Unit[] = suite.groups.map((group) => ({ group, parts: group.parts }));
-  let because = "every group";
-  if (words.length) {
-    const has = (g: Group, p: Part) => words.every((w) => `${g.name} ${p.title}`.toLowerCase().includes(w.toLowerCase()));
-    chosen = chosen.map((c) => ({ ...c, parts: c.parts.filter((p) => has(c.group, p)) })).filter((c) => c.parts.length);
-    if (!chosen.length) {
-      console.log(`No part of ${name} has the words "${words.join(" ")}". Its groups: ${suite.groups.map((g) => g.name).join(", ")}.`);
-      process.exit(1);
-    }
-    because = `the parts with "${words.join(" ")}"`;
-  } else {
-    const narrowed = told.length && !changes.length ? { chosen: [], because: "nothing, for what changed stands for nothing" } : chooseGroups(suite, changes);
-    chosen = narrowed.chosen;
-    because = narrowed.because;
-  }
+  const { chosen, because } = choose(suite, name, root, words);
 
   // In what order, and in what units: a group that shares a page goes as one, and one that does not, part by part.
   const seed = given !== undefined ? Number(given) : Math.floor(Math.random() * 100000);
@@ -776,10 +897,6 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
     let away: (() => Promise<unknown>) | null = null;
     let start: unknown = null;
     let errors: string[] = [];
-    /** Tells a wait on the page to wait past where a limit of `seconds` can stretch, as it is told its timeout as it begins,
-     * before the machine can be looked at, and cannot be told more of what is kept after: the limit itself ends it, and
-     * `waitedFor` says what it was. */
-    const waitsPast = (seconds: number) => here.context?.setDefaultTimeout(seconds * (FURTHEST + 1) * 1000);
     const closing = async () => {
       await (away ? within(away(), 10, "the page was still closing") : null)?.catch(() => undefined);
       away = null;
@@ -789,50 +906,22 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
       await closing();
       if (browser) {
         const tab = group.tab ?? suite.tab;
-        const context = tab
-          ? browser.contexts()[0]
-          : await browser.newContext({
-              viewport: group.viewport ?? suite.viewport ?? { width: 1280, height: 800 },
-              ...suite.context,
-              ...group.context,
-              ...(parts.length === 1 ? parts[0].context : {}),
-            });
+        const context = await contextFor(browser, suite, group, parts);
         here.context = context;
         tracesInTurn(context);
-        const said: string[] = (errors = []);
-        const counted = (group.warnings ?? suite.warnings) ? ["error", "warning"] : ["error"];
-        // By the context, not the page: the part's popups and its own pages are the part's too.
-        const threw = (e: WebError) => said.push(`pageerror: ${e.error().message}`);
-        const wrote = (m: ConsoleMessage) => {
-          if (counted.includes(m.type()) && !/favicon/.test(`${m.text()} ${m.location().url}`)) said.push(`console ${m.type()}: ${m.text()}`);
-        };
-        context.on("weberror", threw);
-        context.on("console", wrote);
+        const deaf = hear(context, group.warnings ?? suite.warnings, (errors = []));
         // A tab's context outlives it, and its tabs go one at a time: all it holds now is this unit's.
         away = !tab
           ? () => context.close()
           : async () => {
               await Promise.all(context.pages().map((tab) => tab.close()));
               await context.unrouteAll({ behavior: "ignoreErrors" });
-              context.off("weberror", threw);
-              context.off("console", wrote);
+              deaf();
             };
-        if (suite.recordings) await answerFrom(context, base, suite.recordings, suite.dir, said);
+        if (suite.recordings) await answerFrom(context, base, suite.recordings, suite.dir, errors);
         here.page = await context.newPage();
       }
-      const opening = suite.opening ?? 60;
-      waitsPast(opening);
-      const inOpening = async <T>(work: Promise<T>, what: string) => {
-        try {
-          return await within(work, opening, what);
-        } catch (e) {
-          if (e instanceof Overran) e.message += await waitedFor(work, closing);
-          throw e;
-        }
-      };
-      const open = group.open ?? suite.open;
-      if (open) await inOpening(Promise.resolve(open(here.page, base)), "the page was still opening");
-      start = suite.start ? await inOpening(Promise.resolve(suite.start(here.page)), "the page was still starting") : null;
+      start = await opened(here, suite, group, closing);
     };
 
     let broken: Error | null = null;
@@ -854,52 +943,20 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
         const limit = limitOf(p);
         const t0 = performance.now();
         const kept0 = kept();
-        waitsPast(limit);
-        let detail: unknown;
-        let failure: Error | null = null;
+        waitsPast(here, limit);
         const work = Promise.resolve().then(() => p.fn(here));
-        try {
-          detail = await within(work, limit, "still going");
-        } catch (e) {
-          failure = e as Error;
-        }
-        // A wait outlives the part's limit: it says what it waited for once its page is gone.
-        if (failure instanceof Overran) failure.message += await waitedFor(work, closing);
+        let { detail, failure } = await ranOut(work, limit, closing);
         // A trace it left going is no trace for the next part to wait on.
         await endTraces(here);
         const ms = performance.now() - t0;
         if (failure instanceof RealTime) await counted();
         const waited = Math.round(kept() - kept0);
-        const said = errors.splice(0).filter((e) => !p.reports.some((r) => r.test(e)));
-        if (said.length) failure ??= new Error(`the page reported: ${[...new Set(said)].join("; ")}`);
-        // An error the page reported is the part's, whatever it judged of real time.
-        if (said.length && failure instanceof RealTime) failure = new Error(`${failure.message} (and the page reported: ${[...new Set(said)].join("; ")})`);
-        if (!(failure instanceof Overran) && suite.neutral && here.page) {
-          let left: string[];
-          try {
-            left = await within(Promise.resolve(suite.neutral(here.page, start)), 5, "the check of what it left was still going");
-          } catch (e) {
-            left = [(e as Error).message];
-          }
-          if (left.length) {
-            const leftText = `it left ${suite.neutralName ?? "the page"} not as it found it: ${left.join("; ")}`;
-            if (failure) failure.message += ` (and ${leftText})`;
-            else failure = new Error(leftText);
-          }
-        }
-        const outcome = verdict(failure, waited);
-        const busy = `${waited ? `, kept from running ${waited} ms` : ""}${ms > limit * 1000 ? `: past its ${limit}s limit, stretched as the machine kept it` : ""}`;
-        if (outcome === "inconclusive") {
-          const message = `inconclusive: ${failure!.message}; while it ran, the machine kept it from running ${waited} ms, so this measured the machine`;
-          results.push({ label, outcome, ms, message });
-          part(label, ms / 1000, outcome, message);
-          console.log(`INCONCLUSIVE  ${label}  (${took(ms)})\n      ${message}`);
-        } else {
-          results.push({ label, outcome, ms, message: failure?.message });
-          part(label, ms / 1000, outcome, failure?.message);
-          if (outcome === "skipped") console.log(`skip  ${label}: ${failure!.message}`);
-          else console.log(failure ? `FAIL  ${label}  (${took(ms)}${busy})\n      ${failure.message.split("\n").join("\n      ")}` : `ok    ${label}${detail ? `  — ${detail}` : ""}  (${took(ms)}${busy})`);
-        }
+        failure = heard(failure, errors.splice(0), p.reports);
+        failure = await leftBy(suite, here.page, start, failure);
+        const { result, line } = endOf(label, verdict(failure, waited), ms, waited, limit, failure, detail);
+        results.push(result);
+        part(label, ms / 1000, result.outcome, result.message);
+        console.log(line);
         // A page a part failed on is no page to start the next on.
         if (failure && !(failure instanceof Skip) && i < parts.length - 1) {
           try {

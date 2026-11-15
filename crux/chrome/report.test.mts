@@ -9,9 +9,12 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, suite, test as one, type TestContext } from "node:test";
+import { skipFor } from "./touches.mts";
 import { setTimeout as sleep } from "node:timers/promises";
 
 // Held as the file is read, and run side by side at its end: node:test goes one at a time but in a suite that says otherwise.
+// Each case is skipped where what changed touches nothing this file tests (crux#227).
+const touched = skipFor("report.test.mts");
 const cases: [string, (t: TestContext) => void | Promise<void>][] = [];
 const test = (name: string, fn: (t: TestContext) => void | Promise<void>) => void cases.push([name, fn]);
 const scratch = mkdtempSync(join(tmpdir(), "crux-report-"));
@@ -63,5 +66,5 @@ test("run outside nerd, it reports nowhere and prints as ever", async () => {
 });
 
 suite("side by side", { concurrency: 2 }, () => {
-  for (const [name, fn] of cases) one(name, fn);
+  for (const [name, fn] of cases) one(name, touched, fn);
 });

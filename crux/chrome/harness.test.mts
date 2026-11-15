@@ -2,6 +2,8 @@
 // nerd runs a product's page test, with real Chrome: what each part reported, and how the run ended. Then what takes no
 // run to judge. No check here holds the wall clock to a number, so that `nerd test chrome --stalls` passes. The cases
 // share nothing but the runs that several read, each asked for once: a stand-in's run is a process and a Chrome of its own.
+// Each says what it tests, as touches.mts reads it (crux#227): the stand-in's files it runs on purpose, and the declarations
+// of harness.ts it is there for, beside those its code names; what changed runs only the cases it touches.
 //
 // npm ci && CHROME=... npx --yes tsx@4.20.6 --test harness.test.mts    (as `nerd test chrome` runs it)
 
@@ -12,11 +14,13 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { after, describe, test as one, type TestContext } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
+import { granular as coarseCases, harnessRuns, partFiles, reader, type Shared, told } from "./touches.mts";
 import { cannotTab, chooseGroups, claimable, coarse, counted, covered, FURTHEST, longestFirst, ordered, ranOn, reach, RealTime, runsOn, Skip, STALLED, STRETCH, standsFor, took, verdict, vite, within } from "./harness.ts";
 
-// Held as the file is read, and run side by side at its end: node:test goes one at a time but in a suite that says otherwise.
-const cases: [string, (t: TestContext) => void | Promise<void>][] = [];
-const test = (name: string, fn: (t: TestContext) => void | Promise<void>) => void cases.push([name, fn]);
+// Held as the file is read, each with what it claims, and run side by side at its end: node:test goes one at a time but in
+// a suite that says otherwise.
+const cases: [string, string[], (t: TestContext) => void | Promise<void>][] = [];
+const test = (name: string, claims: string[], fn: (t: TestContext) => void | Promise<void>) => void cases.push([name, claims, fn]);
 
 const here = import.meta.dirname;
 const scratch = mkdtempSync(join(tmpdir(), "crux-harness-"));
@@ -62,50 +66,50 @@ const seed = "34";
 let pages: ReturnType<typeof stand> | undefined;
 const whole = () => (pages ??= stand(["pages", "--seed", seed]));
 
-test("an error thrown in the page fails the part it came in, saying it", async () => {
+test("an error thrown in the page fails the part it came in, saying it", ["standin/tests/pages", "hear", "heard"], async () => {
   const { one } = await whole();
   assert.equal(one("errors › throws in its page").outcome, "failed");
   assert.match(one("errors › throws in its page").said!, /pageerror: thrown in the page/);
 });
 
-test("an error written to the console fails the part it came in, saying it", async () => {
+test("an error written to the console fails the part it came in, saying it", ["standin/tests/pages", "hear", "heard"], async () => {
   const { one } = await whole();
   assert.equal(one("errors › writes a console error").outcome, "failed");
   assert.match(one("errors › writes a console error").said!, /console error: written to the console/);
 });
 
-test("an error in a page the part opened is the part's too", async () => {
+test("an error in a page the part opened is the part's too", ["standin/tests/pages", "hear", "heard"], async () => {
   const { one } = await whole();
   assert.match(one("errors › opens a popup that throws").said!, /thrown in the page/);
 });
 
-test("what a part means its page to say passes, and only that", async () => {
+test("what a part means its page to say passes, and only that", ["standin/tests/pages", "hear", "heard"], async () => {
   const { one } = await whole();
   assert.equal(one("errors › makes its page throw on purpose").outcome, "passed");
   assert.equal(one("errors › makes its page say something else").outcome, "failed");
 });
 
-test("a warning fails only where the group says", async () => {
+test("a warning fails only where the group says", ["standin/tests/pages", "hear", "heard"], async () => {
   const { one } = await whole();
   assert.equal(one("errors › writes a warning").outcome, "passed");
   assert.equal(one("warnings › writes a warning, where they count").outcome, "failed");
   assert.match(one("warnings › writes a warning, where they count").said!, /console warning: a warning/);
 });
 
-test("a part past its limit fails saying what it waited for, and the next part runs on a fresh page", async () => {
+test("a part past its limit fails saying what it waited for, and the next part runs on a fresh page", ["standin/tests/pages", "within", "Overran", "waitedFor", "ranOut", "endOf"], async () => {
   const { one } = await whole();
   const part = one("limits › waits for what never comes");
   assert.equal(part.outcome, "failed");
   assert.match(part.said!, /#never/);
 });
 
-test("a wait that outlives its part's limit is said too", async () => {
+test("a wait that outlives its part's limit is said too", ["standin/tests/pages", "within", "Overran", "waitedFor", "ranOut", "waitsPast"], async () => {
   const { one } = await whole();
   assert.equal(one("limits › begins a wait late").outcome, "failed");
   assert.match(one("limits › begins a wait late").said!, /still going after [\d.]+s.*waiting for locator\('#late'\)/);
 });
 
-test("every kind of wait a part's limit ends says what it waited for", async () => {
+test("every kind of wait a part's limit ends says what it waited for", ["standin/tests/waits", "Overran", "waitedFor", "within", "ranOut", "waitsPast"], async () => {
   const { code, out, one } = await stand(["waits"]);
   assert.equal(code, 1, out);
   for (const [name, waited] of [
@@ -128,9 +132,11 @@ test("every kind of wait a part's limit ends says what it waited for", async () 
     assert.match(part.said!, /^still going after /, out);
     assert.match(part.said!, waited, out);
   }
+  // A part that has not ended once its page has closed cannot say what it waited for: it says that it cannot.
+  assert.match(one("hung › a wait after it, that never ends").said!, /^still going after .*, and still going after its page closed, so what it waited for is not known$/, out);
 });
 
-test("a part past its limit with nothing to wait for says so, and the part after one is on a fresh page", async () => {
+test("a part past its limit with nothing to wait for says so, and the part after one is on a fresh page", ["standin/tests/pages", "within", "Overran", "numbers", "shuffled", "hash", "ranOut", "leftBy"], async () => {
   const { one, parts } = await whole();
   assert.equal(one("limits › never ends").outcome, "failed");
   assert.match(one("limits › never ends").said!, /still going after [\d.]+s/);
@@ -139,7 +145,7 @@ test("a part past its limit with nothing to wait for says so, and the part after
   assert.equal(one("limits › comes after one").outcome, "passed");
 });
 
-test("a part that leaves its page changed fails, and one on a page a part failed on is on a fresh one", async () => {
+test("a part that leaves its page changed fails, and one on a page a part failed on is on a fresh one", ["standin/tests/pages", "numbers", "shuffled", "hash", "leftBy", "opened"], async () => {
   const { one, parts } = await whole();
   assert.equal(one("left › leaves the title").outcome, "failed");
   assert.match(one("left › leaves the title").said!, /it left the stand-in not as it found it: the title is changed/);
@@ -149,26 +155,26 @@ test("a part that leaves its page changed fails, and one on a page a part failed
   assert.equal(one("left › finds its page as it should").outcome, "passed");
 });
 
-test("a group whose page does not open fails each part, saying why", async () => {
+test("a group whose page does not open fails each part, saying why", ["standin/tests/pages", "opened"], async () => {
   const { one } = await whole();
   assert.equal(one("unopened › cannot run").outcome, "failed");
   assert.match(one("unopened › cannot run").said!, /its page did not open: the page would not open/);
 });
 
-test("pause stops the page's clock, and asks again from a time gone by", async () => {
+test("pause stops the page's clock, and asks again from a time gone by", ["standin/tests/pages", "pause"], async () => {
   const { one } = await whole();
   assert.equal(one("ways › pause stops the page's clock").outcome, "passed");
   assert.equal(one("ways › pause asks again from where the clock is").outcome, "passed", one("ways › pause asks again from where the clock is").said);
 });
 
-test("a part that cannot run says so, and a part may say its context", async () => {
+test("a part that cannot run says so, and a part may say its context", ["standin/tests/pages", "Skip", "contextFor", "endOf"], async () => {
   const { one, code } = await whole();
   assert.deepEqual(one("ways › cannot run here"), { part: "ways › cannot run here", seconds: one("ways › cannot run here").seconds, outcome: "skipped", said: "its fixture cannot be had" });
   assert.equal(one("errors › a context of its own").outcome, "passed", one("errors › a context of its own").said);
   assert.equal(code, 1, "what failed fails the run");
 });
 
-test("a suite that says its Chrome is a reader's has one", async () => {
+test("a suite that says its Chrome is a reader's has one", ["standin/tests/reader"], async () => {
   const { outcomes, out } = await stand(["reader"]);
   assert.deepEqual(outcomes, { "reader › a reader's says no webdriver": "passed" }, out);
 });
@@ -178,7 +184,7 @@ test("a suite that says its Chrome is a reader's has one", async () => {
 let tabs: ReturnType<typeof stand> | undefined;
 const tabbed = () => (tabs ??= stand(["tabs", "--seed", "3"]));
 
-test("an error thrown or written in a reader's tab fails the part it came in, saying it", async () => {
+test("an error thrown or written in a reader's tab fails the part it came in, saying it", ["standin/tests/tabs", "hear", "heard", "contextFor"], async () => {
   const { one, code } = await tabbed();
   assert.equal(code, 1);
   assert.match(one("tabs › throws in its page").said!, /^the page reported: pageerror: thrown in the page$/);
@@ -187,7 +193,7 @@ test("an error thrown or written in a reader's tab fails the part it came in, sa
   assert.match(one("tabs › opens a popup that throws, and leaves it").said!, /^the page reported: pageerror: thrown in the page$/);
 });
 
-test("a tab is held to its limit, and neither it nor what it leaves is found by the next", async () => {
+test("a tab is held to its limit, and neither it nor what it leaves is found by the next", ["standin/tests/tabs", "numbers", "shuffled", "hash", "contextFor", "leftBy"], async () => {
   const { one, parts } = await tabbed();
   assert.match(one("tabs › waits for what never comes").said!, /#never/);
   assert.match(one("tabs › never ends").said!, /still going after [\d.]+s/);
@@ -197,28 +203,28 @@ test("a tab is held to its limit, and neither it nor what it leaves is found by 
   assert.equal(one("tabs › meets no route left").outcome, "passed", one("tabs › meets no route left").said);
 });
 
-test("tabs go one at a time, each shown, and a group that says otherwise is on a page of its own beside them", async () => {
+test("tabs go one at a time, each shown, and a group that says otherwise is on a page of its own beside them", ["standin/tests/tabs", "contextFor"], async () => {
   const { one, out } = await tabbed();
   for (const name of ["a", "b", "c", "d", "e"]) assert.equal(one(`one at a time › tab ${name}`).outcome, "passed", one(`one at a time › tab ${name}`).said);
   for (const part of ["not a tab › is on a page of its own", "nor this › takes the other's turn", "beside › meets a group not on a tab"]) assert.equal(one(part).outcome, "passed", one(part).said);
   assert.match(out, /2 at a time, one of them a reader's tab/);
 });
 
-test("recordings answer a group's tab, what none answers fails its part, and tabs alone go one at a time", async () => {
+test("recordings answer a group's tab, what none answers fails its part, and tabs alone go one at a time", ["standin/tests/tabrecorded", "answerFrom", "contextFor"], async () => {
   const { one, out } = await stand(["tabrecorded", "--seed", "1"]);
   assert.equal(one("answers › answers from recordings").outcome, "passed", one("answers › answers from recordings").said);
   assert.match(one("answers › asks what none answers").said!, /it asked https:\/\/unrecorded\.example\/x, which no recording answers/);
   assert.match(out, /2 parts in 1 groups: every group\./);
 });
 
-test("a suite that says a tab with no reader's Chrome is refused, not run on a page", async () => {
+test("a suite that says a tab with no reader's Chrome is refused, not run on a page", ["standin/tests/tabplain", "cannotTab"], async () => {
   const { code, out, parts } = await stand(["tabplain"]);
   assert.notEqual(code, 0);
   assert.match(out, /parts\.mjs: its group is on a tab, which only a reader's Chrome has: say `chrome: \{ reader: true \}`/);
   assert.deepEqual(parts, []);
 });
 
-test("what a page asks of other servers is answered from recordings, and what none answers fails the part", async () => {
+test("what a page asks of other servers is answered from recordings, and what none answers fails the part", ["standin/tests/recorded", "standin/fixtures", "answerFrom"], async () => {
   const { one, code, out } = await stand(["recorded"]);
   assert.equal(code, 1);
   assert.equal(one("answers › answers from recordings").outcome, "passed", out);
@@ -229,7 +235,7 @@ test("what a page asks of other servers is answered from recordings, and what no
 
 const narrow = (changed: string) => stand(["narrow"], { NERD_CHANGED: `${changed}\n` });
 
-test("a change to what one group covers runs it, and the rest are reported skipped", async () => {
+test("a change to what one group covers runs it, and the rest are reported skipped", ["standin/tests/narrow", "choose", "chooseGroups"], async () => {
   for (const file of ["src/one/a.ts", "tests/narrow/one.mjs"]) {
     const { code, outcomes } = await narrow(file);
     assert.equal(code, 0);
@@ -238,7 +244,7 @@ test("a change to what one group covers runs it, and the rest are reported skipp
   assert.deepEqual((await narrow("src/two/b.ts")).outcomes, { "one › runs": "skipped", "two › runs": "passed" });
 });
 
-test("a shared file runs all, as does what no group claims, which is said", async () => {
+test("a shared file runs all, as does what no group claims, which is said", ["standin/tests/narrow", "choose", "chooseGroups", "short"], async () => {
   const all = { "one › runs": "passed", "two › runs": "passed" };
   for (const [file, why] of [
     ["src/shared.ts", "which they all share"],
@@ -253,7 +259,7 @@ test("a shared file runs all, as does what no group claims, which is said", asyn
   }
 });
 
-test("the harness's own files are shared, as a product's copy of it is: a change to one runs all", async () => {
+test("the harness's own files are shared, as a product's copy of it is: a change to one runs all", ["standin/tests/narrow", "changesFor", "ranOn", "chooseGroups"], async () => {
   // A root that holds the harness in a directory of its own, as a product's crux/chrome/harness.ts does.
   await Promise.all(
     runsOn.map(async (name) => {
@@ -265,7 +271,7 @@ test("the harness's own files are shared, as a product's copy of it is: a change
   );
 });
 
-test("the part's own tests and stand-ins run none of a product's parts, though its covers take the part whole", async () => {
+test("the part's own tests and stand-ins run none of a product's parts, though its covers take the part whole", ["standin/tests/narrow", "changesFor", "ranOn", "choose"], async () => {
   const files = ["harness.test.mts", "report.mjs", "standin/tests/narrow/one.mjs"].map((f) => `${basename(here)}/${f}`);
   const { code, outcomes, out } = await stand(["narrow"], { NERD_CHANGED: `${files.join("\n")}\n`, STANDIN_ROOT: dirname(here) });
   assert.equal(code, 0, out);
@@ -275,7 +281,7 @@ test("the part's own tests and stand-ins run none of a product's parts, though i
   assert.deepEqual(beside.outcomes, { "one › runs": "passed", "two › runs": "passed" }, "beside one it runs on, all run");
 });
 
-test("nothing changed runs all, and words run the parts that have them", async () => {
+test("nothing changed runs all, and words run the parts that have them", ["standin/tests/narrow", "choose"], async () => {
   const all = await stand(["narrow"], { NERD_CHANGED: "" });
   assert.deepEqual(all.outcomes, { "one › runs": "passed", "two › runs": "passed" });
   const word = await stand(["narrow", "TWO"]);
@@ -285,7 +291,7 @@ test("nothing changed runs all, and words run the parts that have them", async (
   assert.match(none.out, /No part of narrow has the words "nothing-has-this"\. Its groups: one, two/);
 });
 
-test("a file the suite narrows runs for what its change stands for, read from git at NERD_BASE", async () => {
+test("a file the suite narrows runs for what its change stands for, read from git at NERD_BASE", ["standin/tests/narrow", "changesFor", "standsFor", "atBase", "choose", "short"], async () => {
   const git = (...args: string[]) => execFileSync("git", ["-C", join(here, "standin"), ...args], { encoding: "utf8" }).trim();
   const head = git("rev-parse", "HEAD");
   const read = await stand(["narrow"], { NERD_CHANGED: "serve.mjs\n", NERD_BASE: head });
@@ -307,7 +313,7 @@ test("a file the suite narrows runs for what its change stands for, read from gi
   assert.ok(none.out.includes("0 parts in 0 groups: nothing, for what changed stands for nothing"), none.out);
 });
 
-test("what a change stands for", () => {
+test("what a change stands for", [], () => {
   const was = (file: string) => ({ "list.ts": "a\n", "kept.ts": "k\n" })[file] ?? null;
   const now = (file: string) => ({ "list.ts": "a\nb\n", "kept.ts": "k\n" })[file] ?? null;
   const narrow = {
@@ -322,7 +328,7 @@ test("what a change stands for", () => {
 
 const granular = (held: string, given: Record<string, string> = {}, words: string[] = []) => stand(["granular", ...words], { STANDIN_GRANULAR: held, ...given });
 
-test("a granular suite with every file claimed runs, and narrows as any suite", async () => {
+test("a granular suite with every file claimed runs, and narrows as any suite", ["standin/tests/granular", "standin/granular", "holdGranular", "claimable", "coarse"], async () => {
   const whole = await granular("granular/**,!granular/loose.ts,!granular/wide.ts");
   assert.equal(whole.code, 0, whole.out);
   assert.deepEqual(Object.values(whole.outcomes), ["passed", "passed", "passed", "passed"]);
@@ -331,14 +337,14 @@ test("a granular suite with every file claimed runs, and narrows as any suite", 
   assert.equal(Object.values(one.outcomes).filter((o) => o === "passed").length, 1);
 });
 
-test("a granular suite that holds the harness's directory whole faults none of the part's own files", async () => {
+test("a granular suite that holds the harness's directory whole faults none of the part's own files", ["standin/tests/granular", "holdGranular", "claimable", "coarse", "ranOn"], async () => {
   // As a product's granular `files` of crux/** takes in the part's tests and stand-ins, which none of its parts claims.
   const { code, out } = await granular(`${basename(here)}/**`, { STANDIN_ROOT: dirname(here) });
   assert.equal(code, 0, out);
   assert.ok(!out.includes("claimed by no part"), out);
 });
 
-test("a granular suite fails on a file no part claims, whatever changed, before Chrome starts", async () => {
+test("a granular suite fails on a file no part claims, whatever changed, before Chrome starts", ["standin/tests/granular", "standin/granular", "holdGranular", "claimable", "coarse"], async () => {
   for (const given of [{}, { NERD_CHANGED: "granular/a.ts\n" }, { NERD_CHANGED: "granular/loose.ts\n" }] as Record<string, string>[]) {
     const { code, out, parts } = await granular("granular/**,!granular/wide.ts", given);
     assert.equal(code, 1, out);
@@ -348,19 +354,19 @@ test("a granular suite fails on a file no part claims, whatever changed, before 
   }
 });
 
-test("a granular suite fails on a file changed that its files do not name and no part claims", async () => {
+test("a granular suite fails on a file changed that its files do not name and no part claims", ["standin/tests/granular", "standin/granular", "holdGranular", "coarse"], async () => {
   const { code, out } = await granular("granular/a.ts", { NERD_CHANGED: "granular/loose.ts\n" });
   assert.equal(code, 1, out);
   assert.ok(out.includes("granular/loose.ts is claimed by no part"), out);
 });
 
-test("a granular suite runs all for a file a change removed, as nothing is left to claim", async () => {
+test("a granular suite runs all for a file a change removed, as nothing is left to claim", ["standin/tests/granular", "holdGranular", "chooseGroups"], async () => {
   const { code, outcomes, out } = await granular("granular/**,!granular/loose.ts,!granular/wide.ts", { NERD_CHANGED: "granular/gone.ts\n" });
   assert.equal(code, 0, out);
   assert.deepEqual(Object.values(outcomes), ["passed", "passed", "passed", "passed"]);
 });
 
-test("a granular suite fails on a file that runs more than its share, but for one it shares, or what it says it may", async () => {
+test("a granular suite fails on a file that runs more than its share, but for one it shares, or what it says it may", ["standin/tests/granular", "standin/granular", "holdGranular", "coarse"], async () => {
   const wide = await granular("granular/**,!granular/loose.ts");
   assert.equal(wide.code, 1, wide.out);
   assert.ok(wide.out.includes("granular/wide.ts runs 2 of the 4 parts, more than 25%"), wide.out);
@@ -370,13 +376,13 @@ test("a granular suite fails on a file that runs more than its share, but for on
   assert.equal(more.code, 0, more.out);
 });
 
-test("words run what they say, however a granular suite stands", async () => {
+test("words run what they say, however a granular suite stands", ["standin/tests/granular", "choose"], async () => {
   const { code, outcomes } = await granular("granular/**", {}, ["one"]);
   assert.equal(code, 0);
   assert.equal(Object.values(outcomes).filter((o) => o === "passed").length, 1);
 });
 
-test("what granular reads and judges", () => {
+test("what granular reads and judges", ["standin/granular"], () => {
   const root = join(here, "standin");
   assert.deepEqual(claimable(root, ["granular/**", "!granular/loose.ts", "!granular/wide.ts"]).filter((f) => !f.endsWith("/")).sort(), ["granular/a.ts", "granular/b.ts", "granular/c.ts", "granular/d.ts"]);
   assert.deepEqual(claimable(here, ["node_modules/**"]), [], "what is installed is no file of a suite's");
@@ -388,7 +394,7 @@ test("what granular reads and judges", () => {
   assert.equal(coarse(suite, ["nobody"]).length, 1);
 });
 
-test("granular makes each pattern once, however many files and parts it judges (crux#204)", () => {
+test("granular makes each pattern once, however many files and parts it judges (crux#204)", ["glob", "made", "compiled"], () => {
   // Dawn's suite, as synth-exp's #580 profiled it: 267 parts, each with patterns of its own and some every part has.
   const parts = Array.from({ length: 267 }, (_, i) => ({ own: [`web/src/part${i}/**`, `web/tests/part${i}.mjs`, "web/src/common/{a,b}.ts", "!web/src/**/*.test.ts"] }));
   const suite = { shared: ["web/tests/suite.mjs", "web/tests/run.mjs"], groups: [{ parts }] };
@@ -406,7 +412,7 @@ test("granular makes each pattern once, however many files and parts it judges (
   assert.ok(made <= distinct, `made ${made} expressions of ${distinct} patterns, for ${files.length} files of ${parts.length} parts, twice`);
 });
 
-test("a harness in web/tests works as one at tests/, its covers from the product's root", async () => {
+test("a harness in web/tests works as one at tests/, its covers from the product's root", ["standin/web", "asPath", "chooseGroups"], async () => {
   const changed = { NERD_CHANGED: "web/src/library/a.ts\n" };
   const { code, outcomes } = await stand(["nested"], changed, "web/tests/run.mjs");
   assert.equal(code, 0);
@@ -418,7 +424,7 @@ test("a harness in web/tests works as one at tests/, its covers from the product
 const apart = (changed: string) => stand(["apart"], { NERD_CHANGED: `${changed}\n` });
 const ofApart = (ran: string[]) => Object.fromEntries(["apart › says one file", "apart › says more", "apart › says none", "wide › says its own", "other › says its own"].map((p) => [p, ran.includes(p) ? "passed" : "skipped"]));
 
-test("a change to what a part says runs that part of its group, and the group's others are reported skipped", async () => {
+test("a change to what a part says runs that part of its group, and the group's others are reported skipped", ["standin/tests/apart", "chooseGroups", "short"], async () => {
   for (const [file, ran] of [
     ["src/mine.ts", ["apart › says one file", "apart › says more"]],
     ["src/more/deep/a.ts", ["apart › says more"]],
@@ -434,7 +440,7 @@ test("a change to what a part says runs that part of its group, and the group's 
   assert.ok((await apart("src/wide/a.ts")).out.includes("wide, for src/wide/a.ts"), "a group all of whose parts run is named alone");
 });
 
-test("a part's file is its own too: a change to it runs every part in it and no other, and what all share runs all", async () => {
+test("a part's file is its own too: a change to it runs every part in it and no other, and what all share runs all", ["standin/tests/apart", "chooseGroups"], async () => {
   const all = ofApart(Object.keys(ofApart([])));
   assert.deepEqual((await apart("tests/apart/parts.mjs")).outcomes, ofApart(["apart › says one file", "apart › says more", "apart › says none", "wide › says its own"]));
   assert.deepEqual((await apart("tests/apart/other.mjs")).outcomes, ofApart(["other › says its own"]));
@@ -452,7 +458,7 @@ test("a part's file is its own too: a change to it runs every part in it and no 
   }
 });
 
-test("a part's covers hold in a suite that goes each, and words and nothing changed run it as ever", async () => {
+test("a part's covers hold in a suite that goes each, and words and nothing changed run it as ever", ["standin/tests/apartall", "chooseGroups", "choose"], async () => {
   const { code, outcomes } = await stand(["apartall"], { NERD_CHANGED: "src/mine.ts\n" });
   assert.equal(code, 0);
   assert.deepEqual(outcomes, { "suite's › says none": "skipped", "suite's › says its own": "passed" });
@@ -460,7 +466,7 @@ test("a part's covers hold in a suite that goes each, and words and nothing chan
   assert.deepEqual((await stand(["apartall", "says none"], { NERD_CHANGED: "src/mine.ts\n" })).outcomes, { "suite's › says its own": "skipped", "suite's › says none": "passed" });
 });
 
-test("a part that says its covers in a group that shares a page is refused, not run with the rest", async () => {
+test("a part that says its covers in a group that shares a page is refused, not run with the rest", ["standin/tests/together", "standin/tests/together-each"], async () => {
   for (const suite of ["together", "together-each"]) {
     const { code, out, parts } = await stand([suite], { NERD_CHANGED: "src/mine.ts\n" });
     assert.notEqual(code, 0, suite);
@@ -471,7 +477,7 @@ test("a part that says its covers in a group that shares a page is refused, not 
 
 const order = async (seed: string) => (await stand(["order", "--seed", seed])).parts.map((p) => p.part);
 
-test("the same seed gives the same order, of groups and of the parts in each, and says it", async () => {
+test("the same seed gives the same order, of groups and of the parts in each, and says it", ["standin/tests/order", "numbers", "shuffled", "hash", "ordered"], async () => {
   const first = await order("7");
   assert.deepEqual(await order("7"), first);
   assert.equal(first.length, 16);
@@ -482,14 +488,14 @@ test("the same seed gives the same order, of groups and of the parts in each, an
   assert.deepEqual(await order(given), said.parts.map((p) => p.part));
 });
 
-test("a group's parts go in the order they went among the rest, with words too", async () => {
+test("a group's parts go in the order they went among the rest, with words too", ["standin/tests/order", "ordered", "choose"], async () => {
   const of = (parts: string[]) => parts.filter((p) => p.startsWith("east ›"));
   const among = of(await order("7"));
   const alone = await stand(["order", "east", "--seed", "7"]);
   assert.deepEqual(of(alone.parts.filter((p) => p.outcome === "passed").map((p) => p.part)), among);
 });
 
-test("about four side by side on one Chrome, each on a page of its own, what goes alone first, the longest first", async () => {
+test("about four side by side on one Chrome, each on a page of its own, what goes alone first, the longest first", ["standin/tests/sides", "longestFirst", "places", "current", "contextFor"], async () => {
   const sides = async (name: string, given: Record<string, string> = {}) => {
     const log = join(scratch, name);
     const { code, out, outcomes } = await stand(["sides", "--seed", "1"], { STANDIN_LOG: log, ...given });
@@ -510,7 +516,7 @@ test("about four side by side on one Chrome, each on a page of its own, what goe
   assert.deepEqual(longest.slice(2, 6).map((b) => b.name).filter((name) => last.includes(name)).sort(), [...last].sort(), "the longest first");
 });
 
-test("parts side by side take Chrome's one trace in turn, each whole, and one a part left going or detached from is ended for the next (crux#211)", async () => {
+test("parts side by side take Chrome's one trace in turn, each whole, and one a part left going or detached from is ended for the next (crux#211)", ["standin/tests/traces", "lastTrace", "takeTrace", "tracesOf", "tracesHeld", "oneTrace", "tracing", "tracesInTurn", "endTraces"], async () => {
   const log = join(scratch, "traces");
   const { code, out, outcomes, one } = await stand(["traces", "--seed", "1"], { STANDIN_LOG: log });
   assert.equal(code, 1, out);
@@ -524,7 +530,7 @@ test("parts side by side take Chrome's one trace in turn, each whole, and one a 
   for (let i = 0; i < traces.length; i += 2) assert.deepEqual([traces[i].trace, traces[i + 1].trace, traces[i + 1].name], ["from", "to", traces[i].name], JSON.stringify(traces));
 });
 
-test("a stall made on purpose reports inconclusive, and fails nothing", async () => {
+test("a stall made on purpose reports inconclusive, and fails nothing", ["standin/tests/stalls", "RealTime", "inTime", "verdict", "STALLED", "watch", "overslept", "cpuWaited", "kept", "endOf", "heard"], async () => {
   const { code, out, one } = await stand(["stalls", "judges"]);
   assert.equal(code, 0, out);
   const part = one("stalled › judges real time");
@@ -532,37 +538,37 @@ test("a stall made on purpose reports inconclusive, and fails nothing", async ()
   assert.match(part.said!, /the ticks came late.*kept it from running \d+ ms, so this measured the machine/);
 });
 
-test("a stall that has only just ended is counted", async () => {
+test("a stall that has only just ended is counted", ["standin/tests/stalls", "RealTime", "inTime", "verdict", "counted", "watch", "overslept", "kept", "endOf"], async () => {
   const { code, out, parts } = await stand(["stalls", "as a stall ends"]);
   assert.equal(code, 0, out);
   assert.deepEqual([...new Set(parts.filter((p) => p.outcome !== "skipped").map((p) => p.outcome))], ["inconclusive"], out);
 });
 
-test("a part a stall only slowed passes past its limit", async () => {
+test("a part a stall only slowed passes past its limit", ["standin/tests/stalls", "within", "reach", "watch", "overslept", "kept", "ranOut", "endOf"], async () => {
   const { code, out, one } = await stand(["stalls", "slowed"]);
   assert.equal(code, 0, out);
   assert.equal(one("stalled › is only slowed").outcome, "passed", out);
 });
 
-test("a part the machine kept past three times its limit passes", async () => {
+test("a part the machine kept past three times its limit passes", ["standin/tests/stalls", "within", "reach", "STRETCH", "watch", "overslept", "kept", "ranOut", "endOf"], async () => {
   const { code, out, one } = await stand(["stalls", "kept past"]);
   assert.equal(code, 0, out);
   assert.equal(one("stalled › is kept past three times its limit").outcome, "passed", out);
 });
 
-test("a wait begun on a machine that kept the run is not held to less than the part is", async () => {
+test("a wait begun on a machine that kept the run is not held to less than the part is", ["standin/tests/stalls", "within", "FURTHEST", "watch", "kept", "waitsPast", "ranOut"], async () => {
   const { code, out, one } = await stand(["stalls", "wait"]);
   assert.equal(code, 0, out);
   assert.equal(one("stalled › waits through a stall").outcome, "passed", out);
 });
 
-test("a wait begun before the machine is looked at is not held to less than the part is", async () => {
+test("a wait begun before the machine is looked at is not held to less than the part is", ["standin/tests/stalls", "within", "FURTHEST", "watch", "kept", "waitsPast", "ranOut"], async () => {
   const { code, out, one } = await stand(["stalls", "before the machine"]);
   assert.equal(code, 0, out);
   assert.equal(one("stalled › begins a wait before the machine is looked at").outcome, "passed", out);
 });
 
-test("a hang the machine kept still fails, saying what it waited for and what was kept", async () => {
+test("a hang the machine kept still fails, saying what it waited for and what was kept", ["standin/tests/stalls", "within", "reach", "waitedFor", "took", "cpuWaited", "kept", "ranOut", "endOf"], async () => {
   const { code, out, one } = await stand(["stalls", "hangs"]);
   assert.equal(code, 1, out);
   const part = one("stalled › hangs after a stall");
@@ -570,7 +576,7 @@ test("a hang the machine kept still fails, saying what it waited for and what wa
   assert.match(part.said!, /still going after [\d.]+s: its 1s limit, stretched as the machine kept it from running [\d.]+s, waiting for locator\('#never'\)/);
 });
 
-test("a hang the machine kept to the end of its limit's reach is ended by that limit, not by the wait's own timeout", async () => {
+test("a hang the machine kept to the end of its limit's reach is ended by that limit, not by the wait's own timeout", ["standin/tests/stalls", "within", "reach", "FURTHEST", "waitedFor", "took", "ranOut", "waitsPast"], async () => {
   const { code, out, one } = await stand(["stalls", "long stall"]);
   assert.equal(code, 1, out);
   const part = one("stalled › hangs through a long stall");
@@ -578,7 +584,7 @@ test("a hang the machine kept to the end of its limit's reach is ended by that l
   assert.match(part.said!, /^still going after [\d.]+s: its 1s limit, stretched as the machine kept it from running [\d.]+s, waiting for locator\('#never'\)/);
 });
 
-test("a wait as a page opens is not held to less than the opening is, and a hung opening says what it waited for", async () => {
+test("a wait as a page opens is not held to less than the opening is, and a hung opening says what it waited for", ["standin/tests/opening", "within", "Overran", "waitedFor", "FURTHEST", "opened", "waitsPast"], async () => {
   const { code, out, one } = await stand(["opening"]);
   assert.equal(code, 1, out);
   assert.equal(one("kept › opens").outcome, "passed", out);
@@ -595,13 +601,13 @@ test("a wait as a page opens is not held to less than the opening is, and a hung
   }
 });
 
-test("a stall does not excuse what is no judgment of real time", async () => {
+test("a stall does not excuse what is no judgment of real time", ["standin/tests/stalls", "RealTime", "verdict", "endOf"], async () => {
   const { code, one } = await stand(["stalls", "fails beside"]);
   assert.equal(code, 1);
   assert.equal(one("failing › fails beside a stall").outcome, "failed");
 });
 
-test("run outside nerd, it says so; --list needs no nerd", async () => {
+test("run outside nerd, it says so; --list needs no nerd", ["standin/tests/narrow", "standin/tests/apart"], async () => {
   const { NERD_TEST: _, ...outside } = env;
   const run = (args: string[]) =>
     new Promise<{ code: number; out: string }>((resolve) => {
@@ -634,7 +640,7 @@ const suite = {
 };
 const names = (changed: string[]) => chooseGroups(suite, changed).chosen.map((c) => c.group.name);
 
-test("chooseGroups: the harness's own files are shared, and patterns read as nerd's", () => {
+test("chooseGroups: the harness's own files are shared, and patterns read as nerd's", ["glob"], () => {
   assert.deepEqual(names(["src/one/deep/a.ts"]), ["one"]);
   assert.deepEqual(names(["src/three.ts"]), ["two"]);
   assert.deepEqual(names(["crux/chrome/harness.ts"]), ["one", "two"]);
@@ -643,13 +649,13 @@ test("chooseGroups: the harness's own files are shared, and patterns read as ner
   assert.deepEqual(names(["src/one/a.ts", "src/three.ts"]), ["one", "two"]);
 });
 
-test("ranOn: of the part's directory, only what a suite runs on; the rest of the root as it was", () => {
+test("ranOn: of the part's directory, only what a suite runs on; the rest of the root as it was", [], () => {
   const changed = ["crux/chrome/harness.ts", "crux/chrome/harness.test.mts", "crux/chrome/standin/web/index.html", "crux/chrome/package-lock.json", "crux/chromeless.ts", "src/a.ts"];
   assert.deepEqual(ranOn(changed, "crux/chrome"), ["crux/chrome/harness.ts", "crux/chrome/package-lock.json", "crux/chromeless.ts", "src/a.ts"]);
   assert.deepEqual(ranOn(changed, "../elsewhere"), changed, "a harness outside the root takes nothing of it");
 });
 
-test("runsOn: every file of the part's own that the harness imports, and each there", () => {
+test("runsOn: every file of the part's own that the harness imports, and each there", [], () => {
   for (const name of ["harness.ts", "launch.ts"]) {
     const imports = [...readFileSync(join(here, name), "utf8").matchAll(/^import [^;]*? from "\.\/([^"]+)";/gm)].map((m) => m[1]);
     for (const imported of imports) assert.ok(runsOn.includes(imported), `${name} imports ${imported}, which runsOn leaves out`);
@@ -657,7 +663,7 @@ test("runsOn: every file of the part's own that the harness imports, and each th
   for (const name of runsOn) assert.ok(existsSync(join(here, name)), name);
 });
 
-test("chooseGroups: each part by its own patterns, and only what a part claims is claimed", () => {
+test("chooseGroups: each part by its own patterns, and only what a part claims is claimed", ["glob"], () => {
   const [wide, narrow, both, took] = [{ own: ["src/a"] }, { own: ["src/a/one.ts"] }, { own: ["src/a/one.ts", "src/b", "!src/b/old.ts"] }, { own: ["src/c.ts"] }];
   const suite = { shared: ["src/shared.ts"], groups: [{ name: "first", parts: [wide, narrow, both] }, { name: "second", parts: [took] }] };
   const parts = (...changed: string[]) => chooseGroups(suite, changed).chosen.flatMap((c) => c.parts);
@@ -674,7 +680,7 @@ test("chooseGroups: each part by its own patterns, and only what a part claims i
   assert.deepEqual(chooseGroups(suite, ["src/c.ts"]).chosen.map((c) => c.group.name), ["second"], "a group with no part called for is not chosen");
 });
 
-test("cannotTab: what a tab cannot be", () => {
+test("cannotTab: what a tab cannot be", [], () => {
   const [reader, group, size] = [{ chrome: { reader: true } }, { parts: [{}] }, { width: 390, height: 844 }];
   assert.equal(cannotTab(reader, group), null);
   assert.match(cannotTab({}, group)!, /only a reader's Chrome/);
@@ -691,7 +697,7 @@ test("cannotTab: what a tab cannot be", () => {
   }
 });
 
-test("covered: as nerd.toml's", () => {
+test("covered: as nerd.toml's", ["glob", "made", "compiled"], () => {
   assert.equal(covered(["src/*.ts"], "src/a.ts"), true);
   assert.equal(covered(["src/*.ts"], "src/deep/a.ts"), false);
   assert.equal(covered(["src/**/*.ts"], "src/deep/a.ts"), true);
@@ -701,14 +707,14 @@ test("covered: as nerd.toml's", () => {
   assert.equal(covered(["src.ts"], "srcxts"), false);
 });
 
-test("longestFirst: by what nerd says, and one not timed by its limit", () => {
+test("longestFirst: by what nerd says, and one not timed by its limit", [], () => {
   const unit = (name: string, ...titles: string[]) => ({ group: { name }, parts: titles.map((title) => ({ title })) });
   const units = [unit("short", "a"), unit("new", "a"), unit("long", "a", "b")];
   const usual = { "short › a": 1, "long › a": 40, "long › b": 41 };
   assert.deepEqual(longestFirst(units, usual, () => 10).map((u) => u.group.name), ["long", "new", "short"]);
 });
 
-test("ordered: a seed's order, whichever parts are left of a group", () => {
+test("ordered: a seed's order, whichever parts are left of a group", ["numbers", "shuffled", "hash"], () => {
   const parts = ["a", "b", "c", "d", "e", "f"];
   const group = { name: "g", parts };
   const some = ["b", "c", "d", "e"];
@@ -718,7 +724,7 @@ test("ordered: a seed's order, whichever parts are left of a group", () => {
   }
 });
 
-test("verdict: only a judgment of real time, only on a machine that stalled", () => {
+test("verdict: only a judgment of real time, only on a machine that stalled", [], () => {
   assert.equal(verdict(null, 500), "passed");
   assert.equal(verdict(new RealTime("late"), 500), "inconclusive");
   assert.equal(verdict(new RealTime("late"), 30), "inconclusive");
@@ -728,7 +734,7 @@ test("verdict: only a judgment of real time, only on a machine that stalled", ()
   assert.equal(verdict(new Skip("no fixture"), 0), "skipped");
 });
 
-test("within: a limit stretches on a machine that kept the run, and a hang past that still fails", async () => {
+test("within: a limit stretches on a machine that kept the run, and a hang past that still fails", ["took"], async () => {
   const never = new Promise<void>(() => undefined);
   await assert.rejects(within(never, 0.01, "still going", () => 0), /still going after 0\.01s, its limit/);
   let kept = 0;
@@ -737,33 +743,33 @@ test("within: a limit stretches on a machine that kept the run, and a hang past 
   assert.equal(await within(Promise.resolve("done"), 1, "still going", () => 0), "done");
 });
 
-test("within: a stall counted just after the limit came still stretches it", async () => {
+test("within: a stall counted just after the limit came still stretches it", [], async () => {
   // Limit 200 ms, stretched 600 ms, the work done in 400 ms; the thread has not counted the stall at the first look.
   let looks = 0;
   const work = sleep(400, "done");
   assert.equal(await within(work, 0.2, "still going", () => (looks++ < 2 ? 0 : 100)), "done");
 });
 
-test("within: a part the machine held past three times its limit, and then let run, ends", async () => {
+test("within: a part the machine held past three times its limit, and then let run, ends", [], async () => {
   // Limit 100 ms, stretched 300 ms and a second kept: the work done at 600 ms, past 300 ms and short of the 1 s at the end.
   const t0 = performance.now();
   const work = sleep(600, "done");
   assert.equal(await within(work, 0.1, "still going", () => (performance.now() - t0 >= 50 ? 1000 : 0)), "done");
 });
 
-test("within: what was kept growing as fast as the clock, a hang still fails", async () => {
+test("within: what was kept growing as fast as the clock, a hang still fails", [], async () => {
   const t0 = performance.now();
   await assert.rejects(within(new Promise<void>(() => undefined), 0.02, "still going", () => 10 * (performance.now() - t0)), /still going after/);
 });
 
-test("within: a stall counted as the stretched limit comes stretches it further", async () => {
+test("within: a stall counted as the stretched limit comes stretches it further", [], async () => {
   // Limit 100 ms, counted late, and stretched 340 ms; the work done at 500 ms, the rest counted late at that limit too.
   let looks = 0;
   const work = sleep(500, "done");
   assert.equal(await within(work, 0.1, "still going", () => (looks++ < 2 ? 0 : looks < 5 ? 40 : 700)), "done");
 });
 
-test("reach: the limit alone on a machine that kept nothing, then three times it and what was kept, up to its end", () => {
+test("reach: the limit alone on a machine that kept nothing, then three times it and what was kept, up to its end", [], () => {
   assert.equal(reach(30, 0), 30_000);
   assert.equal(reach(30, STALLED - 1), 30_000);
   assert.equal(reach(30, STALLED), 30_000 * STRETCH + STALLED);
@@ -772,7 +778,7 @@ test("reach: the limit alone on a machine that kept nothing, then three times it
   assert.equal(reach(30, 3_600_000), 30_000 * FURTHEST);
 });
 
-test("counted: only once the thread has gone round twice, as its first turn from here may have read the clock before", async () => {
+test("counted: only once the thread has gone round twice, as its first turn from here may have read the clock before", [], async () => {
   await counted(null);
   const turns = new Int32Array(new SharedArrayBuffer(8));
   turns[1] = 7;
@@ -788,13 +794,13 @@ test("counted: only once the thread has gone round twice, as its first turn from
   await waiting;
 });
 
-test("took: as nerd says it", () => {
+test("took: as nerd says it", [], () => {
   assert.equal(took(1900), "1.9s");
   assert.equal(took(24_000), "24s");
   assert.equal(took(185_000), "3m05s");
 });
 
-test("vite: on a port it chooses, watching nothing and reloading nothing, whatever the product says", async () => {
+test("vite: on a port it chooses, watching nothing and reloading nothing, whatever the product says", [], async () => {
   let config: any;
   let closed = false;
   const stand = async (given: unknown) => {
@@ -809,7 +815,22 @@ test("vite: on a port it chooses, watching nothing and reloading nothing, whatev
   assert.equal(closed, true);
 });
 
+// What every case runs on, so that a change to one runs them all: the stand-in's runner and pages, what the harness reads a
+// suite and runs a part by, and what this file starts a stand-in's run by.
+const SHARED: Shared = {
+  files: ["standin/tests/run.mjs", "standin/serve.mjs"],
+  declarations: ["run", "load", "group", "reading", "registered"],
+  helpers: ["cases", "test", "here", "scratch", "runs", "free", "waiting", "stand"],
+};
+
+// Which cases what changed touches, the rest skipped; none, where the test would run more than that (`granular`).
+const claimed = cases.map(([name, claims]) => ({ name, claims }));
+const wrong = coarseCases(claimed, SHARED, partFiles());
+const { run: touched, because } = harnessRuns(claimed, SHARED, told(), reader());
+console.log(`harness.test.mts runs ${touched.size} of its ${cases.length} cases: ${because}.`);
+if (wrong.length) one("granular", () => assert.fail(`the test runs more than a change touches:\n${wrong.map((line) => `  ${line}`).join("\n")}`));
+
 // As many as there are, as many wait on one run: `stand` counts what runs.
 describe("side by side", { concurrency: cases.length }, () => {
-  for (const [name, fn] of cases) one(name, fn);
+  for (const [name, , fn] of cases) one(name, wrong.length ? { skip: "granular failed" } : touched.has(name) ? {} : { skip: "what changed touches nothing it tests" }, fn);
 });

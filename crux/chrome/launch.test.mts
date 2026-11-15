@@ -10,10 +10,13 @@ import { createServer, type IncomingHttpHeaders } from "node:http";
 import type { AddressInfo } from "node:net";
 import { join } from "node:path";
 import { after, before, suite, test as one, type TestContext } from "node:test";
+import { skipFor } from "./touches.mts";
 import { setTimeout as sleep } from "node:timers/promises";
 import { chromeProcess, hide, launch, type Options, readerAgent } from "./launch.ts";
 
 // What uses the environment goes first, by `one`, with nothing beside it; the rest are held as the file is read, and run side by side at its end: node:test goes one at a time but in a suite that says otherwise.
+// Each case is skipped where what changed touches nothing this file tests (crux#227).
+const touched = skipFor("launch.test.mts");
 const cases: [string, (t: TestContext) => void | Promise<void>][] = [];
 const test = (name: string, fn: (t: TestContext) => void | Promise<void>) => void cases.push([name, fn]);
 
@@ -80,7 +83,7 @@ before(async () => {
 });
 after(() => server.close());
 
-one("a Chrome that is not there fails, saying so", async () => {
+one("a Chrome that is not there fails, saying so", touched, async () => {
   await withEnv({ CHROME: "/nowhere/chrome" }, () =>
     assert.rejects(launch(), (e: Error) => /no Chrome at \/nowhere\/chrome/.test(e.message) && !/playwright install/.test(e.message)),
   );
@@ -89,7 +92,7 @@ one("a Chrome that is not there fails, saying so", async () => {
   await withEnv({ CHROME: "/bin/true" }, () => assert.rejects(launch(), /no Chrome at \/bin\/true/));
 });
 
-one("CHROME_ARGS and the test's own flags reach Chrome, and its sandbox stays on", async (t) => {
+one("CHROME_ARGS and the test's own flags reach Chrome, and its sandbox stays on", touched, async (t) => {
   await withEnv({ CHROME_ARGS: "--user-agent=from-chrome-args  --crux-from-machine" }, async () => {
     for (const reader of [false, true]) {
       const browser = await chrome(t, { reader, args: ["--crux-from-test"] });
@@ -218,5 +221,5 @@ for (const as of ["automation", "reader"]) {
 }
 
 suite("side by side", { concurrency: 6 }, () => {
-  for (const [name, fn] of cases) one(name, fn);
+  for (const [name, fn] of cases) one(name, touched, fn);
 });

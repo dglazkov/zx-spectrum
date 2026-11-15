@@ -18,3 +18,12 @@ test("a load", async ({ page, base }) => {
 });
 test("a context's event", ({ context }) => context.waitForEvent("page"));
 test("a script", ({ page }) => page.evaluate("new Promise(() => undefined)"));
+// A part that does not end as its page closes, where it waits again in what it does last: its limit cannot say what it
+// waited for, and says so (crux#226).
+test("a wait after it, that never ends", async ({ page }) => {
+  try {
+    await page.waitForFunction("window.never");
+  } finally {
+    await new Promise(() => undefined);
+  }
+});
