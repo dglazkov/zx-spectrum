@@ -48,8 +48,8 @@ profile of its own, as a phone (412 CSS pixels wide, 915 high, 2x, touch), its c
 a first visit, on connections of its own: the page loaded, its frames from then on running none of
 its script (a page that draws every frame holds Chrome for seconds a frame), scrolled to its end a
 screen at a time, and weighed once nothing has been fetched for two seconds. The headers whose value changes from one
-answer to the next whatever the product sends, the time and Cloud Run's x-cloud-trace-context, are
-counted as though each were sent with a value fixed for it; and each body over HTTP/2 as though it
+answer to the next whatever the product sends, the time and Cloud Run's x-cloud-trace-context and
+traceparent, are counted as though each were sent with a value fixed for it; and each body over HTTP/2 as though it
 came in frames of 16384 B, however many its front end split it into, and without the padding it
 added. A third party's answer over HTTP/2 (another host's, as Google Fonts') is counted with its
 headers as an encoder that indexes all it sends would code them, after those of its connection's
@@ -522,10 +522,12 @@ export async function weigh(url: string, pages: Page[], options: WeighOptions = 
 
 // The headers whose value changes from one answer to the next whatever the product sends: Cloud Run's front end
 // gives each answer a trace of its own, a random id that codes to a length of its own and now and then has ';o=1'
-// after it, and every server the time (crux#27). Each is counted as though it were sent as this, so that a page
-// weighs the same from one run to the next where nothing of it changed.
+// after it, and every server the time (crux#27); since about Nov 17, 2026 it gives each a traceparent too, the W3C's
+// form of the same trace, 00-TRACE-SPAN-FLAGS, its ids random and its flags 00 or 01 (crux#232). Each is counted as
+// though it were sent as this, so that a page weighs the same from one run to the next where nothing of it changed.
 export const FIXED: Record<string, string> = {
   'x-cloud-trace-context': '00000000000000000000000000000000/0000000000000000000;o=1',
+  traceparent: '00-00000000000000000000000000000000-0000000000000000-01',
   date: 'Thu, 01 Jan 1970 00:00:00 GMT',
 };
 

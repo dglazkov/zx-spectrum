@@ -573,6 +573,14 @@ test('an answer is counted as though its time and its trace were sent as the sam
     const date = (d: string) => valueBytes(d, protocol) + steadied({ Date: d }, protocol);
     assert.equal(date('Sat, 24 Oct 2026 19:41:05 GMT'), date('Sun, 04 Jan 2026 23:59:59 GMT'), protocol);
   }
+  // Google Frontend's traceparent (crux#232), as music.glazkov.ai sent one on Nov 17, codes to lengths of its own too:
+  // its ids are random hex, whose digits code shorter than its letters, and its flags are 00 or 01.
+  const a = '00-3aa48cbca71b96dc8068dff76110ce2e-66d83b971c44c2f4-01';
+  const b = '00-0123012301230123012301230123fff0-0102030405060708-00';
+  assert.notEqual(valueBytes(a, 'h2'), valueBytes(b, 'h2'));
+  for (const protocol of ['h2', 'h3', 'http/1.1']) {
+    assert.equal(valueBytes(a, protocol) + steadied({ Traceparent: a }, protocol), valueBytes(b, protocol) + steadied({ traceparent: b }, protocol), protocol);
+  }
   assert.equal(steadied({ 'content-type': 'text/html', server: 'Google Frontend', 'content-length': '12345' }, 'h2'), 0);
   assert.equal(steadied({}, 'h2'), 0);
 });
@@ -677,7 +685,8 @@ test('each stream\'s frames are found in Chrome\'s net log by its socket, its au
 
 /**
  * A stand-in for Cloud Run's front end, over HTTP/2 as Chrome reads it, with a certificate made for the test: each
- * answer has an x-cloud-trace-context of its own, of a length of its own, now and then with ';o=1' after it, and a
+ * answer has an x-cloud-trace-context of its own, of a length of its own, now and then with ';o=1' after it, a
+ * traceparent of its own too, as Google Frontend sends since about Nov 17 (crux#232), and a
  * date that changes from one answer to the next, as Google's front end sends them; and each body is sent in frames
  * of lengths of its own, as many as the answer's number says, as Cloud Run's front end split blog's pictures into 5
  * to 13 frames from one visit to the next (crux#29). The page, compressed as it is sent, says no content-length. With
@@ -686,7 +695,7 @@ test('each stream\'s frames are found in Chrome\'s net log by its socket, its au
  * as a busy machine had it now and then. Every other worker's script is sent at once, so that its whole body has come
  * before Chrome tells of it, as a busy machine has it however it is sent (crux#137).
  */
-async function frontEnd(early = false): Promise<{ url: string; answers: string[]; dates: string[]; worker: number; close(): Promise<void> }> {
+async function frontEnd(early = false): Promise<{ url: string; answers: string[]; dates: string[]; parents: string[]; worker: number; close(): Promise<void> }> {
   const dir = mkdtempSync(join(tmpdir(), 'crux-front-'));
   await new Promise<void>((resolve, reject) => execFile('openssl', ['req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1',
     '-nodes', '-keyout', join(dir, 'key.pem'), '-out', join(dir, 'cert.pem'), '-days', '1', '-subj', '/CN=127.0.0.1'],
@@ -696,6 +705,10 @@ async function frontEnd(early = false): Promise<{ url: string; answers: string[]
   rmSync(dir, { recursive: true, force: true });
   const answers: string[] = [];
   const dates: string[] = [];
+  const parents: string[] = [];
+  // A traceparent of its own, as Google Frontend sends since about Nov 17 (crux#232): hex ids that code to lengths of
+  // their own, and flags of 00 or 01.
+  const parentOf = (n: number) => `00-${(n * 40503).toString(16).repeat(8).slice(0, 32).padStart(32, 'f')}-${(n * 977).toString(16).padStart(16, n % 2 ? '0' : 'e')}-0${n % 2}`;
   let n = 0;
   let workers = 0;
   let second = 0;
@@ -724,13 +737,14 @@ async function frontEnd(early = false): Promise<{ url: string; answers: string[]
     const span = String(10 ** (n % 20)).replace(/0/g, () => String((n * 7) % 10)).slice(0, 1 + (n * 3) % 20);
     const trace = `${(n * 2654435761).toString(16).padStart(32, '7')}/${span}${n % 3 ? '' : ';o=1'}`;
     answers.push(trace);
+    parents.push(parentOf(n));
     // Each a time of its own, so that none is sent as a reference to one sent before, a second after the one before
     // and coded a byte longer or shorter than it, by turns.
     let date = '';
     do date = new Date(Date.UTC(2026, 9, 24) + 1000 * ++second).toUTCString();
     while (dates.length && (valueBytes(date, 'h2') === valueBytes(dates.at(-1)!, 'h2')));
     dates.push(date);
-    const head = { 'x-cloud-trace-context': trace, date, server: 'Google Frontend', ...(early ? { 'clear-site-data': '"cache"' } : {}) };
+    const head = { 'x-cloud-trace-context': trace, traceparent: parentOf(n), date, server: 'Google Frontend', ...(early ? { 'clear-site-data': '"cache"' } : {}) };
     // The picture one Chrome reads whole, as Cloud Run's are: one it cannot read, as 2000 spaces, Chrome counts
     // its body alone of, over HTTP/2 (crux#28). The stylesheet is the same bytes, so that only its type tells them apart.
     if (path.startsWith('/a.png') || path.startsWith('/a.css')) {
@@ -754,6 +768,7 @@ async function frontEnd(early = false): Promise<{ url: string; answers: string[]
     url: `https://127.0.0.1:${port}`,
     answers,
     dates,
+    parents,
     worker: worker.length,
     close: () => new Promise((resolve) => server.close(() => resolve())),
   };
@@ -776,6 +791,7 @@ async function visits(early: boolean) {
     assert.equal(s.answers.length, 20);
     assert.ok(new Set(s.answers.map((a) => valueBytes(a, 'h2'))).size > 3, s.answers.join(' '));
     assert.equal(new Set(s.dates.map((d) => valueBytes(d, 'h2'))).size, 2, s.dates.join(', '));
+    assert.ok(new Set(s.parents.map((p) => valueBytes(p, 'h2'))).size > 1, s.parents.join(' '));
     assert.ok(weighed.every((w) => w.fetched.length === 4 && w.fetched.every((f) => f.bytes > 0)));
     // The worker's script with its body, which Chrome counts its head alone of (crux#39), and that once, however much
     // of it Chrome had counted with its head (crux#137).
