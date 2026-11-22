@@ -155,6 +155,39 @@ test("a part that leaves its page changed fails, and one on a page a part failed
   assert.equal(one("left › finds its page as it should").outcome, "passed");
 });
 
+test("a group may say its own start and neutral, on a suite with none", ["standin/tests/neutral", "leftBy", "opened"], async () => {
+  const { code, one, parts } = await stand(["neutral", "--seed", "1"]);
+  assert.equal(code, 1);
+  assert.equal(one("kept › reads cleanly").outcome, "passed");
+  assert.equal(one("kept › leaves an attribute").outcome, "failed");
+  assert.match(one("kept › leaves an attribute").said!, /it left the kept page not as it found it: data-mark is left/);
+  const kept = parts.filter((p) => p.part.startsWith("kept ›")).map((p) => p.part);
+  assert.ok(kept.indexOf("kept › leaves an attribute") < kept.indexOf("kept › finds its page as it should"), `the seed has to put it after: ${kept}`);
+  assert.equal(one("kept › finds its page as it should").outcome, "passed");
+  assert.equal(one("plain › leaves an attribute").outcome, "passed");
+});
+
+test("a group's start and neutral override its suite's, leaving other groups on the suite's", ["standin/tests/neutral-over", "leftBy", "opened"], async () => {
+  const { code, one } = await stand(["neutral-over"]);
+  assert.equal(code, 1);
+  assert.equal(one("inherited › leaves the title").outcome, "failed");
+  assert.match(one("inherited › leaves the title").said!, /it left the suite page not as it found it: the title is changed/);
+  assert.equal(one("own › leaves the title").outcome, "passed");
+  assert.equal(one("own › leaves an attribute").outcome, "failed");
+  assert.match(one("own › leaves an attribute").said!, /it left the group's page not as it found it: data-mark is left/);
+});
+
+test("a suite's after runs after its parts, fails a whole run when it throws, and knows partial runs from whole", ["standin/tests/after", "run"], async () => {
+  const wholeRun = await stand(["after"]);
+  assert.equal(wholeRun.code, 1);
+  assert.equal(wholeRun.one("after › after").outcome, "failed");
+  assert.ok(wholeRun.one("after › after").said!.includes("whole run checked 2 parts"));
+  const byWords = await stand(["after", "first"]);
+  assert.equal(byWords.code, 0);
+  const byChanged = await stand(["after"], { NERD_CHANGED: "standin/tests/after/first.mjs\n" });
+  assert.equal(byChanged.code, 0);
+});
+
 test("a group whose page does not open fails each part, saying why", ["standin/tests/pages", "opened"], async () => {
   const { one } = await whole();
   assert.equal(one("unopened › cannot run").outcome, "failed");

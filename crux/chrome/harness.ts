@@ -98,6 +98,8 @@ export type Options = {
   granular?: { files: string[]; most?: number };
   /** Starts what serves the pages, on a port it chooses, never one written down: `vite` for a dev server. */
   serve?: () => Promise<Served>;
+  /** Runs once the suite's parts, browser and server have ended, where any part ran; what it throws fails the run. */
+  after?: (summary: { whole: boolean; parts: number; passed: number; failed: number; inconclusive: number }) => unknown;
   /** The page made ready, before each group's parts, or each part's. */
   open?: (page: Page, base: string) => unknown;
   /** Says how the page stands, after it opens, for `neutral`. */
@@ -123,7 +125,7 @@ export type Options = {
   tab?: boolean;
 };
 
-type GroupOptions = Pick<Options, "open" | "viewport" | "context" | "warnings" | "each" | "tab"> & {
+type GroupOptions = Pick<Options, "open" | "start" | "neutral" | "neutralName" | "viewport" | "context" | "warnings" | "each" | "tab"> & {
   /** The files its parts test, from the root, patterns as nerd.toml's: a change to one has them run, but for a part that says its own. */
   covers?: string[];
   /** Why its parts need a browser, where each would say the same. */
@@ -760,7 +762,8 @@ async function opened(here: Here, suite: Suite, group: Group, closing: () => Pro
   };
   const open = group.open ?? suite.open;
   if (open) await inOpening(Promise.resolve(open(here.page, here.base)), "the page was still opening");
-  return suite.start ? await inOpening(Promise.resolve(suite.start(here.page)), "the page was still starting") : null;
+  const start = group.start ?? suite.start;
+  return start ? await inOpening(Promise.resolve(start(here.page)), "the page was still starting") : null;
 }
 
 /** What a part's work came to within its limit: what it gave, or what it failed with, which says, where the limit ended
@@ -785,18 +788,19 @@ function heard(failure: Error | null, said: string[], reports: RegExp[]): Error 
   return failure;
 }
 
-/** A part's failure, with what it left otherwise than `start` found it, where the suite says what that is: not for a part
+/** A part's failure, with what it left otherwise than `start` found it, where the group or suite says what that is: not for a part
  * past its limit, which is no part to ask. */
-async function leftBy(suite: Suite, page: Page | null, start: unknown, failure: Error | null): Promise<Error | null> {
-  if (failure instanceof Overran || !suite.neutral || !page) return failure;
+async function leftBy(suite: Suite, group: Group, page: Page | null, start: unknown, failure: Error | null): Promise<Error | null> {
+  const neutral = group.neutral ?? suite.neutral;
+  if (failure instanceof Overran || !neutral || !page) return failure;
   let left: string[];
   try {
-    left = await within(Promise.resolve(suite.neutral(page, start)), 5, "the check of what it left was still going");
+    left = await within(Promise.resolve(neutral(page, start)), 5, "the check of what it left was still going");
   } catch (e) {
     left = [(e as Error).message];
   }
   if (!left.length) return failure;
-  const leftText = `it left ${suite.neutralName ?? "the page"} not as it found it: ${left.join("; ")}`;
+  const leftText = `it left ${group.neutralName ?? suite.neutralName ?? "the page"} not as it found it: ${left.join("; ")}`;
   if (!failure) return new Error(leftText);
   failure.message += ` (and ${leftText})`;
   return failure;
@@ -859,6 +863,7 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
   }
 
   const { chosen, because } = choose(suite, name, root, words);
+  const total = suite.groups.reduce((n, g) => n + g.parts.length, 0);
 
   // In what order, and in what units: a group that shares a page goes as one, and one that does not, part by part.
   const seed = given !== undefined ? Number(given) : Math.floor(Math.random() * 100000);
@@ -875,6 +880,7 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
   if (report) writeFileSync(report, "");
   for (const g of suite.groups) for (const p of g.parts) if (!units.some((u) => u.parts.includes(p))) part(`${g.name} › ${p.title}`, 0, "skipped");
   const count = units.reduce((n, u) => n + u.parts.length, 0);
+  const whole = !words.length && count === total;
   const alone = units.filter((u) => u.group.alone).map((u) => u.group.name);
   console.log(`${name}: ${count} parts in ${chosen.length} groups${sideBySide > 1 ? `, ${sideBySide} at a time${alone.length ? ` (${alone.join(", ")} first, alone)` : ""}${tabs.length ? ", one of them a reader's tab" : ""}` : ""}: ${because}. Seed ${seed} (\`nerd test ${process.env.NERD_TEST ?? name} -- --seed ${seed}\` runs each group's parts in this order again).`);
   if (!count) process.exit(0);
@@ -952,7 +958,7 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
         if (failure instanceof RealTime) await counted();
         const waited = Math.round(kept() - kept0);
         failure = heard(failure, errors.splice(0), p.reports);
-        failure = await leftBy(suite, here.page, start, failure);
+        failure = await leftBy(suite, group, here.page, start, failure);
         const { result, line } = endOf(label, verdict(failure, waited), ms, waited, limit, failure, detail);
         results.push(result);
         part(label, ms / 1000, result.outcome, result.message);
@@ -1010,6 +1016,16 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
   await within(Promise.resolve(served?.close()), 10, "the server was still closing").catch((e) => console.log(e.message));
 
   const ended = (outcome: string) => results.filter((r) => r.outcome === outcome);
+  if (suite.after) {
+    try {
+      await within(Promise.resolve(suite.after({ whole, parts: results.length, passed: ended("passed").length, failed: ended("failed").length, inconclusive: ended("inconclusive").length })), 10, "its after check was still going");
+    } catch (e) {
+      const label = `${name} › after`;
+      const message = (e as Error).message;
+      results.push({ label, outcome: "failed", ms: 0, message });
+      part(label, 0, "failed", message);
+    }
+  }
   const [failed, inconclusive] = [ended("failed"), ended("inconclusive")];
   const slowest = [...results].sort((a, b) => b.ms - a.ms).slice(0, 5);
   console.log(`\nslowest: ${slowest.map((r) => `${took(r.ms)} ${r.label}`).join("\n         ")}`);
