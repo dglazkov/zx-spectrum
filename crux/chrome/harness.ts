@@ -63,7 +63,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Worker } from "node:worker_threads";
 import type { Browser, BrowserContext, BrowserContextOptions, CDPSession, ConsoleMessage, Page, Request, Route, WebError } from "playwright-core";
-import { launch, type Options as ChromeOptions } from "./launch.ts";
+import type { Options as ChromeOptions } from "./launch.ts";
 
 type Fulfilled = NonNullable<Parameters<Route["fulfill"]>[0]>;
 
@@ -891,7 +891,8 @@ export async function run({ root: rootAt, tests, ...defaults }: Options & { root
 
   const served = suite.serve ? await suite.serve() : null;
   const base = served?.base ?? "";
-  const browser = suite.browser === false ? null : await launch(suite.chrome);
+  // Load launch.ts (and playwright-core) only when the suite actually runs a browser.
+  const browser = suite.browser === false ? null : await (await import("./launch.ts")).launch(suite.chrome);
 
   const results: Result[] = [];
   const began = performance.now();

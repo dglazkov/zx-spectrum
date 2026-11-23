@@ -33,7 +33,7 @@ type Reported = { part: string; seconds: number; outcome: string; said?: string 
 let runs = 0;
 
 /** How many stand-ins run at once, each with a Chrome. */
-let free = 8;
+let free = 6;
 const waiting: (() => void)[] = [];
 
 /** The stand-in's runner, with these words and environment, as nerd runs it: how it ended, what it printed, and what it

@@ -220,6 +220,6 @@ for (const as of ["automation", "reader"]) {
   });
 }
 
-suite("side by side", { concurrency: 6 }, () => {
+suite("side by side", { concurrency: 4 }, () => {
   for (const [name, fn] of cases) one(name, touched, fn);
 });
