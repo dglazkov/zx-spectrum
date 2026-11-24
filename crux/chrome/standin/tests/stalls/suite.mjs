@@ -1,1 +1,1 @@
-export default { limit: 1 };
+export default { limit: 1, parallel: 1 };

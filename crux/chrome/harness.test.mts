@@ -32,14 +32,21 @@ const { NODE_TEST_CONTEXT: _, NERD_CHANGED: _c, NERD_BASE: _b, NERD_USUAL: _u, N
 type Reported = { part: string; seconds: number; outcome: string; said?: string };
 let runs = 0;
 
-/** How many stand-ins run at once, each with a Chrome. */
-let free = 6;
+/** How many stand-ins run at once: Chrome-launching suites are capped at 4, and browserless suites at 4. */
+let free = 4;
 const waiting: (() => void)[] = [];
+let lightFree = 4;
+const lightWaiting: (() => void)[] = [];
 
 /** The stand-in's runner, with these words and environment, as nerd runs it: how it ended, what it printed, and what it
  * reported, in the order it did. */
 async function stand(args: string[], given: Record<string, string> = {}, runner = "tests/run.mjs") {
-  if (free-- <= 0) await new Promise<void>((go) => waiting.push(go));
+  const browserless = new Set(["narrow", "order", "apart", "apartall", "granular", "together", "together-each", "after", "tabplain"]).has(args[0]);
+  if (browserless) {
+    if (lightFree-- <= 0) await new Promise<void>((go) => lightWaiting.push(go));
+  } else if (free-- <= 0) {
+    await new Promise<void>((go) => waiting.push(go));
+  }
   const report = join(scratch, `report-${++runs}`);
   const child = spawn(process.execPath, [...process.execArgv, join(here, "standin", runner), ...args], {
     env: { ...env, NERD_TEST: "stand-in", NERD_REPORT: report, ...given },
@@ -49,8 +56,13 @@ async function stand(args: string[], given: Record<string, string> = {}, runner 
   child.stdout.on("data", (d) => (out += d));
   child.stderr.on("data", (d) => (out += d));
   const code = await new Promise((resolve) => child.on("close", resolve));
-  free++;
-  waiting.shift()?.();
+  if (browserless) {
+    lightFree++;
+    lightWaiting.shift()?.();
+  } else {
+    free++;
+    waiting.shift()?.();
+  }
   const lines = existsSync(report) ? readFileSync(report, "utf8").split("\n").filter(Boolean) : [];
   const parts: Reported[] = lines.map((l) => JSON.parse(l));
   const one = (name: string) => {
@@ -60,6 +72,66 @@ async function stand(args: string[], given: Record<string, string> = {}, runner 
   };
   return { code, out, parts, one, outcomes: Object.fromEntries(parts.map((p) => [p.part, p.outcome])) };
 }
+
+// The stand-in's suite of stalls and real-time judgments, started early so its single Chrome runs beside the other long suites.
+let stallsRun: ReturnType<typeof stand> | undefined;
+const stalled = () => (stallsRun ??= stand(["stalls"]));
+
+test("a stall made on purpose reports inconclusive, and fails nothing", ["standin/tests/stalls", "RealTime", "inTime", "verdict", "STALLED", "watch", "overslept", "cpuWaited", "kept", "endOf", "heard"], async () => {
+  const { out, one } = await stalled();
+  const part = one("stalled › judges real time");
+  assert.equal(part.outcome, "inconclusive", out);
+  assert.match(part.said!, /the ticks came late.*kept it from running \d+ ms, so this measured the machine/);
+});
+
+test("a stall that has only just ended is counted", ["standin/tests/stalls", "RealTime", "inTime", "verdict", "counted", "watch", "overslept", "kept", "endOf"], async () => {
+  const { out, parts } = await stalled();
+  const endings = parts.filter((p) => p.part.startsWith("stalled › judges real time as a stall ends"));
+  assert.equal(endings.length, 4, out);
+  assert.deepEqual([...new Set(endings.map((p) => p.outcome))], ["inconclusive"], out);
+});
+
+test("a part a stall only slowed passes past its limit", ["standin/tests/stalls", "within", "reach", "watch", "overslept", "kept", "ranOut", "endOf"], async () => {
+  const { out, one } = await stalled();
+  assert.equal(one("stalled › is only slowed").outcome, "passed", out);
+});
+
+test("a part the machine kept past three times its limit passes", ["standin/tests/stalls", "within", "reach", "STRETCH", "watch", "overslept", "kept", "ranOut", "endOf"], async () => {
+  const { out, one } = await stalled();
+  assert.equal(one("stalled › is kept past three times its limit").outcome, "passed", out);
+});
+
+test("a wait begun on a machine that kept the run is not held to less than the part is", ["standin/tests/stalls", "within", "FURTHEST", "watch", "kept", "waitsPast", "ranOut"], async () => {
+  const { out, one } = await stalled();
+  assert.equal(one("stalled › waits through a stall").outcome, "passed", out);
+});
+
+test("a wait begun before the machine is looked at is not held to less than the part is", ["standin/tests/stalls", "within", "FURTHEST", "watch", "kept", "waitsPast", "ranOut"], async () => {
+  const { out, one } = await stalled();
+  assert.equal(one("stalled › begins a wait before the machine is looked at").outcome, "passed", out);
+});
+
+test("a hang the machine kept still fails, saying what it waited for and what was kept", ["standin/tests/stalls", "within", "reach", "waitedFor", "took", "cpuWaited", "kept", "ranOut", "endOf"], async () => {
+  const { code, out, one } = await stalled();
+  assert.equal(code, 1, out);
+  const part = one("stalled › hangs after a stall");
+  assert.equal(part.outcome, "failed", out);
+  assert.match(part.said!, /still going after [\d.]+s: its 1s limit, stretched as the machine kept it from running [\d.]+s, waiting for locator\('#never'\)/);
+});
+
+test("a hang the machine kept to the end of its limit's reach is ended by that limit, not by the wait's own timeout", ["standin/tests/stalls", "within", "reach", "FURTHEST", "waitedFor", "took", "ranOut", "waitsPast"], async () => {
+  const { code, out, one } = await stalled();
+  assert.equal(code, 1, out);
+  const part = one("stalled › hangs through a long stall");
+  assert.equal(part.outcome, "failed", out);
+  assert.match(part.said!, /^still going after [\d.]+s: its 1s limit, stretched as the machine kept it from running [\d.]+s, waiting for locator\('#never'\)/);
+});
+
+test("a stall does not excuse what is no judgment of real time", ["standin/tests/stalls", "RealTime", "verdict", "endOf"], async () => {
+  const { code, one } = await stalled();
+  assert.equal(code, 1);
+  assert.equal(one("failing › fails beside a stall").outcome, "failed");
+});
 
 // The stand-in's suite of every way a part ends, run once: each case reads it.
 const seed = "34";
@@ -563,60 +635,6 @@ test("parts side by side take Chrome's one trace in turn, each whole, and one a 
   for (let i = 0; i < traces.length; i += 2) assert.deepEqual([traces[i].trace, traces[i + 1].trace, traces[i + 1].name], ["from", "to", traces[i].name], JSON.stringify(traces));
 });
 
-test("a stall made on purpose reports inconclusive, and fails nothing", ["standin/tests/stalls", "RealTime", "inTime", "verdict", "STALLED", "watch", "overslept", "cpuWaited", "kept", "endOf", "heard"], async () => {
-  const { code, out, one } = await stand(["stalls", "judges"]);
-  assert.equal(code, 0, out);
-  const part = one("stalled › judges real time");
-  assert.equal(part.outcome, "inconclusive", out);
-  assert.match(part.said!, /the ticks came late.*kept it from running \d+ ms, so this measured the machine/);
-});
-
-test("a stall that has only just ended is counted", ["standin/tests/stalls", "RealTime", "inTime", "verdict", "counted", "watch", "overslept", "kept", "endOf"], async () => {
-  const { code, out, parts } = await stand(["stalls", "as a stall ends"]);
-  assert.equal(code, 0, out);
-  assert.deepEqual([...new Set(parts.filter((p) => p.outcome !== "skipped").map((p) => p.outcome))], ["inconclusive"], out);
-});
-
-test("a part a stall only slowed passes past its limit", ["standin/tests/stalls", "within", "reach", "watch", "overslept", "kept", "ranOut", "endOf"], async () => {
-  const { code, out, one } = await stand(["stalls", "slowed"]);
-  assert.equal(code, 0, out);
-  assert.equal(one("stalled › is only slowed").outcome, "passed", out);
-});
-
-test("a part the machine kept past three times its limit passes", ["standin/tests/stalls", "within", "reach", "STRETCH", "watch", "overslept", "kept", "ranOut", "endOf"], async () => {
-  const { code, out, one } = await stand(["stalls", "kept past"]);
-  assert.equal(code, 0, out);
-  assert.equal(one("stalled › is kept past three times its limit").outcome, "passed", out);
-});
-
-test("a wait begun on a machine that kept the run is not held to less than the part is", ["standin/tests/stalls", "within", "FURTHEST", "watch", "kept", "waitsPast", "ranOut"], async () => {
-  const { code, out, one } = await stand(["stalls", "wait"]);
-  assert.equal(code, 0, out);
-  assert.equal(one("stalled › waits through a stall").outcome, "passed", out);
-});
-
-test("a wait begun before the machine is looked at is not held to less than the part is", ["standin/tests/stalls", "within", "FURTHEST", "watch", "kept", "waitsPast", "ranOut"], async () => {
-  const { code, out, one } = await stand(["stalls", "before the machine"]);
-  assert.equal(code, 0, out);
-  assert.equal(one("stalled › begins a wait before the machine is looked at").outcome, "passed", out);
-});
-
-test("a hang the machine kept still fails, saying what it waited for and what was kept", ["standin/tests/stalls", "within", "reach", "waitedFor", "took", "cpuWaited", "kept", "ranOut", "endOf"], async () => {
-  const { code, out, one } = await stand(["stalls", "hangs"]);
-  assert.equal(code, 1, out);
-  const part = one("stalled › hangs after a stall");
-  assert.equal(part.outcome, "failed", out);
-  assert.match(part.said!, /still going after [\d.]+s: its 1s limit, stretched as the machine kept it from running [\d.]+s, waiting for locator\('#never'\)/);
-});
-
-test("a hang the machine kept to the end of its limit's reach is ended by that limit, not by the wait's own timeout", ["standin/tests/stalls", "within", "reach", "FURTHEST", "waitedFor", "took", "ranOut", "waitsPast"], async () => {
-  const { code, out, one } = await stand(["stalls", "long stall"]);
-  assert.equal(code, 1, out);
-  const part = one("stalled › hangs through a long stall");
-  assert.equal(part.outcome, "failed", out);
-  assert.match(part.said!, /^still going after [\d.]+s: its 1s limit, stretched as the machine kept it from running [\d.]+s, waiting for locator\('#never'\)/);
-});
-
 test("a wait as a page opens is not held to less than the opening is, and a hung opening says what it waited for", ["standin/tests/opening", "within", "Overran", "waitedFor", "FURTHEST", "opened", "waitsPast"], async () => {
   const { code, out, one } = await stand(["opening"]);
   assert.equal(code, 1, out);
@@ -632,12 +650,6 @@ test("a wait as a page opens is not held to less than the opening is, and a hung
     assert.match(part.said!, hung, out);
     assert.match(part.said!, waited, out);
   }
-});
-
-test("a stall does not excuse what is no judgment of real time", ["standin/tests/stalls", "RealTime", "verdict", "endOf"], async () => {
-  const { code, one } = await stand(["stalls", "fails beside"]);
-  assert.equal(code, 1);
-  assert.equal(one("failing › fails beside a stall").outcome, "failed");
 });
 
 test("run outside nerd, it says so; --list needs no nerd", ["standin/tests/narrow", "standin/tests/apart"], async () => {
@@ -853,7 +865,7 @@ test("vite: on a port it chooses, watching nothing and reloading nothing, whatev
 const SHARED: Shared = {
   files: ["standin/tests/run.mjs", "standin/serve.mjs"],
   declarations: ["run", "load", "group", "reading", "registered"],
-  helpers: ["cases", "test", "here", "scratch", "runs", "free", "waiting", "stand"],
+  helpers: ["cases", "test", "here", "scratch", "runs", "free", "waiting", "lightFree", "lightWaiting", "stand"],
 };
 
 // Which cases what changed touches, the rest skipped; none, where the test would run more than that (`granular`).
