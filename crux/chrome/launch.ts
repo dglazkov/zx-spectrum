@@ -49,6 +49,45 @@ export function readerAgent(version: string, phone = false): string {
     : `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${major}.0.0.0 Safari/537.36`;
 }
 
+// Playwright 1.64.1 defaults (Chromium honors only the last --disable-features flag) plus background model/hint
+// downloaders so shared Chrome profiles stay small in TMPDIR instead of fetching ~50 MB of models after startup.
+const DISABLED_FEATURES = [
+  "AvoidUnnecessaryBeforeUnloadCheckSync",
+  "DestroyProfileOnBrowserClose",
+  "DialMediaRouteProvider",
+  "GlobalMediaControls",
+  "HttpsUpgrades",
+  "LensOverlay",
+  "MediaRouter",
+  "PaintHolding",
+  "ThirdPartyStoragePartitioning",
+  "BlockOriginHeaderModificationOnRedirect",
+  "AvoidCorsURLLoaderRestartOnRedirect",
+  "Translate",
+  "AutoDeElevate",
+  "OptimizationHints",
+  "NetworkTimeServiceQuerying",
+  "AimEnabled",
+  "msForceBrowserSignIn",
+  "msEdgeUpdateLaunchServicesPreferredVersion",
+  "OptimizationGuideModelDownloading",
+  "OptimizationHintsFetching",
+  "OptimizationTargetPrediction",
+];
+
+function launchArgs(raw: string[]): string[] {
+  const features = new Set(DISABLED_FEATURES);
+  const kept: string[] = [];
+  for (const arg of raw) {
+    if (arg.startsWith("--disable-features=")) {
+      for (const f of arg.slice("--disable-features=".length).split(",")) if (f) features.add(f);
+    } else {
+      kept.push(arg);
+    }
+  }
+  return ["--disable-domain-reliability", `--disable-features=${[...features].join(",")}`, ...kept];
+}
+
 /** Starts Chrome: every process of it gone, and its profile, a directory of its own, removed, when it is closed. Where
  * the test dies first, by what it threw, process.exit or a signal, Playwright's handlers do the same; killed outright,
  * Chrome ends with the pipe it was driven over, and its profile is left in the temporary directory. */
@@ -62,7 +101,7 @@ export async function launch({ reader, args = [], ...options }: Options = {}): P
     chromiumSandbox: true,
     handleSIGTERM: false,
     handleSIGHUP: false,
-    args: [...machine, ...(reader ? readerArgs(major) : []), ...args],
+    args: launchArgs([...machine, ...(reader ? readerArgs(major) : []), ...args]),
   });
   return reader ? asReader(started) : started;
 }

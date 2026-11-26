@@ -93,13 +93,17 @@ one("a Chrome that is not there fails, saying so", touched, async () => {
 });
 
 one("CHROME_ARGS and the test's own flags reach Chrome, and its sandbox stays on", touched, async (t) => {
-  await withEnv({ CHROME_ARGS: "--user-agent=from-chrome-args  --crux-from-machine" }, async () => {
+  await withEnv({ CHROME_ARGS: "--user-agent=from-chrome-args  --crux-from-machine --disable-features=CruxTestFeature" }, async () => {
     for (const reader of [false, true]) {
       const browser = await chrome(t, { reader, args: ["--crux-from-test"] });
       const { pid } = await chromeProcess(browser);
       const line = readFileSync(`/proc/${pid}/cmdline`, "utf8");
       assert.match(line, /--crux-from-machine/);
       assert.match(line, /--crux-from-test/);
+      assert.match(line, /--disable-domain-reliability/);
+      assert.match(line, /OptimizationGuideModelDownloading/);
+      assert.match(line, /PaintHolding/);
+      assert.match(line, /CruxTestFeature/);
       assert.doesNotMatch(line, /--no-sandbox/);
       if (!reader) {
         const page = await (await browser.newContext()).newPage();
