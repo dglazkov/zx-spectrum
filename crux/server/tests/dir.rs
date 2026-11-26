@@ -123,6 +123,7 @@ fn build() -> (Scratch, PathBuf) {
     write(&HASHED[1..], js.as_bytes());
     write(&format!("{}.br", &HASHED[1..]), &brotli(js.as_bytes(), 5));
     write(&format!("{}.gz", &HASHED[1..]), &gzip(js.as_bytes(), 1));
+    write("assets/index-fmamlhtk.js", js.as_bytes());
     let css = text("body { margin: 0 }");
     write("assets/style-Ck2_x9Qa.css", css.as_bytes());
     write("assets/style-Ck2_x9Qa.css.br", &brotli(css.as_bytes(), 5));
@@ -309,6 +310,7 @@ fn what_is_named_after_its_contents_is_kept_a_year() {
     for t in tables(&Dir::new(&dist)) {
         for (path, cache) in [
             (HASHED, server::IMMUTABLE),
+            ("/assets/index-fmamlhtk.js", server::IMMUTABLE),
             ("/assets/style-Ck2_x9Qa.css", server::IMMUTABLE),
             ("/assets/logo.svg", server::CACHE),
             ("/assets/my-component.js", server::CACHE),
@@ -331,12 +333,20 @@ fn what_is_named_after_its_contents_is_kept_a_year() {
         ("/assets/index-D-3kR9xq.js", true),
         ("/assets/index-a1b2c3d4.js.map", true),
         ("/x/assets/chunk-0123456789abcdef0123.mjs", true),
-        ("/assets/index-abcdefgh.js", false),
+        ("/assets/index-abcdefgh.js", true),
+        ("assets/index-abcdefgh.js", true),
+        ("/assets/index-fmamlhtk.js", true),
+        ("assets/index-fmamlhtk.js", true),
+        ("/assets/index-ab_defgh.js", true),
+        ("/assets/index-abcdefghij.js", false),
         ("/assets/my-component.js", false),
         ("/assets/index-BXkq3Lq.js", false),
+        ("/assets/index-fmamlht.js", false),
         ("/assets/-BXkq3Lq_.js", false),
+        ("/assets/-fmamlhtk.js", false),
         ("/assets/index-BXkq3L!_.js", false),
         ("/app-BXkq3Lq_.js", false),
+        ("/app-fmamlhtk.js", false),
         ("/assets/", false),
     ] {
         assert_eq!(server::hashed(path), is, "{path}");
@@ -419,6 +429,12 @@ fn the_products_headers_on_all_and_by_prefix() {
             ("/route", "credentialless", None, "no-cache"),
             ("/types/x.png", "credentialless", None, "no-cache"),
             (HASHED, "require-corp", None, server::IMMUTABLE),
+            (
+                "/assets/index-fmamlhtk.js",
+                "require-corp",
+                None,
+                server::IMMUTABLE,
+            ),
             (
                 "/sub/",
                 "credentialless",

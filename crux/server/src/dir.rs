@@ -345,8 +345,9 @@ pub fn content_type(path: &str) -> &'static str {
 
 /// Whether the file at `path` is named after its contents, as Vite names what it builds,
 /// `assets/NAME-HASH.EXT`: in a directory named `assets`, its name before its first dot ending in
-/// a dash and 8 to 32 of `A-Z a-z 0-9 _ -`, among them a digit or a capital, as a hash in base64
-/// has, and as a word seldom does.
+/// a dash and 8 to 32 of `A-Z a-z 0-9 _ -`; a hash longer than 8 characters also carries a digit
+/// or a capital, as a word seldom does, while Vite's 8-character base64url hashes may be all
+/// lowercase.
 pub fn hashed(path: &str) -> bool {
     let mut names = path.rsplit('/');
     let name = names.next().unwrap_or("");
@@ -363,8 +364,9 @@ pub fn hashed(path: &str) -> bool {
             && hash
                 .iter()
                 .all(|c| c.is_ascii_alphanumeric() || *c == b'_' || *c == b'-')
-            && hash
-                .iter()
-                .any(|c| c.is_ascii_digit() || c.is_ascii_uppercase())
+            && (n == 8
+                || hash
+                    .iter()
+                    .any(|c| c.is_ascii_digit() || c.is_ascii_uppercase()))
     })
 }
