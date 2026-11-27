@@ -328,6 +328,25 @@ fn compressed_when_first_wanted_and_at_the_best() {
 }
 
 #[test]
+fn site_serves_compressed_on_demand_in_debug_and_test() {
+    let site = Site::new(table());
+    if cfg!(debug_assertions) || std::env::var_os("NERD_TEST").is_some() {
+        // In debug/test mode, Site::new skips eager background compression of unrequested entries.
+        assert!(!site.table().entries["/feed/"].ready());
+    }
+    // A requested entry is still compressed on demand at full brotli quality.
+    let answer = tokio::runtime::Runtime::new()
+        .unwrap()
+        .block_on(site.answer(Method::GET, "/".parse().unwrap(), with("br", None)));
+    assert_eq!(answer.status, StatusCode::OK);
+    assert_eq!(answer.header(header::CONTENT_ENCODING), Some("br"));
+    assert!(site.table().entries["/"].ready());
+    if cfg!(debug_assertions) || std::env::var_os("NERD_TEST").is_some() {
+        assert!(!site.table().entries["/feed/"].ready());
+    }
+}
+
+#[test]
 fn keeps_what_did_not_change() {
     let old = table();
     get(&old, "/", None, "br");

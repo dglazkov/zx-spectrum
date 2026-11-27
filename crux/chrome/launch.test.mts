@@ -224,6 +224,6 @@ for (const as of ["automation", "reader"]) {
   });
 }
 
-suite("side by side", { concurrency: 3 }, () => {
+suite("side by side", { concurrency: 2 }, () => {
   for (const [name, fn] of cases) one(name, touched, fn);
 });

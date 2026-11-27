@@ -573,14 +573,20 @@ impl Table {
     /// are cores, while requests compress what they ask for first; with how many it compressed,
     /// and how long it took. A file given [`File::unread`] is [`Table::read`]'s.
     pub fn compress(&self) -> (usize, Duration) {
-        self.pass(false)
+        self.pass(false, true)
     }
 
     /// Reads every file given [`File::unread`] not read yet, and compresses it, on as many
     /// threads as there are cores, while requests read what they ask for first; with how many it
     /// read, and how long it took.
     pub fn read(&self) -> (usize, Duration) {
-        self.pass(true)
+        self.pass(true, true)
+    }
+
+    /// Reads every file given [`File::unread`] not read yet without compressing it, for debug and
+    /// test servers so unrequested files are compressed only when asked for.
+    fn read_unread(&self) -> (usize, Duration) {
+        self.pass(true, false)
     }
 
     /// Whether a file given [`File::unread`] is among them.
@@ -591,24 +597,40 @@ impl Table {
     }
 
     /// Readies each file not ready yet, of those given unread or of the rest.
-    fn pass(&self, unread: bool) -> (usize, Duration) {
+    fn pass(&self, unread: bool, compress: bool) -> (usize, Duration) {
         let started = Instant::now();
         let mut todo: Vec<&Arc<Entry>> = std::iter::once(&self.not_found)
             .chain(self.entries.values())
-            .filter(|e| e.unread.is_some() == unread && !e.ready())
+            .filter(|e| {
+                e.unread.is_some() == unread
+                    && if compress {
+                        !e.ready()
+                    } else {
+                        e.unread.as_ref().is_some_and(|r| r.read.get().is_none())
+                    }
+            })
             .collect();
         // The largest first, so that no thread is left with a long one at the end.
         todo.sort_by_key(|e| std::cmp::Reverse(e.size()));
         let threads = std::thread::available_parallelism()
             .map(|n| n.get())
             .unwrap_or(1);
+        let threads = if cfg!(debug_assertions) || std::env::var_os("NERD_TEST").is_some() {
+            threads.min(4)
+        } else {
+            threads
+        };
         let next = std::sync::atomic::AtomicUsize::new(0);
         std::thread::scope(|s| {
             for _ in 0..threads.min(todo.len()) {
                 s.spawn(|| loop {
                     let i = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                     let Some(e) = todo.get(i) else { break };
-                    e.packed();
+                    if compress {
+                        e.packed();
+                    } else {
+                        let _ = e.now();
+                    }
                 });
             }
         });
@@ -939,19 +961,30 @@ impl Asked {
 
 /// Compresses what `table` has not yet, on threads of its own, and says in the log when it is done;
 /// then, once the site is first asked for anything, so that nothing of it is read before it
-/// listens, reads what was given unread, and says so too.
+/// listens, reads what was given unread, and says so too. In debug and test runs, skip eager
+/// pre-compression so unrequested files are compressed only when requested.
 fn compress(table: Arc<Table>, asked: Arc<Asked>) {
+    let eager = !cfg!(debug_assertions) && std::env::var_os("NERD_TEST").is_none();
+    if !eager && !table.unread() {
+        return;
+    }
     std::thread::spawn(move || {
-        let (n, took) = table.compress();
-        if n > 0 {
-            log(
-                "INFO",
-                &format!("compressed {n} files in {} ms", took.as_millis()),
-            );
+        if eager {
+            let (n, took) = table.compress();
+            if n > 0 {
+                log(
+                    "INFO",
+                    &format!("compressed {n} files in {} ms", took.as_millis()),
+                );
+            }
         }
         if table.unread() {
             asked.wait();
-            let (n, took) = table.read();
+            let (n, took) = if eager {
+                table.read()
+            } else {
+                table.read_unread()
+            };
             if n > 0 {
                 log(
                     "INFO",
